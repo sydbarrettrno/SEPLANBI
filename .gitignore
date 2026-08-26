@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 venv/
 .vercel/
+.env.local
 node_modules/
 dist/
 *.tsbuildinfo

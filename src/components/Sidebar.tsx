@@ -1,5 +1,4 @@
 import type { PageId } from "../types";
-import logoMunicipio from "../../assets/logo-municipio-itapoa.png";
 
 interface SidebarProps {
   page: PageId;
@@ -24,13 +23,9 @@ export function Sidebar({ page, onNavigate, open, onClose }: SidebarProps) {
         onClick={onClose}
       />
       <aside className={`sidebar ${open ? "is-open" : ""}`} aria-label="Navegação principal">
-        <div className="brand-block">
-          <img src={logoMunicipio} alt="Brasão do Município de Itapoá" />
-        </div>
-
         <div className="sidebar-context">
-          <span>Painel Executivo</span>
-          <strong>Gestão à Vista</strong>
+          <span>Navegação</span>
+          <strong>Painel Executivo</strong>
         </div>
 
         <nav>

@@ -1,9 +1,9 @@
 import { formatNumber, formatPercent } from "../format";
-import type { DashboardMetrics } from "../types";
+import type { DashboardMetrics, DetailId, Recordset } from "../types";
 
 interface ExceptionPanelProps {
   metrics: DashboardMetrics;
-  onOpen: (recordset: "stock" | "stopped") => void;
+  onOpen: (detail: DetailId, recordset: Recordset) => void;
 }
 
 export function ExceptionPanel({ metrics, onOpen }: ExceptionPanelProps) {
@@ -14,6 +14,7 @@ export function ExceptionPanel({ metrics, onOpen }: ExceptionPanelProps) {
       context: `${formatPercent(metrics.stopped.percent)} da fila interna acima de ${metrics.stopped.threshold_days} dias`,
       tone: "critical",
       recordset: "stopped" as const,
+      detail: "stopped" as const,
       action: "Prioridade imediata",
     },
     {
@@ -22,6 +23,7 @@ export function ExceptionPanel({ metrics, onOpen }: ExceptionPanelProps) {
       context: "aguardando requerente, responsável técnico ou terceiro",
       tone: "warning",
       recordset: "stock" as const,
+      detail: "external" as const,
       action: "Acompanhar retorno",
     },
     {
@@ -30,6 +32,7 @@ export function ExceptionPanel({ metrics, onOpen }: ExceptionPanelProps) {
       context: "fora da fila ativa, mantidos visíveis para controle",
       tone: "neutral",
       recordset: "stock" as const,
+      detail: "suspended" as const,
       action: "Revisar situação",
     },
   ];
@@ -42,7 +45,7 @@ export function ExceptionPanel({ metrics, onOpen }: ExceptionPanelProps) {
       </div>
       <div className="exception-grid">
         {exceptions.map((item) => (
-          <button key={item.title} className={`exception-card ${item.tone}`} onClick={() => onOpen(item.recordset)}>
+          <button key={item.title} className={`exception-card ${item.tone}`} onClick={() => onOpen(item.detail, item.recordset)}>
             <span className="exception-signal" aria-hidden="true" />
             <div><small>{item.action}</small><h3>{item.title}</h3><p>{item.context}</p></div>
             <strong>{item.value}</strong>

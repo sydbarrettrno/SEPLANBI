@@ -1,5 +1,6 @@
 export type PageId = "overview" | "processes" | "indicators" | "admin";
 export type Recordset = "all" | "received" | "concluded" | "stock" | "stopped";
+export type DetailId = "all" | "received" | "concluded" | "balance" | "stock" | "time" | "stopped" | "external" | "suspended";
 
 export interface FlowPoint {
   month: string;

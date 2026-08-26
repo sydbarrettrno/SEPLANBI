@@ -3,6 +3,7 @@ import type { FlowPoint } from "../types";
 
 interface FlowChartProps {
   data: FlowPoint[];
+  focus?: "received" | "concluded" | "all";
 }
 
 const WIDTH = 860;
@@ -21,7 +22,7 @@ function linePath(values: number[], maxValue: number) {
     .join(" ");
 }
 
-export function FlowChart({ data }: FlowChartProps) {
+export function FlowChart({ data, focus = "all" }: FlowChartProps) {
   const allValues = data.flatMap((item) => [item.received, item.concluded, item.concluded_formal]);
   const maxValue = Math.max(1, ...allValues);
   const ySteps = 4;
@@ -50,9 +51,9 @@ export function FlowChart({ data }: FlowChartProps) {
           const x = PAD.left + (data.length === 1 ? plotWidth / 2 : (index / (data.length - 1)) * plotWidth);
           return <text key={item.month} x={x} y={HEIGHT - 16} textAnchor="middle" className="month-label">{monthLabel(item.month)}</text>;
         })}
-        <path d={linePath(data.map((item) => item.received), maxValue)} className="line received-line" />
-        <path d={linePath(data.map((item) => item.concluded), maxValue)} className="line concluded-line" />
-        <path d={linePath(data.map((item) => item.concluded_formal), maxValue)} className="line formal-line" />
+        <path d={linePath(data.map((item) => item.received), maxValue)} className={`line received-line ${focus === "concluded" ? "line-muted" : ""}`} />
+        <path d={linePath(data.map((item) => item.concluded), maxValue)} className={`line concluded-line ${focus === "received" ? "line-muted" : ""}`} />
+        <path d={linePath(data.map((item) => item.concluded_formal), maxValue)} className={`line formal-line ${focus !== "concluded" && focus !== "all" ? "line-muted" : ""}`} />
         {data.map((item, index) => {
           const x = PAD.left + (data.length === 1 ? plotWidth / 2 : (index / (data.length - 1)) * plotWidth);
           const y = PAD.top + plotHeight - (item.received / maxValue) * plotHeight;

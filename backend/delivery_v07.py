@@ -31,8 +31,8 @@ def dashboard(query):
     data["meta"]["taxonomy_version"] = "V07"
     data["meta"]["category_count"] = len({core._clean(r.get("Categoria")) for r in rows})
 
-    data["charts"]["received_categories"] = base._top(received, "Categoria", 12)
-    data["charts"]["concluded_categories"] = base._top(concluded, "Categoria", 12)
+    data["charts"]["received_categories"] = base._top_categories(received)
+    data["charts"]["concluded_categories"] = base._top_categories(concluded)
     data["charts"]["public_projects_status"] = base._top(project_stock, "StatusOperacional", 8)
 
     data["management"]["inspections"] = {

@@ -13,6 +13,7 @@ DIST = ROOT / "dist"
 sys.path.insert(0, str(ROOT))
 
 from backend.final_entry import dashboard, health, query_from_params  # noqa: E402
+from backend.admin_store import AdminStoreError, load_descriptions, save_descriptions  # noqa: E402
 
 
 def _flatten(query_string: str) -> dict[str, str]:
@@ -24,31 +25,56 @@ class DevHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(DIST), **kwargs)
 
+    def _send_json(self, status: int, payload: dict):
+        body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api":
             try:
                 params = _flatten(parsed.query)
                 action = params.pop("action", "dashboard")
-                payload = health() if action == "health" else dashboard(query_from_params(params))
-                body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Content-Length", str(len(body)))
-                self.send_header("Cache-Control", "no-store")
-                self.end_headers()
-                self.wfile.write(body)
+                if action == "health":
+                    payload = health()
+                elif action == "card-descriptions":
+                    payload = load_descriptions()
+                else:
+                    payload = dashboard(query_from_params(params))
+                self._send_json(200, payload)
             except Exception as exc:
-                body = json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False).encode("utf-8")
-                self.send_response(500)
-                self.send_header("Content-Type", "application/json; charset=utf-8")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
+                self._send_json(500, {"ok": False, "error": str(exc)})
             return
         if parsed.path == "/":
             self.path = "/index.html"
         super().do_GET()
+
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path != "/api":
+            self._send_json(404, {"ok": False, "error": "Rota não encontrada."})
+            return
+        try:
+            params = _flatten(parsed.query)
+            if params.get("action") != "card-descriptions":
+                self._send_json(400, {"ok": False, "error": "Ação inválida."})
+                return
+            length = int(self.headers.get("Content-Length", "0"))
+            if length <= 0 or length > 16_384:
+                self._send_json(400, {"ok": False, "error": "Corpo da requisição inválido."})
+                return
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            result = save_descriptions(payload.get("descriptions"), payload.get("password", ""), "127.0.0.1")
+            self._send_json(200, result)
+        except AdminStoreError as exc:
+            self._send_json(exc.status, {"ok": False, "error": exc.public_message})
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "Requisição inválida."})
 
     def log_message(self, format, *args):
         sys.stdout.write("[dev] " + (format % args) + "\n")

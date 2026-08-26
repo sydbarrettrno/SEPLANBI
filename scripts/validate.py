@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from backend.final_entry import dashboard, health, query_from_params  # noqa: E402
+from backend.admin_store import DEFAULT_DESCRIPTIONS, load_descriptions  # noqa: E402
 
 EXPECTED = {
     "rows": 6975,
@@ -46,6 +47,10 @@ assert round(m["stopped"]["percent"], 1) == 70.3, m
 assert m["turnaround"]["median_days"] == EXPECTED["turnaround_median"], m
 assert m["turnaround"]["p90_days"] == EXPECTED["turnaround_p90"], m
 assert len(d["charts"]["flow"]) == 8, d["charts"]["flow"]
+assert sum(item["value"] for item in d["charts"]["received_categories"]) == m["received"]
+assert sum(item["value"] for item in d["charts"]["concluded_categories"]) == m["concluded"]
+assert sum(item["value"] for item in d["charts"]["categories"]) == m["stock"]
+assert sum(item["value"] for item in d["charts"]["internal_categories"]) == m["internal_queue"]
 assert len(d["records"]["items"]) <= 200
 assert any(x["id"] == "KPI06" and x["status"] != "DISPONÍVEL" for x in d["indicator_coverage"])
 
@@ -56,6 +61,9 @@ assert cmp["previous"]["cohort_concluded_formal"] == 1202, cmp
 assert cmp["received_change_percent"] == 2.1, cmp
 assert cmp["cohort_formal_change_percent"] == 8.3, cmp
 assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 735
+
+admin = load_descriptions()
+assert set(admin["descriptions"]) == set(DEFAULT_DESCRIPTIONS)
 
 print(json.dumps({
     "status": "VALIDADO",

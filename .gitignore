@@ -32,3 +32,6 @@ dados_privados/
 relatorios_privados/
 data/.update-*/
 data/.metadata-*.tmp
+
+.env*
+!.env.example

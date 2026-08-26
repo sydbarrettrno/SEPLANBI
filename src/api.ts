@@ -1,4 +1,4 @@
-import type { DashboardData, DashboardFilters } from "./types";
+import type { CardDescriptionMap, CardDescriptionsPayload, DashboardData, DashboardFilters } from "./types";
 
 export async function fetchDashboard(
   filters: DashboardFilters,
@@ -30,4 +30,29 @@ export async function fetchDashboard(
     throw new Error(`A API respondeu com o código ${response.status}.`);
   }
   return (await response.json()) as DashboardData;
+}
+
+async function readJson<T>(response: Response): Promise<T> {
+  const payload = await response.json() as T & { error?: string };
+  if (!response.ok) {
+    throw new Error(payload.error || `A API respondeu com o código ${response.status}.`);
+  }
+  return payload;
+}
+
+export async function fetchCardDescriptions(signal?: AbortSignal): Promise<CardDescriptionsPayload> {
+  const response = await fetch("/api?action=card-descriptions", {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  return readJson<CardDescriptionsPayload>(response);
+}
+
+export async function saveCardDescriptions(descriptions: CardDescriptionMap, password: string): Promise<CardDescriptionsPayload> {
+  const response = await fetch("/api?action=card-descriptions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ descriptions, password }),
+  });
+  return readJson<CardDescriptionsPayload>(response);
 }

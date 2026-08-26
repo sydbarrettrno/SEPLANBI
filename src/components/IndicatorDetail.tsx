@@ -118,6 +118,8 @@ export function IndicatorDetail({ data, detail }: IndicatorDetailProps) {
     stock: "Categorias na fila interna", time: "Categorias dos processos concluídos", stopped: "Concentração por responsabilidade",
     external: "Categorias aguardando retorno", suspended: "Categorias dos suspensos",
   };
+  const categoryDetails: DetailId[] = ["received", "concluded", "stock", "time", "external", "suspended"];
+  const secondaryLimit = categoryDetails.includes(detail) ? 12 : 8;
 
   return (
     <>
@@ -131,7 +133,7 @@ export function IndicatorDetail({ data, detail }: IndicatorDetailProps) {
         </article>
         <article className="panel detail-secondary-chart">
           <div className="panel-heading"><div><span className="eyebrow">COMPOSIÇÃO</span><h2>{secondaryTitles[detail]}</h2></div></div>
-          <BarList data={secondaryBars[detail]} tone={detail === "concluded" ? "teal" : detail === "stopped" ? "red" : "blue"} limit={8} />
+          <BarList data={secondaryBars[detail]} tone={detail === "concluded" ? "teal" : detail === "stopped" ? "red" : "blue"} limit={secondaryLimit} />
           <div className="detail-reading"><strong>Leitura gerencial</strong><p>{copy.note}</p></div>
         </article>
       </section>

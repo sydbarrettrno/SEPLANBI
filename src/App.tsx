@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDashboard } from "./api";
+import { fetchCardDescriptions, fetchDashboard, saveCardDescriptions } from "./api";
 import { AdminDescriptions } from "./components/AdminDescriptions";
 import { BarList } from "./components/BarList";
 import { DrilldownTable } from "./components/DrilldownTable";
 import { ExceptionPanel } from "./components/ExceptionPanel";
 import { FilterBar } from "./components/FilterBar";
-import { FlowChart } from "./components/FlowChart";
 import { Header } from "./components/Header";
 import { IndicatorCoverage } from "./components/IndicatorCoverage";
 import { DETAIL_COPY, IndicatorDetail } from "./components/IndicatorDetail";
 import { KpiCard } from "./components/KpiCard";
+import { MonthlyFlowBarChart } from "./components/MonthlyFlowBarChart";
 import { Sidebar } from "./components/Sidebar";
 import { formatDays, formatNumber, formatPercent, monthLabel } from "./format";
 import type { CardDescriptionMap, DashboardData, DashboardFilters, DetailId, PageId, Recordset } from "./types";
-
-const DESCRIPTION_KEY = "seplan.card-descriptions.v1";
 
 const DEFAULT_DESCRIPTIONS: CardDescriptionMap = {
   received: "Demandas que entraram na SEPLAN durante o período selecionado.",
@@ -38,15 +36,6 @@ const INITIAL_FILTERS: DashboardFilters = {
   limit: 50,
 };
 
-function loadDescriptions(): CardDescriptionMap {
-  try {
-    const stored = window.localStorage.getItem(DESCRIPTION_KEY);
-    return stored ? { ...DEFAULT_DESCRIPTIONS, ...JSON.parse(stored) } : DEFAULT_DESCRIPTIONS;
-  } catch {
-    return DEFAULT_DESCRIPTIONS;
-  }
-}
-
 function comparisonLabel(value: number | null | undefined, subject: string) {
   if (value == null) return `${subject}: sem comparação`;
   const direction = value > 0 ? "↑" : value < 0 ? "↓" : "→";
@@ -62,11 +51,23 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [descriptions, setDescriptions] = useState<CardDescriptionMap>(loadDescriptions);
+  const [descriptions, setDescriptions] = useState<CardDescriptionMap>(DEFAULT_DESCRIPTIONS);
+  const [adminPersistent, setAdminPersistent] = useState(false);
+  const [adminUpdatedAt, setAdminUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    window.localStorage.setItem(DESCRIPTION_KEY, JSON.stringify(descriptions));
-  }, [descriptions]);
+    const controller = new AbortController();
+    fetchCardDescriptions(controller.signal)
+      .then((result) => {
+        setDescriptions({ ...DEFAULT_DESCRIPTIONS, ...result.descriptions });
+        setAdminPersistent(result.persistent);
+        setAdminUpdatedAt(result.updated_at);
+      })
+      .catch(() => {
+        setAdminPersistent(false);
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -185,10 +186,10 @@ export default function App() {
                   <section className="analytics-grid main-analysis">
                     <article className="panel flow-panel">
                       <div className="panel-heading">
-                        <div><span className="eyebrow">TENDÊNCIA E SAZONALIDADE</span><h2>Entradas x entregas por mês</h2><p>A linha revela picos de demanda e a capacidade de resposta ao longo do ano.</p></div>
+                        <div><span className="eyebrow">TENDÊNCIA E SAZONALIDADE</span><h2>Entradas x saídas por mês</h2><p>As barras mostram o volume mensal e a quantidade exata de protocolos em cada fluxo.</p></div>
                         <span className="panel-chip">Mensal</span>
                       </div>
-                      <FlowChart data={data.charts.flow} />
+                      <MonthlyFlowBarChart data={data.charts.flow} />
                     </article>
                     <aside className="panel seasonality-panel">
                       <span className="eyebrow">LEITURA AUTOMÁTICA</span>
@@ -239,6 +240,14 @@ export default function App() {
               defaults={DEFAULT_DESCRIPTIONS}
               onChange={(key, value) => setDescriptions((current) => ({ ...current, [key]: value }))}
               onReset={() => setDescriptions(DEFAULT_DESCRIPTIONS)}
+              onSave={async (password) => {
+                const result = await saveCardDescriptions(descriptions, password);
+                setDescriptions({ ...DEFAULT_DESCRIPTIONS, ...result.descriptions });
+                setAdminPersistent(result.persistent);
+                setAdminUpdatedAt(result.updated_at);
+              }}
+              persistent={adminPersistent}
+              updatedAt={adminUpdatedAt}
             />
           ) : null}
 

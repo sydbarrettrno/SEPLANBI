@@ -75,6 +75,16 @@ def _top(rows,key,limit=12):
     c=Counter(core._clean(r.get(key)) or "Não identificado" for r in rows)
     return [{"name":k,"value":v} for k,v in c.most_common(limit)]
 
+def _top_categories(rows, limit=11):
+    """Mantém o gráfico compacto sem perder protocolos fora do ranking."""
+    counts = Counter(core._clean(r.get("Categoria")) or "Não identificado" for r in rows)
+    ranked = counts.most_common(limit)
+    visible = [{"name": name, "value": value} for name, value in ranked]
+    other = len(rows) - sum(value for _, value in ranked)
+    if other > 0:
+        visible.append({"name": "Outras categorias", "value": other})
+    return visible
+
 def _record(r):
     return {
         "protocol": r.get("NumeroAnoOriginal") or r.get("ProtocoloID"),
@@ -168,7 +178,7 @@ def dashboard(query):
         "meta":{"dataset":core.metadata().get("dataset"),"source_rows":core.metadata().get("source_rows"),"source_updated_at":core.metadata().get("source_updated_at"),"schema_version":core.metadata().get("schema_version"),"privacy_note":core.metadata().get("privacy",{}).get("note"),"scope_rows":len(scoped),"period":{"from":query.start.isoformat(),"to":query.end.isoformat()}},
         "metrics":metrics,
         "management":management,
-        "charts":{"flow":list(flow.values()),"aging":_aging(stock),"internal_aging":_aging(internal),"categories":_top(stock,"Categoria"),"internal_categories":_top(internal,"Categoria"),"owners":_top(stock,"GargaloOperacional"),"statuses":_top(stock,"StatusOperacional")},
+        "charts":{"flow":list(flow.values()),"aging":_aging(stock),"internal_aging":_aging(internal),"categories":_top_categories(stock),"internal_categories":_top_categories(internal),"owners":_top(stock,"GargaloOperacional"),"statuses":_top(stock,"StatusOperacional")},
         "records":{"total":len(record_source),"offset":query.offset,"limit":query.limit,"recordset":query.recordset,"items":[_record(r) for r in page]},
         "options":{"categories":sorted({core._clean(r.get("Categoria")) for r in rows if core._clean(r.get("Categoria"))},key=str.casefold),"statuses":sorted({core._clean(r.get("StatusOperacional")) for r in rows if core._clean(r.get("StatusOperacional"))},key=str.casefold),"owners":sorted({_OWNER_BY_STATUS.get(core._clean(r.get("StatusOperacional")).upper(),"Indefinido") for r in rows},key=str.casefold),"macroprocesses":sorted({core._clean(r.get("Macroprocesso")) for r in rows if core._clean(r.get("Macroprocesso"))},key=str.casefold)},
         "indicator_coverage":INDICATOR_COVERAGE,

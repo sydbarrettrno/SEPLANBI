@@ -155,3 +155,10 @@ export interface DashboardFilters {
 }
 
 export type CardDescriptionMap = Record<string, string>;
+
+export interface CardDescriptionsPayload {
+  ok: boolean;
+  descriptions: CardDescriptionMap;
+  updated_at: string | null;
+  persistent: boolean;
+}

@@ -184,7 +184,7 @@ def metadata() -> dict[str, Any]:
 def load_rows() -> list[dict[str, Any]]:
     artifact = metadata().get("artifact", {})
     parts = artifact.get("parts", [])
-    directory = DATA_DIR / str(artifact.get("directory", "safe_chunks"))
+    directory = DATA_DIR / str(artifact.get("directory", "final_chunks"))
     if not parts or not directory.is_dir():
         raise RuntimeError("Carga bloqueada: transporte sanitizado ausente.")
     try:
@@ -206,12 +206,14 @@ def load_rows() -> list[dict[str, Any]]:
     except Exception as exc:
         raise RuntimeError("Carga bloqueada: dataset compactado inválido.") from exc
 
-    if payload.get("v") != 6 or not isinstance(payload.get("d"), dict) or not isinstance(payload.get("c"), dict):
-        raise RuntimeError("Dataset inválido: transporte público v6 esperado.")
+    schema_version = payload.get("v")
+    expected_schema = int(metadata().get("schema_version", -1))
+    if schema_version != expected_schema or schema_version != 8 or not isinstance(payload.get("d"), dict) or not isinstance(payload.get("c"), dict):
+        raise RuntimeError("Dataset inválido: transporte público canônico v8 esperado.")
     d = payload["d"]
     columns = payload["c"]
 
-    required = ("n", "y", "o", "m", "c", "x", "g", "t")
+    required = ("n", "y", "o", "m", "c", "x", "g", "t", "f")
     count = len(columns.get("n", []))
     if count == 0 or any(len(columns.get(k, [])) != count for k in required):
         raise RuntimeError("Dataset inválido: colunas com comprimentos divergentes.")
@@ -267,6 +269,7 @@ def load_rows() -> list[dict[str, Any]]:
             "StatusOperacional": status,
             "GargaloOperacional": bottleneck_by_status.get(status, "SEPLAN / Tramitação"),
             "DiasSemMovimento": max(0, (source_ref - (base_date + timedelta(days=moved))).days) if moved >= 0 else -1,
+            "SourceFingerprint": str(columns["f"][j]),
         })
 
     audit = _audit_rows(rows)
@@ -336,6 +339,13 @@ def _matches_scope(row: dict[str, Any], q: Query) -> bool:
     if q.macro and _clean(row.get("Macroprocesso")) != q.macro:
         return False
     if q.search:
+        protocol_values = {
+            _clean(row.get("ProtocoloID")).casefold(),
+            _clean(row.get("NumeroAnoOriginal")).casefold(),
+        }
+        protocol_parts = q.search.replace("/", "-").split("-")
+        if len(protocol_parts) == 2 and all(part.isdigit() for part in protocol_parts):
+            return q.search in protocol_values
         hay = " | ".join(
             _clean(row.get(k)).casefold()
             for k in ("ProtocoloID", "NumeroAnoOriginal", "Categoria", "GargaloOperacional")

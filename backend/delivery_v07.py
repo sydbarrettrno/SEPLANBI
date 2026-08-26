@@ -56,7 +56,12 @@ def health():
     data = base.health()
     rows = core.load_rows()
     categories = {core._clean(r.get("Categoria")) for r in rows}
-    data["taxonomy_version"] = "V07"
+    metadata = core.metadata()
+    semantic = metadata.get("semantic_memory", {})
+    data["taxonomy_version"] = semantic.get("taxonomy_version", "V07")
     data["category_count"] = len(categories)
-    data["taxonomy_ok"] = len(rows) == 6975 and len(categories) == 42
+    data["taxonomy_ok"] = (
+        len(rows) == int(metadata.get("source_rows", -1))
+        and len(categories) == int(semantic.get("category_count", len(categories)))
+    )
     return data

@@ -8,30 +8,30 @@ O **Excel é a fonte de verdade** do dashboard.
 
 Fluxo de atualização:
 
-`BASE2326.xlsx → scripts/importar_excel.py → validação/sanitização → data/safe_chunks → GitHub → Vercel`
+`BASE2326ETL.xlsx externo → conferência → memória V07 fixa → sanitização → data/final_chunks → revisão do diff`
 
-O arquivo Excel bruto **não é publicado** no GitHub porque contém dados pessoais e observações livres. O importador lê a aba `BASE23-26`, mantém apenas os campos necessários aos indicadores, reutiliza a classificação já consolidada quando disponível e grava somente o transporte público sanitizado.
+O arquivo Excel bruto **não é publicado** no GitHub porque contém dados pessoais e observações livres. O importador lê a aba `BASE23-26`, mantém apenas os campos necessários aos indicadores e preserva a classificação V07 por protocolo. Protocolos novos ou com alteração operacional exigem uma planilha semântica auditada; não existe fallback automático.
 
-**Carga atual:** `BASE2326.xlsx`, 6.975 protocolos de 2025+, com dados até 22/08/2026.
+**Carga atual:** derivada de `BASE2326ETL.xlsx`, com 6.975 protocolos de 2025+ e dados até 22/08/2026. O Excel permanece fora do repositório.
 
 Para atualizar no Windows:
 
 ```bat
-scripts\ATUALIZAR_DASHBOARD.bat "C:\caminho\BASE2326.xlsx"
+scripts\ATUALIZAR_DASHBOARD.bat "C:\caminho\BASE2326ETL.xlsx" "C:\caminho\SEPLAN_AUDITORIA_CLASSIFICACAO_STATUS_V01.xlsx"
 ```
 
-O script valida a base, executa os testes, publica somente `data/metadata.json` e `data/safe_chunks/` e faz `git push`; o Vercel publica automaticamente o novo commit.
+O script primeiro confere e depois aplica localmente o artefato derivado. Em seguida valida minimização, indicadores e regressões. Ele **não executa** `git add`, `commit`, `push` nem deploy; o diff deve ser revisado antes do versionamento.
 
 Também é possível executar somente a importação:
 
 ```powershell
-python scripts\importar_excel.py "C:\caminho\BASE2326.xlsx"
+python scripts\importar_excel.py "C:\caminho\BASE2326ETL.xlsx"
 ```
 
-Se houver uma nova planilha de classificação consolidada, ela pode ser aplicada junto à importação:
+Quando houver protocolos novos ou alterações operacionais, a planilha de auditoria semântica deve ser informada:
 
 ```powershell
-python scripts\importar_excel.py "C:\caminho\BASE2326.xlsx" --classificacao "C:\caminho\SEPLAN_StatusReal_V08_Taxonomia_Consolidada.xlsx"
+python scripts\importar_excel.py "C:\caminho\BASE2326ETL.xlsx" --semantic-audit "C:\caminho\SEPLAN_AUDITORIA_CLASSIFICACAO_STATUS_V01.xlsx"
 ```
 
 ## Arquitetura
@@ -40,8 +40,8 @@ python scripts\importar_excel.py "C:\caminho\BASE2326.xlsx" --classificacao "C:\
 - **Backend:** Python padrão em `api/index.py`, compatível com Vercel Python Functions.
 - **Regra de negócio:** `backend/core.py` concentra filtros, métricas, auditoria e drill-down.
 - **Fonte operacional:** Excel local/privado.
-- **Dados publicados:** transporte sanitizado em partes Base64 dentro de `data/safe_chunks/`; o backend recompõe o GZIP em memória e valida tamanho + SHA-256 antes da carga.
-- **Privacidade:** não são publicados nomes de requerentes/responsáveis, CPF/CNPJ, observações livres nem inscrição imobiliária exata.
+- **Dados publicados:** um único transporte canônico sanitizado em `data/final_chunks/`; o backend usa somente o manifesto, recompõe o GZIP e valida tamanho + SHA-256 antes da carga.
+- **Privacidade:** não são publicados nomes, CPF/CNPJ, observações livres nem campos auxiliares do ETL. Protocolo e datas continuam identificadores indiretos; a base é minimizada, não anonimizada.
 - **Deploy:** GitHub `main` → Vercel, frontend e API no mesmo domínio.
 
 Não existe dependência de Node/npm para executar o dashboard localmente.

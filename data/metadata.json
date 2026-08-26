@@ -1,6 +1,6 @@
 {
-  "schema_version": 7,
-  "dataset": "SEPLAN 2025+ — base reconciliada com taxonomia operacional V07, visão pública sanitizada",
+  "schema_version": 8,
+  "dataset": "SEPLAN 2025+ — base operacional minimizada com memória semântica V07 fixa",
   "source_rows": 6975,
   "years": {
     "2025": 4165,
@@ -8,16 +8,36 @@
   },
   "source_updated_at": "2026-08-22",
   "generated_from": [
-    "SEPLAN_BASE_TAXONOMIA_V07.xlsx"
+    "BASE2326ETL.xlsx",
+    "SEPLAN_AUDITORIA_CLASSIFICACAO_STATUS_V01.xlsx"
   ],
-  "taxonomy_version": "V07",
-  "taxonomy_overrides": 632,
+  "source_hashes": {
+    "raw_xlsx_sha256": "5b8dd9021bbf71c97e01aa21bdcd9ae90baa96bfe21688119acb777ef3f9c586",
+    "semantic_xlsx_sha256": "b2329c30f2fd49d5b251b7f14651fd68c2b584a903b4973221543436c0e18268"
+  },
   "source_of_truth": {
-    "type": "xlsx",
-    "sheet": "BASE",
-    "note": "Dados originais e finais lado a lado; dashboard usa campos finais sanitizados da taxonomia V07."
+    "operational": {
+      "type": "xlsx",
+      "sheet": "BASE23-26"
+    },
+    "semantic": {
+      "mode": "immutable-by-protocol",
+      "version": "V07",
+      "sheet": "STATUS_COMPLETO",
+      "note": "Categoria e macroprocesso existentes não são sobrescritos automaticamente; mudanças operacionais exigem auditoria semântica."
+    }
   },
   "privacy": {
+    "policy": "allowlist",
+    "published_fields": [
+      "ProtocoloID",
+      "DataAbertura",
+      "UltimoTramiteDataHora",
+      "DataEncerramento",
+      "Macroprocesso",
+      "Categoria",
+      "StatusOperacional"
+    ],
     "excluded_fields": [
       "Requerente",
       "CPF_CNPJ_REQUERENTE",
@@ -25,50 +45,37 @@
       "CPF_CNPJ_RT",
       "ObsAbertura",
       "UltTramiteOBS",
-      "UsuarioAtual"
+      "UsuarioAtual",
+      "CCAbertura"
     ],
-    "note": "Dataset sanitizado para publicação: sem nomes, CPF/CNPJ ou observações livres."
+    "note": "Excel bruto e abas de auditoria permanecem fora do Git; o artefato contém somente campos necessários ao painel e uma impressão digital não reversível."
   },
   "default_period": {
     "from": "2026-01-01",
     "to": "2026-08-22"
   },
   "default_threshold_days": 30,
-  "validation": {
-    "protocols": 6975,
-    "unique_protocols": 6975,
-    "categories": 42,
-    "candidate_categories": 0,
-    "categories_under_5": 0,
-    "stock": 2208,
-    "internal_queue": 1548,
-    "external_wait": 627,
-    "suspended": 33,
-    "internal_over_30": 1089
+  "semantic_memory": {
+    "taxonomy_version": "V07",
+    "category_count": 42,
+    "macroprocess_count": 12,
+    "status_count": 7
+  },
+  "import_audit": {
+    "protocols_2025_plus": 6975,
+    "classification_memory_hits": 6975,
+    "unchanged_existing": 6975,
+    "changed_existing_audited": 0,
+    "new_audited": 0,
+    "removed": 0,
+    "semantic_gate": "APROVADO"
   },
   "artifact": {
     "storage": "gzip+base64-chunks",
-    "format": "public-compact-v6-legado",
-    "gzip_bytes": 46999,
-    "gzip_sha256": "30acb3c7dbb6070305c86929ac5dcd687dd8f10bc16394f09557f67054ac3b95",
-    "date_encoding": "days since 2025-01-01; -1 = null",
-    "directory": "safe_chunks",
-    "parts": [
-      "part-000",
-      "part-001",
-      "part-002",
-      "part-003",
-      "part-004",
-      "part-005"
-    ],
-    "note": "Transporte legado mantido somente para compatibilidade do core anterior."
-  },
-  "delivery_artifact": {
-    "storage": "gzip+base64-chunks",
-    "format": "public-compact-v6-final + taxonomy-v07-runtime",
-    "gzip_bytes": 46813,
-    "gzip_sha256": "d28e0b7954d6cef59f66ce6c61e58a692906d99a4fb26cde6ca8de237e3ed9c8",
-    "base64_chars": 62420,
+    "format": "public-compact-v8-canonical",
+    "gzip_bytes": 126818,
+    "gzip_sha256": "d7e5b1ac69105e54e9e736517d6200e17aa1c26e2e6f92796fcf87f337456824",
+    "base64_chars": 169092,
     "date_encoding": "days since 2025-01-01; -1 = null",
     "directory": "final_chunks",
     "parts": [
@@ -82,8 +89,23 @@
       "part-007",
       "part-008",
       "part-009",
-      "part-010"
+      "part-010",
+      "part-011",
+      "part-012",
+      "part-013",
+      "part-014"
     ],
-    "note": "Carga sanitizada validada de 6.975 protocolos; 632 correções de categoria/macro da taxonomia V07 são aplicadas deterministicamente no backend."
+    "columns": [
+      "n",
+      "y",
+      "o",
+      "m",
+      "c",
+      "x",
+      "g",
+      "t",
+      "f"
+    ],
+    "note": "Único artefato canônico consumido pela API; classificação V07 já incorporada."
   }
 }

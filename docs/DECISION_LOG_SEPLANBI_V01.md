@@ -62,3 +62,11 @@
 
 - Estado: HARD GATE OPERACIONAL
 - Decisão: não reconectar o projeto Vercel atual ao repositório novo durante baseline, desenvolvimento ou preview. A produção será alterada somente após homologação e autorização explícita de corte.
+
+## D012 — fonte externa, memória V07 fixa e artefato único
+
+- Estado: IMPLEMENTADA NO CHECKPOINT D0
+- Decisão: `BASE2326ETL.xlsx` é a fonte operacional externa; a classificação V07 é preservada por protocolo; a API consome somente `data/final_chunks` conforme `data/metadata.json`.
+- Gates: protocolo novo ou alteração operacional exige auditoria semântica; categoria existente não muda automaticamente; entrada inválida não substitui a carga válida.
+- Privacidade: Git recebe somente artefato minimizado. Excel bruto, observações e dados pessoais permanecem externos.
+- Operação: o atualizador não executa Git nem deploy.

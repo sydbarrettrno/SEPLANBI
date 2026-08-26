@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Validate privacy and data minimization
+        run: python scripts/check_data_privacy.py
       - name: Validate dataset and indicators
         run: python scripts/validate.py
       - name: Unit tests

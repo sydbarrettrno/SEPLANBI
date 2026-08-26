@@ -10,4 +10,19 @@ Thumbs.db
 # A base Excel bruta contém dados pessoais e nunca deve ser publicada.
 *.xlsx
 *.xls
+*.xlsm
+*.csv
+*.tsv
+*.parquet
+*.sqlite
+*.db
+*.zip
+*.7z
+*.rar
+*.bak
+*.log
 entrada_excel/
+dados_privados/
+relatorios_privados/
+data/.update-*/
+data/.metadata-*.tmp

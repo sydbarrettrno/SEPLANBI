@@ -23,13 +23,15 @@
 
 ## 3. D0 — atualização dos dados
 
-- [ ] Existe um único artefato final canônico consumido pela API.
+- [x] Existe um único artefato final canônico consumido pela API.
 - [ ] Um Excel válido novo altera hash, versão e resposta da API.
-- [ ] Um Excel inválido não substitui a última versão válida.
-- [ ] Linhas, protocolos únicos, esquema e datas são reconciliados.
-- [ ] Campos públicos passam por allowlist e teste de privacidade.
-- [ ] Original privado, normalizado, semântico e público estão separados.
+- [x] Um Excel inválido não substitui a última versão válida.
+- [x] Linhas, protocolos únicos, esquema e datas são reconciliados.
+- [x] Campos públicos passam por allowlist e teste de privacidade.
+- [x] Original privado, normalizado, semântico e público estão separados.
 - [ ] Há rollback de dataset documentado e testado.
+
+Ressalvas D0: o caminho atual foi reproduzido integralmente e a falha anterior à aplicação preservou os hashes. A prova com delta oficial real e a injeção de falha durante a troca transacional permanecem para a próxima extração.
 
 ## 4. K0 — semântica, KPI e API
 

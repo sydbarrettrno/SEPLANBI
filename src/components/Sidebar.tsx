@@ -26,10 +26,6 @@ export function Sidebar({ page, onNavigate, open, onClose }: SidebarProps) {
       <aside className={`sidebar ${open ? "is-open" : ""}`} aria-label="Navegação principal">
         <div className="brand-block">
           <img src={logoMunicipio} alt="Brasão do Município de Itapoá" />
-          <div>
-            <strong>Município de Itapoá</strong>
-            <span>Secretaria de Planejamento</span>
-          </div>
         </div>
 
         <div className="sidebar-context">

@@ -1,0 +1,89 @@
+{
+  "schema_version": 7,
+  "dataset": "SEPLAN 2025+ — base reconciliada com taxonomia operacional V07, visão pública sanitizada",
+  "source_rows": 6975,
+  "years": {
+    "2025": 4165,
+    "2026": 2810
+  },
+  "source_updated_at": "2026-08-22",
+  "generated_from": [
+    "SEPLAN_BASE_TAXONOMIA_V07.xlsx"
+  ],
+  "taxonomy_version": "V07",
+  "taxonomy_overrides": 632,
+  "source_of_truth": {
+    "type": "xlsx",
+    "sheet": "BASE",
+    "note": "Dados originais e finais lado a lado; dashboard usa campos finais sanitizados da taxonomia V07."
+  },
+  "privacy": {
+    "excluded_fields": [
+      "Requerente",
+      "CPF_CNPJ_REQUERENTE",
+      "NomeRT",
+      "CPF_CNPJ_RT",
+      "ObsAbertura",
+      "UltTramiteOBS",
+      "UsuarioAtual"
+    ],
+    "note": "Dataset sanitizado para publicação: sem nomes, CPF/CNPJ ou observações livres."
+  },
+  "default_period": {
+    "from": "2026-01-01",
+    "to": "2026-08-22"
+  },
+  "default_threshold_days": 30,
+  "validation": {
+    "protocols": 6975,
+    "unique_protocols": 6975,
+    "categories": 42,
+    "candidate_categories": 0,
+    "categories_under_5": 0,
+    "stock": 2208,
+    "internal_queue": 1548,
+    "external_wait": 627,
+    "suspended": 33,
+    "internal_over_30": 1089
+  },
+  "artifact": {
+    "storage": "gzip+base64-chunks",
+    "format": "public-compact-v6-legado",
+    "gzip_bytes": 46999,
+    "gzip_sha256": "30acb3c7dbb6070305c86929ac5dcd687dd8f10bc16394f09557f67054ac3b95",
+    "date_encoding": "days since 2025-01-01; -1 = null",
+    "directory": "safe_chunks",
+    "parts": [
+      "part-000",
+      "part-001",
+      "part-002",
+      "part-003",
+      "part-004",
+      "part-005"
+    ],
+    "note": "Transporte legado mantido somente para compatibilidade do core anterior."
+  },
+  "delivery_artifact": {
+    "storage": "gzip+base64-chunks",
+    "format": "public-compact-v6-final + taxonomy-v07-runtime",
+    "gzip_bytes": 46813,
+    "gzip_sha256": "d28e0b7954d6cef59f66ce6c61e58a692906d99a4fb26cde6ca8de237e3ed9c8",
+    "base64_chars": 62420,
+    "date_encoding": "days since 2025-01-01; -1 = null",
+    "directory": "final_chunks",
+    "parts": [
+      "part-000",
+      "part-001",
+      "part-002",
+      "part-003",
+      "part-004",
+      "part-005",
+      "part-006",
+      "part-007",
+      "part-008",
+      "part-009",
+      "part-010"
+    ],
+    "note": "Carga sanitizada validada de 6.975 protocolos; 632 correções de categoria/macro da taxonomia V07 são aplicadas deterministicamente no backend."
+  }
+}

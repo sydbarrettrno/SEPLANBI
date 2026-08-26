@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.vercel/
+.DS_Store
+Thumbs.db
+
+# A base Excel bruta contém dados pessoais e nunca deve ser publicada.
+*.xlsx
+*.xls
+entrada_excel/

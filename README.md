@@ -34,9 +34,22 @@ Quando houver protocolos novos ou alterações operacionais, a planilha de audit
 python scripts\importar_excel.py "C:\caminho\BASE2326ETL.xlsx" --semantic-audit "C:\caminho\SEPLAN_AUDITORIA_CLASSIFICACAO_STATUS_V01.xlsx"
 ```
 
+## Interface React
+
+O novo layout usa React + TypeScript + Vite e mantém a API Python e as regras de negócio existentes. A visão principal foi organizada como **gestão por exceção**:
+
+- cinco sinais executivos com leitura contextual e reação ao passar o mouse;
+- linha mensal de recebidos, concluídos e encerrados formais para leitura de tendência e sazonalidade;
+- alertas de fila interna parada, dependência externa e suspensões;
+- filtros e drill-down até os protocolos do recorte;
+- cobertura explícita dos 11 indicadores oficiais;
+- edição local das descrições dos cards no painel administrativo.
+
+A edição administrativa desta versão fica somente no navegador do usuário. Ela não altera dados, fórmulas ou regras e ainda não possui autenticação central.
+
 ## Arquitetura
 
-- **Frontend:** HTML + CSS + JavaScript nativos, sem framework e sem etapa de build.
+- **Frontend:** React 19 + TypeScript + Vite, compilado para `dist/`.
 - **Backend:** Python padrão em `api/index.py`, compatível com Vercel Python Functions.
 - **Regra de negócio:** `backend/core.py` concentra filtros, métricas, auditoria e drill-down.
 - **Fonte operacional:** Excel local/privado.
@@ -44,20 +57,34 @@ python scripts\importar_excel.py "C:\caminho\BASE2326ETL.xlsx" --semantic-audit 
 - **Privacidade:** não são publicados nomes, CPF/CNPJ, observações livres nem campos auxiliares do ETL. Protocolo e datas continuam identificadores indiretos; a base é minimizada, não anonimizada.
 - **Deploy:** GitHub `main` → Vercel, frontend e API no mesmo domínio.
 
-Não existe dependência de Node/npm para executar o dashboard localmente.
-
 ## Rodar localmente
 
 ```powershell
+cd C:\SEPLANBI
+scripts\BUILD_REACT.bat
 python scripts\validate.py
 python -m unittest discover -s tests -v
 python scripts\dev.py
+```
+
+Atalho para compilar e iniciar em uma única ação:
+
+```bat
+scripts\INICIAR_DASHBOARD.bat
 ```
 
 Acesse:
 
 - Dashboard: `http://localhost:8000`
 - Saúde do backend: `http://localhost:8000/api?action=health`
+
+Para desenvolver o frontend com atualização imediata, mantenha `python scripts\dev.py` aberto e execute em outro terminal:
+
+```powershell
+npm run dev
+```
+
+Nesse modo, acesse `http://127.0.0.1:5173`; o Vite encaminha `/api` para a porta 8000.
 
 A publicação deve ser bloqueada se a auditoria da base falhar. O workflow `.github/workflows/ci.yml` executa validação e testes em cada push/PR.
 

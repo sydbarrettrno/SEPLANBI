@@ -9,6 +9,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
+DIST = ROOT / "dist"
 sys.path.insert(0, str(ROOT))
 
 from backend.final_entry import dashboard, health, query_from_params  # noqa: E402
@@ -21,7 +22,7 @@ def _flatten(query_string: str) -> dict[str, str]:
 
 class DevHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=str(ROOT), **kwargs)
+        super().__init__(*args, directory=str(DIST), **kwargs)
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -54,6 +55,8 @@ class DevHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    if not (DIST / "index.html").is_file():
+        raise SystemExit("Build React ausente. Execute 'npm ci' e 'npm run build' antes de iniciar.")
     port = int(os.environ.get("PORT", "8000"))
     server = ThreadingHTTPServer(("127.0.0.1", port), DevHandler)
     print(f"SEPLAN Gestão à Vista: http://localhost:{port}")

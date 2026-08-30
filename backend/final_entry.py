@@ -46,16 +46,22 @@ def _load_incremental_public():
     return payload
 
 
+# O analytics lê a data de referência antes de chamar core.load_rows(). Por isso,
+# a referência efetiva do snapshot precisa ser promovida ainda na importação deste
+# módulo; source_rows permanece descrevendo o artefato-base até a reconciliação.
+_EFFECTIVE_DELTA = _load_incremental_public()
+_EFFECTIVE_DATE = core._clean(_EFFECTIVE_DELTA.get("source_updated_at"))
+if _EFFECTIVE_DATE:
+    _meta = core.metadata()
+    _meta["source_updated_at"] = _EFFECTIVE_DATE
+    _meta.setdefault("default_period", {})["to"] = _EFFECTIVE_DATE
+
+
 @lru_cache(maxsize=1)
 def load_rows():
-    # A data efetiva precisa ser aplicada ANTES de decodificar o artefato-base,
-    # porque DiasSemMovimento é recalculado a partir da data de referência.
-    delta = _load_incremental_public()
+    delta = _EFFECTIVE_DELTA
     metadata = core.metadata()
     expected_base = int(metadata.get("source_rows", -1))
-    source_updated_at = core._clean(delta.get("source_updated_at")) or metadata.get("source_updated_at")
-    metadata["source_updated_at"] = source_updated_at
-    metadata.setdefault("default_period", {})["to"] = source_updated_at
 
     # O artefato compacto permanece imutável; o delta contém somente protocolos
     # novos já auditados e sanitizados. Isso permite atualização incremental sem
@@ -84,8 +90,11 @@ def load_rows():
 
     # Atualiza em memória somente os metadados efetivos do snapshot. O manifesto
     # do artefato-base continua descrevendo os 7.063 registros compactados.
+    source_updated_at = _EFFECTIVE_DATE or metadata.get("source_updated_at")
     metadata["base_artifact_rows"] = base_rows
     metadata["source_rows"] = len(rows)
+    metadata["source_updated_at"] = source_updated_at
+    metadata.setdefault("default_period", {})["to"] = source_updated_at
     metadata["years"] = dict(sorted(Counter(str(row.get("ProtocoloAno")) for row in rows).items()))
 
     status_counts = Counter(core._clean(row.get("StatusOperacional")) for row in rows)

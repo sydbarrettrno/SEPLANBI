@@ -35,7 +35,7 @@ class AnalyticsTests(unittest.TestCase):
     def test_received_equals_sum_of_displayed_categories(self):
         rows = indicator_rows(replace(self.default, indicator="received"))
         categories = group_rows(rows, ("category",), "received")
-        self.assertEqual(len(rows), 2898)
+        self.assertEqual(len(rows), 2899)
         self.assertEqual(sum(item["value"] for item in categories), len(rows))
 
     def test_outputs_equal_concluded_plus_closed(self):
@@ -48,15 +48,15 @@ class AnalyticsTests(unittest.TestCase):
 
     def test_stock_equals_three_operational_responsibilities(self):
         totals = control_totals(self.default)
-        self.assertEqual(totals["stock"], 2158)
-        self.assertEqual(totals["internal"], 1544)
+        self.assertEqual(totals["stock"], 2159)
+        self.assertEqual(totals["internal"], 1545)
         self.assertEqual(totals["external"], 583)
         self.assertEqual(totals["paralyzed"], 31)
         self.assertEqual(totals["stock"], totals["internal"] + totals["external"] + totals["paralyzed"])
 
     def test_explicit_period_does_not_reconstruct_stock(self):
         explicit = replace(self.default, indicator="stock", period_explicit=True)
-        self.assertEqual(len(indicator_rows(explicit)), 2158)
+        self.assertEqual(len(indicator_rows(explicit)), 2159)
 
     def test_category_selection_returns_exact_protocol_set(self):
         all_received = indicator_rows(replace(self.default, indicator="received"))
@@ -74,23 +74,23 @@ class AnalyticsTests(unittest.TestCase):
     def test_same_period_comparison_is_not_full_previous_year(self):
         response = analytics_response(self.default)
         comparison = response["comparison"]
-        self.assertEqual(comparison["current"]["value"], 2898)
+        self.assertEqual(comparison["current"]["value"], 2899)
         self.assertEqual(comparison["previous"]["from"], "2025-01-01")
-        self.assertEqual(comparison["previous"]["to"], "2025-08-28")
-        self.assertEqual(comparison["previous"]["value"], 2825)
+        self.assertEqual(comparison["previous"]["to"], "2025-08-29")
+        self.assertEqual(comparison["previous"]["value"], 2838)
 
     def test_outputs_comparison_and_monthly_flow_reconcile(self):
         output_query = replace(self.default, indicator="outputs")
         response = analytics_response(output_query)
         self.assertEqual(response["comparison"]["current"]["value"], 2293)
         self.assertEqual(sum(item["outputs"] for item in response["monthly_flow"]), 2293)
-        self.assertEqual(sum(item["received"] for item in response["monthly_flow"]), 2898)
-        self.assertEqual(sum(item["balance"] for item in response["monthly_flow"]), 605)
+        self.assertEqual(sum(item["received"] for item in response["monthly_flow"]), 2899)
+        self.assertEqual(sum(item["balance"] for item in response["monthly_flow"]), 606)
 
     def test_output_type_filter_does_not_filter_received_series(self):
         output_query = replace(self.default, indicator="outputs", output_types=("Concluído",))
         flow = monthly_flow(output_query)
-        self.assertEqual(sum(item["received"] for item in flow), 2898)
+        self.assertEqual(sum(item["received"] for item in flow), 2899)
         self.assertEqual(sum(item["outputs"] for item in flow), 961)
 
     def test_stock_category_status_drilldown_is_exact(self):
@@ -121,7 +121,7 @@ class AnalyticsTests(unittest.TestCase):
     def test_stock_age_bands_are_complete_and_exclusive(self):
         rows = indicator_rows(replace(self.default, indicator="stock"))
         grouped = group_rows(rows, ("age_band",), "stock")
-        self.assertEqual(sum(item["value"] for item in grouped), 2158)
+        self.assertEqual(sum(item["value"] for item in grouped), 2159)
         self.assertEqual({item["keys"]["age_band"] for item in grouped}, {item[0] for item in AGE_BANDS})
 
     def test_sector_is_complete_for_stock_and_unavailable_is_explicit_elsewhere(self):

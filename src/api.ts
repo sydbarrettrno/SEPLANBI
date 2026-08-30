@@ -1,5 +1,6 @@
 import type { CardDescriptionMap, CardDescriptionsPayload, DashboardData, DashboardFilters } from "./types";
 import { analyticsSearchParams, type AnalyticsRequest, type AnalyticsResponse } from "./analytics";
+import { extendedSearchParams, type ExtendedRequest, type ExtendedResponse } from "./extended";
 
 export async function fetchDashboard(
   filters: DashboardFilters,
@@ -46,6 +47,17 @@ export async function fetchAnalytics(
     headers: { Accept: "application/json" },
   });
   return readJson<AnalyticsResponse>(response);
+}
+
+export async function fetchExtendedIndicator(
+  request: ExtendedRequest,
+  signal?: AbortSignal,
+): Promise<ExtendedResponse> {
+  const response = await fetch(`/api?${extendedSearchParams(request).toString()}`, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  return readJson<ExtendedResponse>(response);
 }
 
 async function readJson<T>(response: Response): Promise<T> {

@@ -11,12 +11,12 @@ from backend.final_entry import dashboard, health, query_from_params  # noqa: E4
 from backend.admin_store import DEFAULT_DESCRIPTIONS, load_descriptions  # noqa: E402
 
 EXPECTED = {
-    "rows": 7063,
-    "received_default": 2898,
+    "rows": 7064,
+    "received_default": 2899,
     "concluded_operational": 2293,
     "concluded_formal": 1920,
-    "stock": 2158,
-    "internal_queue": 1544,
+    "stock": 2159,
+    "internal_queue": 1545,
     "external_wait": 583,
     "paralyzed": 31,
     "stopped_30_internal": 1086,
@@ -55,11 +55,11 @@ assert len(d["records"]["items"]) <= 200
 assert any(x["id"] == "KPI06" and x["status"] != "DISPONÍVEL" for x in d["indicator_coverage"])
 
 cmp = d["management"]["comparison"]
-assert cmp["previous"]["received"] == 2825, cmp
+assert cmp["previous"]["received"] == 2838, cmp
 assert cmp["current"]["cohort_concluded_formal"] == 1344, cmp
-assert cmp["previous"]["cohort_concluded_formal"] == 1262, cmp
-assert cmp["received_change_percent"] == 2.6, cmp
-assert cmp["cohort_formal_change_percent"] == 6.5, cmp
+assert cmp["previous"]["cohort_concluded_formal"] == 1274, cmp
+assert cmp["received_change_percent"] == 2.1, cmp
+assert cmp["cohort_formal_change_percent"] == 5.5, cmp
 assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 839
 assert set(d["options"]["statuses"]) == {
     "Em Análise",

@@ -10,6 +10,7 @@ if str(ROOT) not in sys.path:
 
 from backend.final_entry import dashboard, health, query_from_params
 from backend.analytics import analytics_response, export_public_csv, query_from_params as analytics_query_from_params
+from backend.extended_indicators import extended_indicator_response
 from backend.admin_store import AdminStoreError, load_descriptions, save_descriptions
 
 
@@ -56,6 +57,9 @@ class handler(BaseHTTPRequestHandler):
                 return
             if action == "analytics-export":
                 self._csv(200, export_public_csv(analytics_query_from_params(params)))
+                return
+            if action == "indicator-bi":
+                self._json(200, extended_indicator_response(params))
                 return
             if action != "dashboard":
                 self._json(400, {"ok": False, "error": "Ação inválida."})

@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 
-const SCREENSHOTS = join(process.cwd(), "outputs", "20260830-etapa3", "screenshots");
+const SCREENSHOTS = join(process.cwd(), "outputs", "20260830-filtros-graficos-v16", "screenshots");
 const PRIVATE_KEYS = [
   "NomeRequerente",
   "ResponsavelTecnico",
@@ -26,6 +26,11 @@ async function openPanel(page: Page, indicator: "received" | "outputs" | "stock"
   await page.goto(`/#/${indicator}`, { waitUntil: "domcontentloaded" });
   await expect(page.locator(`.bi-page[data-panel="${indicator}"]`)).toBeVisible();
   await expect(page.locator("[data-record-count]")).toBeVisible();
+}
+
+async function openFilters(page: Page) {
+  await page.locator(".filter-launcher").click();
+  await expect(page.getByRole("dialog", { name: "Filtros do painel" })).toBeVisible();
 }
 
 function watchRuntime(page: Page) {
@@ -157,35 +162,67 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await openPanel(page, "received");
   await waitForCount(page, 2898);
 
+  await openFilters(page);
+  await page.screenshot({ path: join(SCREENSHOTS, "filtros-drawer-desktop.png"), fullPage: true });
   await page.getByLabel("Mês").selectOption("1");
   await page.getByLabel("Macroprocesso").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
+  await expect.poll(() => recordCount(page)).toBeLessThan(2898);
+  await expect(page.locator(".filter-launcher")).toContainText("2 ativos");
+
+  await openFilters(page);
   await expect(page.locator(".active-filter-strip")).toContainText("Mês: 1");
   await expect(page.locator(".active-filter-strip")).toContainText("Macroprocesso:");
-  await expect.poll(() => recordCount(page)).toBeLessThan(2898);
-
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2898);
 
   const protocol = (await page.locator(".protocol-link").first().textContent())?.trim() ?? "";
+  await openFilters(page);
   await page.getByLabel("Localizar protocolo").fill(protocol);
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await waitForCount(page, 1);
+  await openFilters(page);
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2898);
 
   await page.goto("/#/stock");
   await waitForCount(page, 2158);
+  await openFilters(page);
   await page.getByLabel("Status").selectOption("Em Análise");
   await page.getByLabel("Setor").selectOption({ index: 1 });
   await page.getByLabel("Responsabilidade").selectOption("Interno");
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
+  await openFilters(page);
   await expect(page.locator(".active-filter-strip")).toContainText("Status: Em Análise");
   await expect(page.locator(".active-filter-strip")).toContainText("Setor:");
   await expect(page.locator(".active-filter-strip")).toContainText("Responsabilidade: Interno");
   await expect.poll(() => recordCount(page)).toBeLessThan(2158);
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2158);
+});
+
+test("filtro lateral, escala dos gráficos e cores semânticas ficam legíveis", async ({ page }) => {
+  await openPanel(page, "received");
+  await expect(page.locator(".filter-bar")).toHaveCount(0);
+  await openFilters(page);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Filtros do painel" })).toHaveCount(0);
+
+  const currentBar = page.locator(".month-bars .current").first();
+  const barWidth = (await currentBar.boundingBox())?.width ?? 0;
+  const valueFont = Number.parseFloat(await page.locator(".month-values").first().evaluate((element) => getComputedStyle(element).fontSize));
+  expect(barWidth).toBeGreaterThanOrEqual(24);
+  expect(valueFont).toBeGreaterThanOrEqual(12);
+
+  await openPanel(page, "stock");
+  const internalColor = await page.locator(".stacked-track [data-visual-key='Fila Interna SEPLAN']").evaluate((element) => getComputedStyle(element).backgroundColor);
+  const externalColor = await page.locator(".stacked-track [data-visual-key='Aguardando Responsável Externo']").evaluate((element) => getComputedStyle(element).backgroundColor);
+  const paralyzedColor = await page.locator(".stacked-track [data-visual-key='Paralisado']").evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(new Set([internalColor, externalColor, paralyzedColor]).size).toBe(3);
+
+  const youngestColor = await page.locator("[data-visual-key='0–30 dias'] > i em").evaluate((element) => getComputedStyle(element).backgroundColor);
+  const oldestColor = await page.locator("[data-visual-key='181+ dias'] > i em").evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(youngestColor).not.toBe(oldestColor);
 });
 
 test("os três painéis são responsivos no viewport menor", async ({ page }) => {

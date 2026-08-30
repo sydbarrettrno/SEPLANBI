@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { formatNumber, formatPercent } from "../format";
 
 export interface VisualItem {
@@ -6,6 +6,7 @@ export interface VisualItem {
   label: string;
   value: number;
   context?: string;
+  color?: string;
 }
 
 interface InteractiveBarsProps {
@@ -29,6 +30,7 @@ export function InteractiveBars({ items, onSelect, selected, tone = "blue", init
           type="button"
           data-visual-key={item.key}
           data-visual-value={item.value}
+          style={item.color ? ({ "--item-color": item.color } as CSSProperties) : undefined}
           className={selected === item.key ? "selected" : ""}
           key={item.key}
           onClick={() => onSelect(item)}
@@ -62,7 +64,7 @@ export function MonthComparison({ data, currentYear, previousYear, selectedMonth
   if (!data.length) return <div className="bi-empty">Sem série mensal para o recorte.</div>;
   return (
     <div className="month-comparison" role="group" aria-label={`Comparação mensal ${currentYear} e ${previousYear}`}>
-      <div className="bi-legend"><span><i className="current" />{currentYear}</span><span><i className="previous" />{previousYear}</span></div>
+      <div className="bi-legend"><span><i className="current" />{currentYear} · atual</span><span><i className="previous" />{previousYear} · comparação</span></div>
       <div className="month-columns">
         {data.map((item) => (
           <button
@@ -176,7 +178,7 @@ export function StackedComposition({ items, selected, onSelect }: CompositionPro
             data-visual-value={item.value}
             key={item.key}
             className={`segment segment-${index + 1} ${selected === item.key ? "selected" : ""}`}
-            style={{ width: `${item.value / total * 100}%` }}
+            style={{ width: `${item.value / total * 100}%`, background: item.color }}
             onClick={() => onSelect(item)}
             title={`${item.label}: ${formatNumber(item.value)} (${formatPercent(item.value / total * 100)}). Clique para cruzar os demais gráficos.`}
           >
@@ -185,7 +187,7 @@ export function StackedComposition({ items, selected, onSelect }: CompositionPro
         ))}
       </div>
       <div className="composition-legend">
-        {items.map((item, index) => <span key={item.key}><i className={`segment-${index + 1}`} />{item.label}<strong>{formatPercent(item.value / total * 100)}</strong></span>)}
+        {items.map((item, index) => <span key={item.key}><i className={`segment-${index + 1}`} style={{ background: item.color }} />{item.label}<strong>{formatPercent(item.value / total * 100)}</strong></span>)}
       </div>
     </div>
   );

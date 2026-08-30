@@ -34,12 +34,38 @@ const QUERY_TO_OWNER: Record<string, string> = {
   Paralisado: "Paralisado",
 };
 
+const SEMANTIC_COLORS: Record<string, Record<string, string>> = {
+  responsibility: {
+    "Fila Interna SEPLAN": "var(--blue)",
+    "Aguardando Responsável Externo": "var(--slate)",
+    Paralisado: "var(--red)",
+  },
+  output_type: {
+    Concluído: "var(--green)",
+    Encerrado: "var(--slate)",
+  },
+  status: {
+    "Em Análise": "var(--blue)",
+    "Finalização Interna": "var(--teal)",
+    "Aguardando Responsável Externo": "var(--slate)",
+    Paralisado: "var(--red)",
+    Concluído: "var(--green)",
+    Encerrado: "var(--slate)",
+  },
+  age_band: {
+    "0–30 dias": "var(--green)",
+    "31–60 dias": "var(--teal)",
+    "61–90 dias": "#ba8a17",
+    "91–180 dias": "var(--orange)",
+    "181+ dias": "var(--red)",
+  },
+};
+
 function items(response: AnalyticsResponse | undefined, dimension: string): VisualItem[] {
-  return (response?.groups ?? []).map((group) => ({
-    key: group.keys[dimension] ?? Object.values(group.keys)[0] ?? "Não informado",
-    label: group.keys[dimension] ?? Object.values(group.keys)[0] ?? "Não informado",
-    value: group.value,
-  }));
+  return (response?.groups ?? []).map((group) => {
+    const key = group.keys[dimension] ?? Object.values(group.keys)[0] ?? "Não informado";
+    return { key, label: key, value: group.value, color: SEMANTIC_COLORS[dimension]?.[key] };
+  });
 }
 
 function pageCopy(indicator: AnalyticsIndicator) {

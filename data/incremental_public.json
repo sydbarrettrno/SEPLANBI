@@ -1,0 +1,29 @@
+{
+  "v": 1,
+  "source_updated_at": "2026-08-29",
+  "previous_rows": 7063,
+  "audit": {
+    "new_protocols": ["2026-43796"],
+    "late_pre_2026_08_22": 0,
+    "known_changed_substantive": 0
+  },
+  "records": [
+    {
+      "ProtocoloID": "2026-43796",
+      "NumeroAnoOriginal": "43796/2026",
+      "ProtocoloAno": 2026,
+      "DataAbertura": "2026-08-29",
+      "UltimoTramiteDataHora": "2026-08-29",
+      "DataEncerramento": "",
+      "DataSaida": "",
+      "TipoSaida": "",
+      "Macroprocesso": "Parcelamento do Solo",
+      "Categoria": "Alvará de Desdobro",
+      "StatusOperacional": "Em Análise",
+      "SetorAtual": "Departamento de Engenharia",
+      "GargaloOperacional": "Interno",
+      "DiasSemMovimento": 0,
+      "SourceFingerprint": ""
+    }
+  ]
+}

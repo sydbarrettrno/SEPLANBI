@@ -48,17 +48,23 @@ def _load_incremental_public():
 
 @lru_cache(maxsize=1)
 def load_rows():
+    # A data efetiva precisa ser aplicada ANTES de decodificar o artefato-base,
+    # porque DiasSemMovimento é recalculado a partir da data de referência.
+    delta = _load_incremental_public()
+    metadata = core.metadata()
+    expected_base = int(metadata.get("source_rows", -1))
+    source_updated_at = core._clean(delta.get("source_updated_at")) or metadata.get("source_updated_at")
+    metadata["source_updated_at"] = source_updated_at
+    metadata.setdefault("default_period", {})["to"] = source_updated_at
+
     # O artefato compacto permanece imutável; o delta contém somente protocolos
     # novos já auditados e sanitizados. Isso permite atualização incremental sem
     # republicar PII nem reclassificar a memória histórica.
     rows = [dict(row) for row in load_rows_base()]
-    metadata = core.metadata()
     base_rows = len(rows)
-    expected_base = int(metadata.get("source_rows", -1))
     if base_rows != expected_base:
         raise RuntimeError("Carga bloqueada: artefato-base diverge dos metadados.")
 
-    delta = _load_incremental_public()
     seen = {core._clean(row.get("ProtocoloID")) for row in rows}
     for item in delta.get("records", []):
         protocol_id = core._clean(item.get("ProtocoloID"))
@@ -78,11 +84,8 @@ def load_rows():
 
     # Atualiza em memória somente os metadados efetivos do snapshot. O manifesto
     # do artefato-base continua descrevendo os 7.063 registros compactados.
-    source_updated_at = core._clean(delta.get("source_updated_at")) or metadata.get("source_updated_at")
     metadata["base_artifact_rows"] = base_rows
     metadata["source_rows"] = len(rows)
-    metadata["source_updated_at"] = source_updated_at
-    metadata.setdefault("default_period", {})["to"] = source_updated_at
     metadata["years"] = dict(sorted(Counter(str(row.get("ProtocoloAno")) for row in rows).items()))
 
     status_counts = Counter(core._clean(row.get("StatusOperacional")) for row in rows)

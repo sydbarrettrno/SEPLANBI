@@ -1,6 +1,6 @@
-export type PageId = "overview" | "processes" | "indicators" | "admin";
+export type PageId = "overview" | "received" | "outputs" | "stock" | "processes" | "indicators" | "admin";
 export type Recordset = "all" | "received" | "concluded" | "stock" | "stopped";
-export type DetailId = "all" | "received" | "concluded" | "balance" | "stock" | "time" | "stopped" | "external" | "suspended";
+export type DetailId = "all" | "received" | "concluded" | "balance" | "stock" | "time" | "stopped" | "external" | "paralyzed";
 
 export interface FlowPoint {
   month: string;
@@ -28,7 +28,7 @@ export interface DashboardMetrics {
   stock: number;
   internal_queue: number;
   external_wait: number;
-  suspended: number;
+  paralyzed: number;
   period_balance: number;
   completion_rate: number;
   formal_completion_rate: number;
@@ -55,6 +55,7 @@ export interface ProcessRecord {
   status: string;
   owner: string;
   days_without_movement: number | null;
+  sector: string;
 }
 
 export interface IndicatorCoverage {
@@ -103,14 +104,14 @@ export interface DashboardData {
       stock: number;
       internal_queue: number;
       external_wait: number;
-      suspended: number;
+      paralyzed: number;
       internal_percent: number;
       external_percent: number;
     };
     data_quality: { operational_closed_without_formal_date: number };
     complaints: { received: number; responded_operational: number; stock: number };
     inspections: { protocols_received: number; protocols_concluded_operational: number; protocols_stock: number; note: string };
-    public_projects: { protocols_identified: number; protocols_received: number; protocols_concluded_operational: number; protocols_stock: number; note: string };
+    public_projects: { protocols_identified: number; protocols_received: number; protocols_concluded_operational: number; protocols_stock: number; reference_date: string | null; note: string };
   };
   charts: {
     flow: FlowPoint[];
@@ -132,10 +133,13 @@ export interface DashboardData {
     items: ProcessRecord[];
   };
   options: {
+    years: string[];
+    months: string[];
     categories: string[];
     statuses: string[];
     owners: string[];
     macroprocesses: string[];
+    sectors: string[];
   };
   indicator_coverage: IndicatorCoverage[];
 }
@@ -143,10 +147,15 @@ export interface DashboardData {
 export interface DashboardFilters {
   from: string;
   to: string;
+  year: string;
+  month: string;
   macro: string;
   category: string;
   status: string;
   owner: string;
+  sector: string;
+  outputType: string;
+  ageBand: string;
   q: string;
   threshold: string;
   recordset: Recordset;

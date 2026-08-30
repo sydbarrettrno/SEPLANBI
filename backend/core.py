@@ -27,6 +27,12 @@ AGING_BANDS = (
 )
 
 FORBIDDEN_KEYS = {
+    "ResponsavelInterno",
+    "NomeRequerente",
+    "ResponsavelTecnico",
+    "PessoaResponsavelExterna",
+    "TipoPessoaResponsavel",
+    "ObservacaoUltimoTramite",
     "RequerenteNomeRazao",
     "RequerenteCPFCNPJ",
     "ResponsavelCPFCNPJ",
@@ -59,6 +65,10 @@ class Query:
     status: str = ""
     owner: str = ""
     macro: str = ""
+    sector: str = ""
+    year: int = 0
+    month: int = 0
+    output_type: str = ""
     search: str = ""
     limit: int = 200
     offset: int = 0
@@ -181,7 +191,7 @@ def metadata() -> dict[str, Any]:
 
 
 @lru_cache(maxsize=1)
-def load_rows() -> list[dict[str, Any]]:
+def _load_payload() -> dict[str, Any]:
     artifact = metadata().get("artifact", {})
     parts = artifact.get("parts", [])
     directory = DATA_DIR / str(artifact.get("directory", "final_chunks"))
@@ -208,12 +218,18 @@ def load_rows() -> list[dict[str, Any]]:
 
     schema_version = payload.get("v")
     expected_schema = int(metadata().get("schema_version", -1))
-    if schema_version != expected_schema or schema_version != 8 or not isinstance(payload.get("d"), dict) or not isinstance(payload.get("c"), dict):
-        raise RuntimeError("Dataset inválido: transporte público canônico v8 esperado.")
+    if schema_version != expected_schema or schema_version != 9 or not isinstance(payload.get("d"), dict) or not isinstance(payload.get("c"), dict):
+        raise RuntimeError("Dataset inválido: transporte público canônico v9 esperado.")
+    return payload
+
+
+@lru_cache(maxsize=1)
+def load_rows() -> list[dict[str, Any]]:
+    payload = _load_payload()
     d = payload["d"]
     columns = payload["c"]
 
-    required = ("n", "y", "o", "m", "c", "x", "g", "t", "f")
+    required = ("n", "y", "o", "m", "c", "z", "x", "g", "t", "u", "h", "f")
     count = len(columns.get("n", []))
     if count == 0 or any(len(columns.get(k, [])) != count for k in required):
         raise RuntimeError("Dataset inválido: colunas com comprimentos divergentes.")
@@ -232,16 +248,12 @@ def load_rows() -> list[dict[str, Any]]:
         return (base_date + timedelta(days=offset)).isoformat()
 
     bottleneck_by_status = {
-        "Em tramitação": "SEPLAN / Tramitação",
-        "Fiscalização / vistoria": "SEPLAN / Fiscalização",
-        "Em análise técnica": "SEPLAN / Análise técnica",
-        "Exigência / pendência": "Exigência externa / Responsável técnico",
-        "Apto / aguardando retirada": "Aguardando retirada",
-        "Encerrado administrativo": "Não aplicável",
-        "Aguardando pagamento": "Aguardando pagamento",
-        "Paralisado / revisar": "SEPLAN / Revisão",
-        "Cancelado": "Não aplicável",
-        "Arquivado": "Não aplicável",
+        "Em Análise": "Interno",
+        "Finalização Interna": "Interno",
+        "Aguardando Responsável Externo": "Externo",
+        "Paralisado": "Paralisado",
+        "Concluído": "Nenhum",
+        "Encerrado": "Nenhum",
     }
 
     def dv(name: str, idx: int) -> str:
@@ -264,9 +276,12 @@ def load_rows() -> list[dict[str, Any]]:
             "DataAbertura": iso(columns["o"][j]),
             "UltimoTramiteDataHora": iso(moved),
             "DataEncerramento": iso(columns["c"][j]),
+            "DataSaida": iso(columns["z"][j]),
+            "TipoSaida": dv("TipoSaida", int(columns["u"][j])),
             "Macroprocesso": dv("Macroprocesso", int(columns["x"][j])),
             "Categoria": dv("Categoria", int(columns["g"][j])),
             "StatusOperacional": status,
+            "SetorAtual": dv("SetorAtual", int(columns["h"][j])),
             "GargaloOperacional": bottleneck_by_status.get(status, "SEPLAN / Tramitação"),
             "DiasSemMovimento": max(0, (source_ref - (base_date + timedelta(days=moved))).days) if moved >= 0 else -1,
             "SourceFingerprint": str(columns["f"][j]),
@@ -278,6 +293,37 @@ def load_rows() -> list[dict[str, Any]]:
     if len(rows) != int(metadata().get("source_rows", -1)):
         raise RuntimeError("Carga bloqueada: total do dataset diverge dos metadados.")
     return rows
+
+
+@lru_cache(maxsize=1)
+def load_public_projects() -> list[dict[str, Any]]:
+    payload = _load_payload()
+    dictionaries = payload.get("d", {})
+    columns = payload.get("pp", {})
+    required = ("i", "f", "s", "r")
+    count = len(columns.get("i", []))
+    if count == 0 or any(len(columns.get(key, [])) != count for key in required):
+        raise RuntimeError("Dataset inválido: carteira de projetos públicos ausente ou divergente.")
+    phases = dictionaries.get("ProjetoFase", [])
+    statuses = dictionaries.get("ProjetoStatus", [])
+    from datetime import timedelta
+    projects = []
+    for index in range(count):
+        try:
+            phase = phases[int(columns["f"][index])]
+            status = statuses[int(columns["s"][index])]
+            reference = (date(2025, 1, 1) + timedelta(days=int(columns["r"][index]))).isoformat()
+        except (IndexError, TypeError, ValueError) as exc:
+            raise RuntimeError("Dataset inválido: índice de projeto público fora do contrato.") from exc
+        projects.append({
+            "ID": str(columns["i"][index]),
+            "FaseAtual": str(phase),
+            "StatusAtual": str(status),
+            "DataReferencia": reference,
+        })
+    if len({item["ID"] for item in projects}) != len(projects):
+        raise RuntimeError("Dataset inválido: projeto público duplicado.")
+    return projects
 
 
 def health() -> dict[str, Any]:
@@ -314,6 +360,19 @@ def query_from_params(params: dict[str, str]) -> Query:
     except (TypeError, ValueError):
         offset = 0
 
+    try:
+        year = int(params.get("year", 0))
+    except (TypeError, ValueError):
+        year = 0
+    if year < 2025 or year > 2100:
+        year = 0
+    try:
+        month = int(params.get("month", 0))
+    except (TypeError, ValueError):
+        month = 0
+    if month < 1 or month > 12:
+        month = 0
+
     return Query(
         start=start,
         end=end,
@@ -322,6 +381,10 @@ def query_from_params(params: dict[str, str]) -> Query:
         status=_clean(params.get("status")),
         owner=_clean(params.get("owner")),
         macro=_clean(params.get("macro")),
+        sector=_clean(params.get("sector")),
+        year=year,
+        month=month,
+        output_type=_clean(params.get("output_type")),
         search=_clean(params.get("q")).casefold(),
         limit=limit,
         offset=offset,
@@ -337,6 +400,16 @@ def _matches_scope(row: dict[str, Any], q: Query) -> bool:
     if q.owner and _clean(row.get("GargaloOperacional")) != q.owner:
         return False
     if q.macro and _clean(row.get("Macroprocesso")) != q.macro:
+        return False
+    sector = _clean(row.get("SetorAtual")) or "Não informado na fonte"
+    if q.sector and sector != q.sector:
+        return False
+    opened = _as_date(row.get("DataAbertura"))
+    if q.year and (opened is None or opened.year != q.year):
+        return False
+    if q.month and (opened is None or opened.month != q.month):
+        return False
+    if q.output_type and _clean(row.get("TipoSaida")) != q.output_type:
         return False
     if q.search:
         protocol_values = {

@@ -11,17 +11,17 @@ from backend.final_entry import dashboard, health, query_from_params  # noqa: E4
 from backend.admin_store import DEFAULT_DESCRIPTIONS, load_descriptions  # noqa: E402
 
 EXPECTED = {
-    "rows": 6975,
-    "received_default": 2810,
-    "concluded_operational": 2181,
-    "concluded_formal": 1876,
-    "stock": 2208,
-    "internal_queue": 1548,
-    "external_wait": 627,
-    "suspended": 33,
-    "stopped_30_internal": 1089,
+    "rows": 7063,
+    "received_default": 2898,
+    "concluded_operational": 2293,
+    "concluded_formal": 1920,
+    "stock": 2158,
+    "internal_queue": 1544,
+    "external_wait": 583,
+    "paralyzed": 31,
+    "stopped_30_internal": 1086,
     "turnaround_median": 54.0,
-    "turnaround_p90": 229.0,
+    "turnaround_p90": 227.6,
 }
 
 h = health()
@@ -31,7 +31,7 @@ assert h["audit"]["unique_protocols"] == EXPECTED["rows"], h
 assert h["audit"]["stock"] == EXPECTED["stock"], h
 assert h["audit"]["internal_queue"] == EXPECTED["internal_queue"], h
 assert h["audit"]["external_wait"] == EXPECTED["external_wait"], h
-assert h["audit"]["suspended"] == EXPECTED["suspended"], h
+assert h["audit"]["paralyzed"] == EXPECTED["paralyzed"], h
 
 d = dashboard(query_from_params({}))
 m = d["metrics"]
@@ -41,7 +41,7 @@ assert m["concluded_formal"] == EXPECTED["concluded_formal"], m
 assert m["stock"] == EXPECTED["stock"], m
 assert m["internal_queue"] == EXPECTED["internal_queue"], m
 assert m["external_wait"] == EXPECTED["external_wait"], m
-assert m["suspended"] == EXPECTED["suspended"], m
+assert m["paralyzed"] == EXPECTED["paralyzed"], m
 assert m["stopped"]["count"] == EXPECTED["stopped_30_internal"], m
 assert round(m["stopped"]["percent"], 1) == 70.3, m
 assert m["turnaround"]["median_days"] == EXPECTED["turnaround_median"], m
@@ -55,12 +55,22 @@ assert len(d["records"]["items"]) <= 200
 assert any(x["id"] == "KPI06" and x["status"] != "DISPONÍVEL" for x in d["indicator_coverage"])
 
 cmp = d["management"]["comparison"]
-assert cmp["previous"]["received"] == 2753, cmp
-assert cmp["current"]["cohort_concluded_formal"] == 1302, cmp
-assert cmp["previous"]["cohort_concluded_formal"] == 1202, cmp
-assert cmp["received_change_percent"] == 2.1, cmp
-assert cmp["cohort_formal_change_percent"] == 8.3, cmp
-assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 735
+assert cmp["previous"]["received"] == 2825, cmp
+assert cmp["current"]["cohort_concluded_formal"] == 1344, cmp
+assert cmp["previous"]["cohort_concluded_formal"] == 1262, cmp
+assert cmp["received_change_percent"] == 2.6, cmp
+assert cmp["cohort_formal_change_percent"] == 6.5, cmp
+assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 839
+assert set(d["options"]["statuses"]) == {
+    "Em Análise",
+    "Finalização Interna",
+    "Aguardando Responsável Externo",
+    "Paralisado",
+    "Concluído",
+    "Encerrado",
+}
+assert d["management"]["public_projects"]["protocols_identified"] == 20
+assert d["management"]["public_projects"]["reference_date"] == "2026-08-27"
 
 admin = load_descriptions()
 assert set(admin["descriptions"]) == set(DEFAULT_DESCRIPTIONS)

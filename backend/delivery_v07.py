@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from backend import core
+from backend import analytics
 from backend import delivery_core as base
 
 query_from_params = base.query_from_params
@@ -13,27 +14,32 @@ def _period_rows(rows, field, query):
 def dashboard(query):
     data = base.dashboard(query)
 
-    rows = core.load_rows()
-    scoped = [r for r in rows if core._matches_scope(r, query)]
-    received = _period_rows(scoped, "DataAbertura", query)
-    concluded = _period_rows(scoped, "DataConclusaoOperacional", query)
-    stock = [r for r in scoped if base._is_stock(r)]
+    rows = base._rows()
+    received_query = analytics.query_from_dashboard(query, "received")
+    outputs_query = analytics.query_from_dashboard(query, "outputs")
+    stock_query = analytics.query_from_dashboard(query, "stock")
+    received = analytics.indicator_rows(received_query)
+    concluded = analytics.indicator_rows(outputs_query)
+    stock = analytics.indicator_rows(stock_query)
 
     inspections_received = [r for r in received if core._clean(r.get("Categoria")) == "Fiscalização"]
     inspections_concluded = [r for r in concluded if core._clean(r.get("Categoria")) == "Fiscalização"]
     inspections_stock = [r for r in stock if core._clean(r.get("Categoria")) == "Fiscalização"]
 
-    project_rows = [r for r in scoped if core._clean(r.get("Macroprocesso")) == "Projetos e Obras Públicas"]
-    project_received = _period_rows(project_rows, "DataAbertura", query)
-    project_concluded = _period_rows(project_rows, "DataConclusaoOperacional", query)
-    project_stock = [r for r in project_rows if base._is_stock(r)]
+    public_projects = core.load_public_projects()
+    public_project_statuses = [
+        {"StatusOperacional": item["StatusAtual"]} for item in public_projects
+    ]
+    public_projects_concluded = [
+        item for item in public_projects if core._clean(item.get("StatusAtual")).casefold() == "concluído".casefold()
+    ]
 
     data["meta"]["taxonomy_version"] = "V07"
     data["meta"]["category_count"] = len({core._clean(r.get("Categoria")) for r in rows})
 
     data["charts"]["received_categories"] = base._top_categories(received)
     data["charts"]["concluded_categories"] = base._top_categories(concluded)
-    data["charts"]["public_projects_status"] = base._top(project_stock, "StatusOperacional", 8)
+    data["charts"]["public_projects_status"] = base._top(public_project_statuses, "StatusOperacional", 8)
 
     data["management"]["inspections"] = {
         "protocols_received": len(inspections_received),
@@ -42,11 +48,12 @@ def dashboard(query):
         "note": "A categoria mede protocolos de fiscalização; não equivale ao total de vistorias/atos realizados."
     }
     data["management"]["public_projects"] = {
-        "protocols_identified": len(project_rows),
-        "protocols_received": len(project_received),
-        "protocols_concluded_operational": len(project_concluded),
-        "protocols_stock": len(project_stock),
-        "note": "São protocolos relacionados a projetos e obras públicas; não representam quantidade de projetos únicos."
+        "protocols_identified": len(public_projects),
+        "protocols_received": 0,
+        "protocols_concluded_operational": len(public_projects_concluded),
+        "protocols_stock": len(public_projects) - len(public_projects_concluded),
+        "reference_date": core.metadata().get("public_projects", {}).get("reference_dates", [None])[0],
+        "note": "Carteira específica de projetos públicos da V04; os nomes, atividades, bloqueios, evidências e observações não entram no transporte público."
     }
 
     return data
@@ -54,7 +61,7 @@ def dashboard(query):
 
 def health():
     data = base.health()
-    rows = core.load_rows()
+    rows = base._rows()
     categories = {core._clean(r.get("Categoria")) for r in rows}
     metadata = core.metadata()
     semantic = metadata.get("semantic_memory", {})

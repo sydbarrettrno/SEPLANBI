@@ -16,8 +16,8 @@ export const DETAIL_COPY: Record<DetailId, { eyebrow: string; title: string; des
   stock: { eyebrow: "INDICADOR 03 · ESTOQUE", title: "Detalhe das pendências", description: "Idade, situação e concentração dos processos pendentes na data final do recorte.", note: "O estoque considera a posição na data final, e não apenas os processos abertos no período." },
   time: { eyebrow: "INDICADOR 04 · TEMPO", title: "Tempo por processo concluído", description: "Média, mediana e percentil 90 dos processos entregues no período.", note: "A mediana representa o processo típico; o P90 evidencia os casos que mais alongam o prazo." },
   stopped: { eyebrow: "INDICADOR 05 · PARADOS", title: "Fila interna sem movimentação", description: "Distribuição das pendências internas por faixa de tempo e responsabilidade.", note: "Este indicador usa somente a fila interna da SEPLAN como denominador." },
-  external: { eyebrow: "GESTÃO POR EXCEÇÃO", title: "Dependências externas", description: "Processos aguardando requerente, responsável técnico ou terceiro.", note: "Esses processos exigem acompanhamento de retorno, mas não representam trabalho interno disponível." },
-  suspended: { eyebrow: "GESTÃO POR EXCEÇÃO", title: "Processos suspensos", description: "Casos fora da fila ativa que permanecem visíveis para controle administrativo.", note: "A suspensão não equivale a conclusão e precisa de revisão periódica da situação." },
+  external: { eyebrow: "GESTÃO POR EXCEÇÃO", title: "Dependências externas", description: "Processos cujo próximo passo depende de agente fora da SEPLAN.", note: "Esses processos exigem acompanhamento de retorno, mas não representam trabalho interno disponível." },
+  paralyzed: { eyebrow: "GESTÃO POR EXCEÇÃO", title: "Processos paralisados", description: "Casos sem andamento por condição excepcional que permanecem visíveis para controle administrativo.", note: "A paralisação não equivale a conclusão e precisa de revisão periódica da situação." },
 };
 
 function balanceByMonth(data: DashboardData): NamedValue[] {
@@ -73,8 +73,8 @@ export function IndicatorDetail({ data, detail }: IndicatorDetailProps) {
       { label: "% do estoque", value: formatPercent(data.management.position.external_percent) },
       { label: "Estoque total", value: formatNumber(metrics.stock) },
     ],
-    suspended: [
-      { label: "Suspensos", value: formatNumber(metrics.suspended) },
+    paralyzed: [
+      { label: "Paralisados", value: formatNumber(metrics.paralyzed) },
       { label: "Estoque total", value: formatNumber(metrics.stock) },
       { label: "Fila ativa interna", value: formatNumber(metrics.internal_queue) },
     ],
@@ -95,7 +95,7 @@ export function IndicatorDetail({ data, detail }: IndicatorDetailProps) {
     ],
     stopped: data.charts.internal_aging,
     external: data.charts.statuses,
-    suspended: data.charts.statuses,
+    paralyzed: data.charts.statuses,
   };
   const secondaryBars: Record<DetailId, NamedValue[]> = {
     all: data.charts.statuses,
@@ -106,19 +106,19 @@ export function IndicatorDetail({ data, detail }: IndicatorDetailProps) {
     time: data.charts.concluded_categories,
     stopped: data.charts.owners,
     external: data.charts.categories,
-    suspended: data.charts.categories,
+    paralyzed: data.charts.categories,
   };
   const primaryTitles: Record<DetailId, string> = {
     all: "Fluxo mensal do recorte", received: "Entradas por mês", concluded: "Conclusões por mês", balance: "Capacidade mensal",
     stock: "Estoque por faixa de tempo", time: "Distribuição do tempo de tramitação", stopped: "Fila interna por tempo sem movimento",
-    external: "Situação das dependências externas", suspended: "Situação dos processos suspensos",
+    external: "Situação das dependências externas", paralyzed: "Situação dos processos paralisados",
   };
   const secondaryTitles: Record<DetailId, string> = {
     all: "Situação dos protocolos", received: "Categorias que mais receberam", concluded: "Categorias que mais concluíram", balance: "Magnitude do saldo mensal",
     stock: "Categorias na fila interna", time: "Categorias dos processos concluídos", stopped: "Concentração por responsabilidade",
-    external: "Categorias aguardando retorno", suspended: "Categorias dos suspensos",
+    external: "Categorias aguardando retorno", paralyzed: "Categorias dos paralisados",
   };
-  const categoryDetails: DetailId[] = ["received", "concluded", "stock", "time", "external", "suspended"];
+  const categoryDetails: DetailId[] = ["received", "concluded", "stock", "time", "external", "paralyzed"];
   const secondaryLimit = categoryDetails.includes(detail) ? 12 : 8;
 
   return (

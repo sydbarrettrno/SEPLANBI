@@ -7,6 +7,9 @@ venv/
 .env.local
 node_modules/
 dist/
+/outputs/
+/test-results/
+/.tmp/
 *.tsbuildinfo
 /vite.config.js
 /vite.config.d.ts

@@ -9,6 +9,9 @@ interface SidebarProps {
 
 const NAV_ITEMS: Array<{ id: PageId; label: string; icon: string; caption: string }> = [
   { id: "overview", label: "Visão executiva", icon: "⌁", caption: "Gestão por exceção" },
+  { id: "received", label: "Recebidos", icon: "↗", caption: "Demanda e origem" },
+  { id: "outputs", label: "Saídas", icon: "✓", caption: "Produção e saldo" },
+  { id: "stock", label: "Estoque", icon: "▤", caption: "Fila e concentração" },
   { id: "processes", label: "Protocolos", icon: "▤", caption: "Filtros e drill-down" },
   { id: "indicators", label: "Indicadores", icon: "◫", caption: "Cobertura dos 11 KPI" },
   { id: "admin", label: "Administração", icon: "⚙", caption: "Textos dos cards" },

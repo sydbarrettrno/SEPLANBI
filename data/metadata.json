@@ -1,30 +1,35 @@
 {
-  "schema_version": 8,
-  "dataset": "SEPLAN 2025+ — base operacional minimizada com memória semântica V07 fixa",
-  "source_rows": 6975,
+  "schema_version": 9,
+  "dataset": "SEPLAN 2025+ — V06/V04 validada, seis status e saídas separadas",
+  "source_rows": 7063,
   "years": {
     "2025": 4165,
-    "2026": 2810
+    "2026": 2898
   },
-  "source_updated_at": "2026-08-22",
+  "source_updated_at": "2026-08-28",
   "generated_from": [
-    "BASE2326ETL.xlsx",
-    "SEPLAN_AUDITORIA_CLASSIFICACAO_STATUS_V01.xlsx"
+    "BASE_SEPLANBI_RECLASSIFICADA_VALIDADA_29082026_V06.xlsx",
+    "BASE_INDICADORES_SEPLAN_30082026_V04.xlsx"
   ],
   "source_hashes": {
-    "raw_xlsx_sha256": "5b8dd9021bbf71c97e01aa21bdcd9ae90baa96bfe21688119acb777ef3f9c586",
-    "semantic_xlsx_sha256": "b2329c30f2fd49d5b251b7f14651fd68c2b584a903b4973221543436c0e18268"
+    "master_v06_xlsx_sha256": "322ca9274d587b29285b94bb2206bf1e65a5b841b662a1826564f7921e45ccd8",
+    "indicators_v04_xlsx_sha256": "9c582b8551567c8bfc32a5f9e38d31ce2b31f5c38481f49835765904a6075b35"
   },
   "source_of_truth": {
     "operational": {
       "type": "xlsx",
-      "sheet": "BASE23-26"
+      "file": "BASE_SEPLANBI_RECLASSIFICADA_VALIDADA_29082026_V06.xlsx",
+      "sheet": "BASE_SISTEMA_VALIDADA"
+    },
+    "indicators": {
+      "type": "xlsx",
+      "file": "BASE_INDICADORES_SEPLAN_30082026_V04.xlsx"
     },
     "semantic": {
-      "mode": "immutable-by-protocol",
-      "version": "V07",
-      "sheet": "STATUS_COMPLETO",
-      "note": "Categoria e macroprocesso existentes não são sobrescritos automaticamente; mudanças operacionais exigem auditoria semântica."
+      "mode": "validated-source-no-reclassification",
+      "workbook_validation_version": "V06",
+      "taxonomy_version": "V07",
+      "note": "Categoria e macroprocesso foram copiados da camada validada; apenas o alias residual Em Formalização foi normalizado para Finalização Interna conforme a lista autorizada desta rodada."
     }
   },
   "privacy": {
@@ -34,49 +39,114 @@
       "DataAbertura",
       "UltimoTramiteDataHora",
       "DataEncerramento",
+      "DataSaida",
+      "TipoSaida",
       "Macroprocesso",
       "Categoria",
-      "StatusOperacional"
+      "StatusOperacional",
+      "SetorAtual"
+    ],
+    "published_event_fields": [
+      "ProtocoloID",
+      "DataEvento",
+      "TipoEvento",
+      "StatusAposEvento"
+    ],
+    "published_project_fields": [
+      "ID",
+      "FaseAtual",
+      "StatusAtual",
+      "DataReferencia"
     ],
     "excluded_fields": [
-      "Requerente",
-      "CPF_CNPJ_REQUERENTE",
-      "NomeRT",
-      "CPF_CNPJ_RT",
-      "ObsAbertura",
-      "UltTramiteOBS",
-      "UsuarioAtual",
-      "CCAbertura"
+      "ResponsavelInterno",
+      "NomeRequerente",
+      "ResponsavelTecnico",
+      "PessoaResponsavelExterna",
+      "TipoPessoaResponsavel",
+      "ObservacaoUltimoTramite"
     ],
-    "note": "Excel bruto e abas de auditoria permanecem fora do Git; o artefato contém somente campos necessários ao painel e uma impressão digital não reversível."
+    "note": "PII e observações livres permanecem no artefato local privado externo ao Git; a API pública não possui rota para essa camada."
   },
   "default_period": {
     "from": "2026-01-01",
-    "to": "2026-08-22"
+    "to": "2026-08-28"
   },
   "default_threshold_days": 30,
   "semantic_memory": {
     "taxonomy_version": "V07",
     "category_count": 42,
     "macroprocess_count": 12,
-    "status_count": 7
+    "status_count": 6,
+    "status_counts": {
+      "Encerrado": 3149,
+      "Aguardando Responsável Externo": 583,
+      "Concluído": 1756,
+      "Em Análise": 1478,
+      "Finalização Interna": 66,
+      "Paralisado": 31
+    }
+  },
+  "movement_history": {
+    "event_count": 396,
+    "countable_event_types": [
+      "DILIGENCIA",
+      "TRAMITACAO"
+    ],
+    "limitation": "Cada extrato registra somente o último trâmite observado; não equivale ao histórico integral."
+  },
+  "public_projects": {
+    "count": 20,
+    "reference_dates": [
+      "2026-08-27"
+    ],
+    "source_sheet": "10_PROJETOS_PUBLICOS",
+    "note": "Somente ID, fase, status e data de referência entram no transporte público."
   },
   "import_audit": {
-    "protocols_2025_plus": 6975,
-    "classification_memory_hits": 6975,
-    "unchanged_existing": 6975,
-    "changed_existing_audited": 0,
-    "new_audited": 0,
-    "removed": 0,
-    "semantic_gate": "APROVADO"
+    "protocols_2025_plus": 7063,
+    "unique_protocols": 7063,
+    "duplicates": 0,
+    "received_2026_to_cutoff": 2898,
+    "outputs_total": 4905,
+    "outputs_2026_to_cutoff": 2293,
+    "stock": 2158,
+    "status_counts": {
+      "Encerrado": 3149,
+      "Aguardando Responsável Externo": 583,
+      "Concluído": 1756,
+      "Em Análise": 1478,
+      "Finalização Interna": 66,
+      "Paralisado": 31
+    },
+    "status_gate": "APROVADO_6_STATUS",
+    "status_aliases": {
+      "Em Formalização -> Finalização Interna": 7
+    },
+    "received_universe": 7063,
+    "outputs": 4905,
+    "output_sources": {
+      "Último Trâmite Operacional": 839,
+      "Data Encerramento Formal": 4066
+    },
+    "private_priority_mismatches": 0,
+    "public_projects": 20,
+    "event_status_aliases": {
+      "Suspenso -> Paralisado": 4,
+      "Aguardando Terceiro/Setor -> Aguardando Responsável Externo": 9,
+      "Aguardando RT -> Aguardando Responsável Externo": 41,
+      "Aguardando Requerente -> Aguardando Responsável Externo": 64,
+      "Em Formalização -> Finalização Interna": 30
+    },
+    "events": 396
   },
   "artifact": {
     "storage": "gzip+base64-chunks",
-    "format": "public-compact-v8-canonical",
-    "gzip_bytes": 126818,
-    "gzip_sha256": "d7e5b1ac69105e54e9e736517d6200e17aa1c26e2e6f92796fcf87f337456824",
-    "base64_chars": 169092,
-    "date_encoding": "days since 2025-01-01; -1 = null",
+    "format": "public-compact-v9-v06-v04-with-sector-events-and-projects",
+    "gzip_bytes": 150329,
+    "gzip_sha256": "c16e3eb3dbc60a6e7c6cfe0a0391fd8dacb5afe881193c57bb8eb8b068374f1c",
+    "base64_chars": 200440,
+    "date_encoding": "days since 2025-01-01; -1 = null; events use minutes",
     "directory": "final_chunks",
     "parts": [
       "part-000",
@@ -93,7 +163,9 @@
       "part-011",
       "part-012",
       "part-013",
-      "part-014"
+      "part-014",
+      "part-015",
+      "part-016"
     ],
     "columns": [
       "n",
@@ -101,11 +173,26 @@
       "o",
       "m",
       "c",
+      "z",
       "x",
       "g",
       "t",
+      "u",
+      "h",
       "f"
     ],
-    "note": "Único artefato canônico consumido pela API; classificação V07 já incorporada."
+    "event_columns": [
+      "p",
+      "a",
+      "k",
+      "s"
+    ],
+    "public_project_columns": [
+      "i",
+      "f",
+      "s",
+      "r"
+    ],
+    "note": "Único artefato canônico consumido pela API; não contém campos privados."
   }
 }

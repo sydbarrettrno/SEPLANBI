@@ -1,4 +1,5 @@
 import type { CardDescriptionMap, CardDescriptionsPayload, DashboardData, DashboardFilters } from "./types";
+import { analyticsSearchParams, type AnalyticsRequest, type AnalyticsResponse } from "./analytics";
 
 export async function fetchDashboard(
   filters: DashboardFilters,
@@ -8,10 +9,14 @@ export async function fetchDashboard(
   const values: Record<string, string> = {
     from: filters.from,
     to: filters.to,
+    year: filters.year,
+    month: filters.month,
     macro: filters.macro,
     category: filters.category,
     status: filters.status,
     owner: filters.owner,
+    sector: filters.sector,
+    output_type: filters.outputType,
     q: filters.q,
     threshold: filters.threshold,
     recordset: filters.recordset,
@@ -30,6 +35,17 @@ export async function fetchDashboard(
     throw new Error(`A API respondeu com o código ${response.status}.`);
   }
   return (await response.json()) as DashboardData;
+}
+
+export async function fetchAnalytics(
+  request: AnalyticsRequest,
+  signal?: AbortSignal,
+): Promise<AnalyticsResponse> {
+  const response = await fetch(`/api?${analyticsSearchParams(request).toString()}`, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  return readJson<AnalyticsResponse>(response);
 }
 
 async function readJson<T>(response: Response): Promise<T> {

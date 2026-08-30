@@ -430,11 +430,14 @@ def _validate_payload(compressed: bytes, expected_rows: int) -> None:
         payload = json.loads(gzip.decompress(compressed).decode("utf-8"))
     except Exception as exc:
         raise RuntimeError("Artefato sanitizado inválido.") from exc
-    if payload.get("v") != 8:
-        raise RuntimeError("Schema canônico v8 não foi produzido.")
+    schema_version = payload.get("v")
+    if schema_version not in {8, 9}:
+        raise RuntimeError("Schema canônico v8/v9 não foi produzido.")
     dictionaries = payload.get("d", {})
     columns = payload.get("c", {})
     required = ("n", "y", "o", "m", "c", "x", "g", "t", "f")
+    if schema_version == 9:
+        required = (*required, "z", "u", "h")
     if any(len(columns.get(field, [])) != expected_rows for field in required):
         raise RuntimeError("Colunas do artefato sanitizado possuem comprimentos divergentes.")
     ids = [f"{2025 + int(year)}-{int(number)}" for year, number in zip(columns["y"], columns["n"])]

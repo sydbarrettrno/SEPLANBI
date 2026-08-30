@@ -4,18 +4,18 @@ from collections import Counter
 from datetime import timedelta
 from typing import Any
 
+from backend import analytics
 from backend import core
 
-core.TERMINAL_STATUSES = {"ENCERRADO"}
+core.TERMINAL_STATUSES = {"CONCLUÍDO", "ENCERRADO"}
 
 _OWNER_BY_STATUS = {
     "ENCERRADO": "Nenhum",
+    "CONCLUÍDO": "Nenhum",
     "EM ANÁLISE": "Interno",
-    "EM FORMALIZAÇÃO": "Interno",
-    "AGUARDANDO REQUERENTE": "Requerente",
-    "AGUARDANDO RT": "RT",
-    "AGUARDANDO TERCEIRO/SETOR": "Terceiro / Setor",
-    "SUSPENSO": "Indefinido",
+    "FINALIZAÇÃO INTERNA": "Interno",
+    "AGUARDANDO RESPONSÁVEL EXTERNO": "Externo",
+    "PARALISADO": "Paralisado",
 }
 
 INDICATOR_COVERAGE = [
@@ -24,36 +24,32 @@ INDICATOR_COVERAGE = [
     {"id":"KPI03","name":"Estoque pendente","status":"DISPONÍVEL","reason":"Status Real atual, separado por responsabilidade."},
     {"id":"KPI04","name":"Tempo de tramitação","status":"DISPONÍVEL","reason":"Média, mediana e P90 da conclusão operacional; formal disponível para auditoria."},
     {"id":"KPI05","name":"% parados > X dias","status":"DISPONÍVEL","reason":"Calculado sobre a fila interna SEPLAN."},
-    {"id":"KPI06","name":"% concluído dentro do prazo","status":"FONTE NÃO INTEGRADA","reason":"Falta dimensão oficial de prazos e regras de suspensão."},
+    {"id":"KPI06","name":"% concluído dentro do prazo","status":"FONTE NÃO INTEGRADA","reason":"Falta dimensão oficial de prazos e regras de paralisação/espera externa."},
     {"id":"KPI07","name":"Diligências por processo","status":"FONTE NÃO INTEGRADA","reason":"Exige histórico completo de eventos."},
     {"id":"KPI08","name":"Fiscalizações realizadas","status":"PARCIAL","reason":"A categoria identifica demanda, mas não comprova todos os atos executados."},
     {"id":"KPI09","name":"Denúncias recebidas/respondidas","status":"PARCIAL","reason":"Denúncia está separada na taxonomia; encerramento operacional permite medir respostas."},
     {"id":"KPI10","name":"Projetos públicos por etapa","status":"BASE COMPLEMENTAR","reason":"Protocolo não substitui carteira de projetos."},
-    {"id":"KPI11","name":"Pendências por responsável/setor","status":"DISPONÍVEL","reason":"Responsabilidade atual derivada do Status Real."},
+    {"id":"KPI11","name":"Pendências por responsável/setor","status":"DISPONÍVEL","reason":"Responsabilidade atual derivada dos seis status homologados; detalhes pessoais permanecem privados."},
 ]
 
 Query = core.Query
 query_from_params = core.query_from_params
 
 def _rows():
-    rows = core.load_rows()
+    rows = list(analytics.canonical_rows())
     for r in rows:
         status = core._clean(r.get("StatusOperacional")).upper()
         r["GargaloOperacional"] = _OWNER_BY_STATUS.get(status, "Indefinido")
-        if status == "ENCERRADO":
-            r["DataConclusaoOperacional"] = r.get("DataEncerramento") or r.get("UltimoTramiteDataHora")
-        else:
-            r["DataConclusaoOperacional"] = ""
     return rows
 
 def _is_stock(r):
-    return core._clean(r.get("StatusOperacional")).upper() != "ENCERRADO"
+    return analytics.is_stock(r)
 
 def _is_internal(r):
     return core._clean(r.get("GargaloOperacional")).upper() == "INTERNO"
 
 def _is_external(r):
-    return core._clean(r.get("GargaloOperacional")).upper() in {"REQUERENTE","RT","TERCEIRO / SETOR"}
+    return core._clean(r.get("GargaloOperacional")).upper() == "EXTERNO"
 
 def _turnaround(rows, end_field):
     vals = [d for d in (core._days_between(r.get("DataAbertura"), r.get(end_field)) for r in rows) if d is not None]
@@ -98,18 +94,22 @@ def _record(r):
         "status": r.get("StatusOperacional"),
         "owner": r.get("GargaloOperacional"),
         "days_without_movement": r.get("DiasSemMovimento") if int(r.get("DiasSemMovimento",-1)) >= 0 else None,
+        "sector": r.get("SetorAnalitico"),
     }
 
 def dashboard(query):
     rows=_rows()
-    scoped=[r for r in rows if core._matches_scope(r,query)]
-    received=[r for r in scoped if core._in_period(r.get("DataAbertura"),query.start,query.end)]
-    concluded=[r for r in scoped if core._in_period(r.get("DataConclusaoOperacional"),query.start,query.end)]
+    received_query=analytics.query_from_dashboard(query,"received")
+    outputs_query=analytics.query_from_dashboard(query,"outputs")
+    stock_query=analytics.query_from_dashboard(query,"stock")
+    scoped=analytics.apply_filters(rows,received_query,include_period=False)
+    received=analytics.indicator_rows(received_query)
+    concluded=analytics.indicator_rows(outputs_query)
     formal=[r for r in scoped if core._in_period(r.get("DataEncerramento"),query.start,query.end)]
-    stock=[r for r in scoped if _is_stock(r)]
+    stock=analytics.indicator_rows(stock_query)
     internal=[r for r in stock if _is_internal(r)]
     external=[r for r in stock if _is_external(r)]
-    suspended=[r for r in stock if core._clean(r.get("StatusOperacional")).upper()=="SUSPENSO"]
+    paralyzed=[r for r in stock if core._clean(r.get("StatusOperacional")).upper()=="PARALISADO"]
     stopped=[r for r in internal if int(r.get("DiasSemMovimento",-1)) > query.threshold]
 
     flow={m:{"month":m,"received":0,"concluded":0,"concluded_formal":0} for m in core._month_keys(query.start,query.end)}
@@ -140,7 +140,7 @@ def dashboard(query):
         "stock":len(stock),
         "internal_queue":len(internal),
         "external_wait":len(external),
-        "suspended":len(suspended),
+        "paralyzed":len(paralyzed),
         "turnaround":_turnaround(concluded,"DataConclusaoOperacional"),
         "turnaround_formal":_turnaround(formal,"DataEncerramento"),
         "stopped":{"threshold_days":query.threshold,"count":len(stopped),"eligible_stock":len(internal),"percent":core._pct(len(stopped),len(internal)),"denominator_label":"fila interna SEPLAN"},
@@ -162,10 +162,10 @@ def dashboard(query):
             "cohort_formal_change_percent":round((len(cohort_formal)-len(prev_cohort_formal))/len(prev_cohort_formal)*100,1) if prev_cohort_formal else None,
             "note":"Comparação de produção usa coorte do próprio período para evitar assimetria de passivo anterior a 2025."
         },
-        "position":{"stock":len(stock),"internal_queue":len(internal),"external_wait":len(external),"suspended":len(suspended),"internal_percent":core._pct(len(internal),len(stock)),"external_percent":core._pct(len(external),len(stock))},
+        "position":{"stock":len(stock),"internal_queue":len(internal),"external_wait":len(external),"paralyzed":len(paralyzed),"internal_percent":core._pct(len(internal),len(stock)),"external_percent":core._pct(len(external),len(stock))},
         "inactivity":{"threshold_days":query.threshold,"internal_stopped":len(stopped),"internal_total":len(internal),"internal_stopped_percent":core._pct(len(stopped),len(internal))},
         "time":{"operational":metrics["turnaround"],"formal":metrics["turnaround_formal"]},
-        "data_quality":{"operational_closed_without_formal_date":sum(1 for r in scoped if core._clean(r.get("StatusOperacional")).upper()=="ENCERRADO" and not core._clean(r.get("DataEncerramento")))},
+        "data_quality":{"operational_closed_without_formal_date":sum(1 for r in scoped if core._clean(r.get("StatusOperacional")).upper() in {"CONCLUÍDO","ENCERRADO"} and not core._clean(r.get("DataEncerramento")))},
         "complaints":{"received":len(complaint_received),"responded_operational":len(complaint_responded),"stock":len(complaint_stock)},
     }
 
@@ -180,7 +180,7 @@ def dashboard(query):
         "management":management,
         "charts":{"flow":list(flow.values()),"aging":_aging(stock),"internal_aging":_aging(internal),"categories":_top_categories(stock),"internal_categories":_top_categories(internal),"owners":_top(stock,"GargaloOperacional"),"statuses":_top(stock,"StatusOperacional")},
         "records":{"total":len(record_source),"offset":query.offset,"limit":query.limit,"recordset":query.recordset,"items":[_record(r) for r in page]},
-        "options":{"categories":sorted({core._clean(r.get("Categoria")) for r in rows if core._clean(r.get("Categoria"))},key=str.casefold),"statuses":sorted({core._clean(r.get("StatusOperacional")) for r in rows if core._clean(r.get("StatusOperacional"))},key=str.casefold),"owners":sorted({_OWNER_BY_STATUS.get(core._clean(r.get("StatusOperacional")).upper(),"Indefinido") for r in rows},key=str.casefold),"macroprocesses":sorted({core._clean(r.get("Macroprocesso")) for r in rows if core._clean(r.get("Macroprocesso"))},key=str.casefold)},
+        "options":{"years":sorted({str(r.get("ProtocoloAno")) for r in rows}),"months":[str(value) for value in range(1,13)],"categories":sorted({core._clean(r.get("Categoria")) for r in rows if core._clean(r.get("Categoria"))},key=str.casefold),"statuses":sorted({core._clean(r.get("StatusOperacional")) for r in rows if core._clean(r.get("StatusOperacional"))},key=str.casefold),"owners":sorted({_OWNER_BY_STATUS.get(core._clean(r.get("StatusOperacional")).upper(),"Indefinido") for r in rows},key=str.casefold),"macroprocesses":sorted({core._clean(r.get("Macroprocesso")) for r in rows if core._clean(r.get("Macroprocesso"))},key=str.casefold),"sectors":sorted({core._clean(r.get("SetorAnalitico")) for r in rows if core._clean(r.get("SetorAnalitico"))},key=str.casefold)},
         "indicator_coverage":INDICATOR_COVERAGE,
         "warnings":["Estoque e responsabilidade representam a posição atual da base.","KPI05 usa somente a fila interna SEPLAN como denominador.","Conclusão operacional e encerramento formal são métricas distintas.","O dataset público é sanitizado."]
     }
@@ -190,5 +190,5 @@ def health():
     stock=[r for r in rows if _is_stock(r)]
     internal=[r for r in stock if _is_internal(r)]
     external=[r for r in stock if _is_external(r)]
-    suspended=[r for r in stock if core._clean(r.get("StatusOperacional")).upper()=="SUSPENSO"]
-    return {"status":"ok","service":"SEPLAN — Painel Executivo","dataset":core.metadata().get("dataset"),"source_updated_at":core.metadata().get("source_updated_at"),"audit":{"ok":True,"rows":len(rows),"unique_protocols":len({r["ProtocoloID"] for r in rows}),"stock":len(stock),"internal_queue":len(internal),"external_wait":len(external),"suspended":len(suspended)}}
+    paralyzed=[r for r in stock if core._clean(r.get("StatusOperacional")).upper()=="PARALISADO"]
+    return {"status":"ok","service":"SEPLAN — Painel Executivo","dataset":core.metadata().get("dataset"),"source_updated_at":core.metadata().get("source_updated_at"),"audit":{"ok":True,"rows":len(rows),"unique_protocols":len({r["ProtocoloID"] for r in rows}),"stock":len(stock),"internal_queue":len(internal),"external_wait":len(external),"paralyzed":len(paralyzed)}}

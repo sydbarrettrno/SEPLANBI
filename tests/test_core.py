@@ -8,46 +8,46 @@ class CoreTests(unittest.TestCase):
     def test_data_audit(self):
         h = health()
         self.assertEqual(h["status"], "ok")
-        self.assertEqual(h["audit"]["rows"], 6975)
-        self.assertEqual(h["audit"]["unique_protocols"], 6975)
-        self.assertEqual(h["audit"]["stock"], 2208)
-        self.assertEqual(h["audit"]["internal_queue"], 1548)
-        self.assertEqual(h["audit"]["external_wait"], 627)
-        self.assertEqual(h["audit"]["suspended"], 33)
+        self.assertEqual(h["audit"]["rows"], 7063)
+        self.assertEqual(h["audit"]["unique_protocols"], 7063)
+        self.assertEqual(h["audit"]["stock"], 2158)
+        self.assertEqual(h["audit"]["internal_queue"], 1544)
+        self.assertEqual(h["audit"]["external_wait"], 583)
+        self.assertEqual(h["audit"]["paralyzed"], 31)
 
     def test_default_metrics(self):
         d = dashboard(query_from_params({}))
         m = d["metrics"]
-        self.assertEqual(m["received"], 2810)
-        self.assertEqual(m["concluded"], 2181)
-        self.assertEqual(m["concluded_formal"], 1876)
-        self.assertEqual(m["stock"], 2208)
-        self.assertEqual(m["internal_queue"], 1548)
-        self.assertEqual(m["external_wait"], 627)
-        self.assertEqual(m["suspended"], 33)
-        self.assertEqual(m["stopped"]["count"], 1089)
+        self.assertEqual(m["received"], 2898)
+        self.assertEqual(m["concluded"], 2293)
+        self.assertEqual(m["concluded_formal"], 1920)
+        self.assertEqual(m["stock"], 2158)
+        self.assertEqual(m["internal_queue"], 1544)
+        self.assertEqual(m["external_wait"], 583)
+        self.assertEqual(m["paralyzed"], 31)
+        self.assertEqual(m["stopped"]["count"], 1086)
         self.assertEqual(round(m["stopped"]["percent"], 1), 70.3)
         self.assertEqual(m["turnaround"]["median_days"], 54.0)
-        self.assertEqual(m["turnaround"]["p90_days"], 229.0)
+        self.assertEqual(m["turnaround"]["p90_days"], 227.6)
 
     def test_reconciliation(self):
         m = dashboard(query_from_params({}))["metrics"]
-        self.assertEqual(m["stock"], m["internal_queue"] + m["external_wait"] + m["suspended"])
-        self.assertEqual(m["stock"], 2208)
+        self.assertEqual(m["stock"], m["internal_queue"] + m["external_wait"] + m["paralyzed"])
+        self.assertEqual(m["stock"], 2158)
 
     def test_same_period_comparison(self):
         cmp = dashboard(query_from_params({}))["management"]["comparison"]
-        self.assertEqual(cmp["current"]["received"], 2810)
-        self.assertEqual(cmp["previous"]["received"], 2753)
-        self.assertEqual(cmp["received_change_percent"], 2.1)
-        self.assertEqual(cmp["current"]["cohort_concluded_formal"], 1302)
-        self.assertEqual(cmp["previous"]["cohort_concluded_formal"], 1202)
-        self.assertEqual(cmp["cohort_formal_change_percent"], 8.3)
-        self.assertEqual(cmp["current"]["passive_absorbed"], 621)
+        self.assertEqual(cmp["current"]["received"], 2898)
+        self.assertEqual(cmp["previous"]["received"], 2825)
+        self.assertEqual(cmp["received_change_percent"], 2.6)
+        self.assertEqual(cmp["current"]["cohort_concluded_formal"], 1344)
+        self.assertEqual(cmp["previous"]["cohort_concluded_formal"], 1262)
+        self.assertEqual(cmp["cohort_formal_change_percent"], 6.5)
+        self.assertEqual(cmp["current"]["passive_absorbed"], 632)
 
     def test_period_does_not_reconstruct_stock(self):
         a = dashboard(query_from_params({"from": "2025-01-01", "to": "2025-12-31"}))["metrics"]
-        b = dashboard(query_from_params({"from": "2026-01-01", "to": "2026-08-22"}))["metrics"]
+        b = dashboard(query_from_params({"from": "2026-01-01", "to": "2026-08-28"}))["metrics"]
         self.assertEqual(a["stock"], b["stock"])
         self.assertNotEqual(a["received"], b["received"])
 
@@ -57,12 +57,12 @@ class CoreTests(unittest.TestCase):
         self.assertTrue(all(x["category"] == "Habite-se" for x in d["records"]["items"]))
 
     def test_pii_not_in_dataset_schema(self):
-        forbidden = {"RequerenteNomeRazao", "RequerenteCPFCNPJ", "ObservacaoAbertura", "UltimoTramiteObservacao", "ResponsavelGargalo", "Inscricao"}
+        forbidden = {"ResponsavelInterno", "NomeRequerente", "ResponsavelTecnico", "PessoaResponsavelExterna", "TipoPessoaResponsavel", "ObservacaoUltimoTramite", "RequerenteNomeRazao", "RequerenteCPFCNPJ", "ObservacaoAbertura", "UltimoTramiteObservacao", "ResponsavelGargalo", "Inscricao"}
         self.assertFalse(forbidden.intersection(load_rows()[0].keys()))
 
     def test_recordsets_and_thresholds(self):
         base = dashboard(query_from_params({"limit": "500"}))
-        for name, expected in (("received", 2810), ("concluded", 2181), ("stock", 2208), ("stopped", 1089)):
+        for name, expected in (("received", 2898), ("concluded", 2293), ("stock", 2158), ("stopped", 1086)):
             d = dashboard(query_from_params({"recordset": name, "limit": "500"}))
             self.assertEqual(d["records"]["recordset"], name)
             self.assertEqual(d["records"]["total"], expected)
@@ -97,15 +97,34 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(coverage["KPI11"]["status"], "DISPONÍVEL")
 
     def test_owner_is_categorical(self):
-        allowed = {"Interno", "Requerente", "RT", "Terceiro / Setor", "Indefinido", "Nenhum"}
+        allowed = {"Interno", "Externo", "Paralisado", "Nenhum"}
         d = dashboard(query_from_params({}))
         self.assertTrue(set(d["options"]["owners"]).issubset(allowed))
         self.assertTrue(all("Inscricao" not in r and "ResponsavelGargalo" not in r for r in load_rows()))
 
     def test_operational_vs_formal_is_preserved(self):
         d = dashboard(query_from_params({}))
-        self.assertEqual(d["management"]["data_quality"]["operational_closed_without_formal_date"], 735)
+        self.assertEqual(d["management"]["data_quality"]["operational_closed_without_formal_date"], 839)
         self.assertGreater(d["metrics"]["concluded"], d["metrics"]["concluded_formal"])
+
+    def test_exact_homologated_statuses(self):
+        expected = {
+            "Em Análise",
+            "Finalização Interna",
+            "Aguardando Responsável Externo",
+            "Paralisado",
+            "Concluído",
+            "Encerrado",
+        }
+        d = dashboard(query_from_params({}))
+        self.assertEqual(set(d["options"]["statuses"]), expected)
+
+    def test_public_projects_use_v04_reference(self):
+        d = dashboard(query_from_params({}))
+        projects = d["management"]["public_projects"]
+        self.assertEqual(projects["protocols_identified"], 20)
+        self.assertEqual(projects["reference_date"], "2026-08-27")
+        self.assertEqual(sum(item["value"] for item in d["charts"]["public_projects_status"]), 20)
 
 
 if __name__ == "__main__":

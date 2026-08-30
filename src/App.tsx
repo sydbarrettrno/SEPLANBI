@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchCardDescriptions, fetchDashboard, saveCardDescriptions } from "./api";
 import { AdminDescriptions } from "./components/AdminDescriptions";
 import { BarList } from "./components/BarList";
+import { BiPanel } from "./components/BiPanel";
 import { DrilldownTable } from "./components/DrilldownTable";
 import { ExceptionPanel } from "./components/ExceptionPanel";
 import { FilterBar } from "./components/FilterBar";
@@ -13,6 +14,7 @@ import { MonthlyFlowBarChart } from "./components/MonthlyFlowBarChart";
 import { Sidebar } from "./components/Sidebar";
 import { formatDays, formatNumber, formatPercent, monthLabel } from "./format";
 import type { CardDescriptionMap, DashboardData, DashboardFilters, DetailId, PageId, Recordset } from "./types";
+import { drillBreadcrumb, publicAnalyticsExportUrl, type AnalyticsIndicator } from "./analytics";
 
 const DEFAULT_DESCRIPTIONS: CardDescriptionMap = {
   received: "Demandas que entraram na SEPLAN durante o período selecionado.",
@@ -25,10 +27,15 @@ const DEFAULT_DESCRIPTIONS: CardDescriptionMap = {
 const INITIAL_FILTERS: DashboardFilters = {
   from: "",
   to: "",
+  year: "",
+  month: "",
   macro: "",
   category: "",
   status: "",
   owner: "",
+  sector: "",
+  outputType: "",
+  ageBand: "",
   q: "",
   threshold: "30",
   recordset: "all",
@@ -54,6 +61,17 @@ export default function App() {
   const [descriptions, setDescriptions] = useState<CardDescriptionMap>(DEFAULT_DESCRIPTIONS);
   const [adminPersistent, setAdminPersistent] = useState(false);
   const [adminUpdatedAt, setAdminUpdatedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    const allowed: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators", "admin"];
+    const syncHash = () => {
+      const candidate = window.location.hash.replace(/^#\/?/, "") as PageId;
+      if (allowed.includes(candidate)) setPage(candidate);
+    };
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
+    return () => window.removeEventListener("hashchange", syncHash);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -112,6 +130,7 @@ export default function App() {
 
   const navigate = (nextPage: PageId) => {
     setPage(nextPage);
+    window.history.pushState(null, "", `#/${nextPage}`);
     if (nextPage === "overview") {
       setSelectedDetail("all");
       setFilters((current) => ({ ...current, recordset: "all", offset: 0 }));
@@ -124,6 +143,30 @@ export default function App() {
 
   const metrics = data?.metrics;
   const comparison = data?.management.comparison;
+  const exportHref = useMemo(() => {
+    const indicator: AnalyticsIndicator | null = selectedDetail === "received"
+      ? "received"
+      : selectedDetail === "concluded"
+        ? "outputs"
+        : (["stock", "external", "paralyzed"] as DetailId[]).includes(selectedDetail)
+          ? "stock"
+          : null;
+    if (!indicator) return null;
+    return publicAnalyticsExportUrl({
+      indicator,
+      from: filters.from,
+      to: filters.to,
+      macro: filters.macro ? [filters.macro] : undefined,
+      category: filters.category ? [filters.category] : undefined,
+      status: filters.status ? [filters.status] : undefined,
+      sector: filters.sector ? [filters.sector] : undefined,
+      outputType: filters.outputType ? [filters.outputType as "Concluído" | "Encerrado"] : undefined,
+      ageBand: filters.ageBand ? [filters.ageBand] : undefined,
+      year: filters.year ? [filters.year] : undefined,
+      month: filters.month ? [Number(filters.month)] : undefined,
+      search: filters.q,
+    });
+  }, [filters, selectedDetail]);
 
   return (
     <div className="app-shell">
@@ -173,10 +216,10 @@ export default function App() {
 
               {metrics ? (
                 <section className="kpi-grid" aria-label="Indicadores principais">
-                  <KpiCard icon="↗" eyebrow="01 · RECEBIDOS" value={formatNumber(metrics.received)} description={descriptions.received} detail="Ver processos recebidos" tone="blue" trend={comparisonLabel(comparison?.received_change_percent, "Entradas")} onClick={() => openDetail("received", "received")} />
-                  <KpiCard icon="✓" eyebrow="02 · CONCLUÍDOS" value={formatNumber(metrics.concluded)} description={descriptions.concluded} detail="Ver processos concluídos" tone="green" trend={comparisonLabel(comparison?.cohort_concluded_change_percent, "Entregas")} onClick={() => openDetail("concluded", "concluded")} />
+                  <KpiCard icon="↗" eyebrow="01 · RECEBIDOS" value={formatNumber(metrics.received)} description={descriptions.received} detail="Abrir BI de recebidos" tone="blue" trend={comparisonLabel(comparison?.received_change_percent, "Entradas")} onClick={() => navigate("received")} />
+                  <KpiCard icon="✓" eyebrow="02 · SAÍDAS" value={formatNumber(metrics.concluded)} description={descriptions.concluded} detail="Abrir BI de saídas" tone="green" trend={comparisonLabel(comparison?.cohort_concluded_change_percent, "Entregas")} onClick={() => navigate("outputs")} />
                   <KpiCard icon="⇄" eyebrow="FLUXO · SALDO" value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`} description={descriptions.balance} detail={`${formatPercent(metrics.completion_rate)} concluídos/recebidos`} tone={metrics.period_balance > 0 ? "orange" : "green"} onClick={() => openDetail("balance", "all")} />
-                  <KpiCard icon="▤" eyebrow="03 · ESTOQUE" value={formatNumber(metrics.stock)} description={descriptions.stock} detail={`${formatNumber(metrics.internal_queue)} na fila interna`} tone="orange" onClick={() => openDetail("stock", "stock")} />
+                  <KpiCard icon="▤" eyebrow="03 · ESTOQUE" value={formatNumber(metrics.stock)} description={descriptions.stock} detail={`${formatNumber(metrics.internal_queue)} na fila interna`} tone="orange" onClick={() => navigate("stock")} />
                   <KpiCard icon="◷" eyebrow="04 · TEMPO MÉDIO" value={formatDays(metrics.turnaround.mean_days)} description={descriptions.time} detail={`Mediana ${formatDays(metrics.turnaround.median_days)} · P90 ${formatDays(metrics.turnaround.p90_days)}`} tone="purple" onClick={() => openDetail("time", "concluded")} />
                 </section>
               ) : null}
@@ -223,14 +266,26 @@ export default function App() {
 
           {data && page === "processes" ? (
             <section className="process-page">
+              <nav className="drill-breadcrumb" aria-label="Caminho do detalhamento">
+                {drillBreadcrumb(selectedDetail, filters).map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
+              </nav>
               <div className="page-hero simple-hero">
                 <div><span className="eyebrow">{DETAIL_COPY[selectedDetail].eyebrow}</span><h1>{DETAIL_COPY[selectedDetail].title}</h1><p>{DETAIL_COPY[selectedDetail].description}</p></div>
                 <div className="recordset-label"><small>RECORTE ATIVO</small><strong>{data.records.recordset === "all" ? "Todos os protocolos" : data.records.recordset}</strong></div>
               </div>
               <IndicatorDetail data={data} detail={selectedDetail} />
-              <DrilldownTable records={data.records} onPage={(offset) => setFilters((current) => ({ ...current, offset }))} />
+              <DrilldownTable
+                records={data.records}
+                onPage={(offset) => setFilters((current) => ({ ...current, offset }))}
+                onProtocol={(protocol) => setFilters((current) => ({ ...current, q: protocol, offset: 0 }))}
+                exportHref={exportHref}
+              />
             </section>
           ) : null}
+
+          {data && page === "received" ? <BiPanel indicator="received" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
+          {data && page === "outputs" ? <BiPanel indicator="outputs" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
+          {data && page === "stock" ? <BiPanel indicator="stock" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
 
           {data && page === "indicators" ? <IndicatorCoverage items={data.indicator_coverage} /> : null}
 

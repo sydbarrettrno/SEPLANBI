@@ -30,6 +30,6 @@ export function statusTone(status: string): "good" | "warning" | "critical" | "n
   if (normalized.includes("ENCERRADO") || normalized.includes("DISPONÍVEL")) return "good";
   if (normalized.includes("NÃO INTEGRADA") || normalized.includes("COMPLEMENTAR")) return "neutral";
   if (normalized.includes("AGUARDANDO") || normalized.includes("PARCIAL")) return "warning";
-  if (normalized.includes("SUSPENSO") || normalized.includes("PARADO")) return "critical";
+  if (normalized.includes("PARALIS")) return "critical";
   return "neutral";
 }

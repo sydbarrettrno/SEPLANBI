@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { DashboardFilters, DashboardData } from "../types";
+import { activeDashboardFilters } from "../analytics";
 
 interface FilterBarProps {
   filters: DashboardFilters;
@@ -23,9 +24,14 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     const clean = {
       ...filters,
       macro: "",
+      year: "",
+      month: "",
       category: "",
       status: "",
       owner: "",
+      sector: "",
+      outputType: "",
+      ageBand: "",
       q: "",
       threshold: "30",
       offset: 0,
@@ -33,6 +39,7 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     setDraft(clean);
     onApply(clean);
   };
+  const active = activeDashboardFilters(filters);
 
   return (
     <form
@@ -42,6 +49,10 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
         onApply({ ...draft, offset: 0 });
       }}
     >
+      <div className="active-filter-strip" aria-live="polite">
+        <strong>Filtros ativos</strong>
+        {active.length ? active.map((item) => <span key={item.key}>{item.label}: {item.value}</span>) : <span>Nenhum</span>}
+      </div>
       <label>
         <span>De</span>
         <input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} />
@@ -51,10 +62,45 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
         <input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} />
       </label>
       <label>
+        <span>Ano</span>
+        <select value={draft.year} onChange={(e) => update("year", e.target.value)}>
+          <option value="">Todos</option>
+          {options?.years.map((value) => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label>
+        <span>Mês</span>
+        <select value={draft.month} onChange={(e) => update("month", e.target.value)}>
+          <option value="">Todos</option>
+          {options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}
+        </select>
+      </label>
+      <label>
         <span>Macroprocesso</span>
         <select value={draft.macro} onChange={(e) => update("macro", e.target.value)}>
           <option value="">Todos</option>
           {options?.macroprocesses.map((value) => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label>
+        <span>Status</span>
+        <select value={draft.status} onChange={(e) => update("status", e.target.value)}>
+          <option value="">Todos</option>
+          {options?.statuses.map((value) => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label>
+        <span>Setor</span>
+        <select value={draft.sector} onChange={(e) => update("sector", e.target.value)}>
+          <option value="">Todos</option>
+          {options?.sectors.map((value) => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label>
+        <span>Responsabilidade</span>
+        <select value={draft.owner} onChange={(e) => update("owner", e.target.value)}>
+          <option value="">Todas</option>
+          {options?.owners.map((value) => <option key={value}>{value}</option>)}
         </select>
       </label>
       <label>
@@ -74,7 +120,7 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
         />
       </label>
       <div className="filter-actions">
-        <button type="button" className="ghost-button" onClick={reset}>Limpar</button>
+        <button type="button" className="ghost-button" onClick={reset}>Limpar filtros</button>
         <button type="submit" className="primary-button" disabled={loading}>
           {loading ? "Atualizando…" : "Aplicar filtros"}
         </button>

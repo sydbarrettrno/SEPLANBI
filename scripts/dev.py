@@ -13,6 +13,7 @@ DIST = ROOT / "dist"
 sys.path.insert(0, str(ROOT))
 
 from backend.final_entry import dashboard, health, query_from_params  # noqa: E402
+from backend.analytics import analytics_response, export_public_csv, query_from_params as analytics_query_from_params  # noqa: E402
 from backend.admin_store import AdminStoreError, load_descriptions, save_descriptions  # noqa: E402
 
 
@@ -27,12 +28,28 @@ class DevHandler(SimpleHTTPRequestHandler):
 
     def _send_json(self, status: int, payload: dict):
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionError):
+            return
+
+    def _send_csv(self, status: int, body_text: str):
+        body = body_text.encode("utf-8-sig")
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", 'attachment; filename="seplanbi-drilldown-publico.csv"')
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionError):
+            return
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -44,8 +61,16 @@ class DevHandler(SimpleHTTPRequestHandler):
                     payload = health()
                 elif action == "card-descriptions":
                     payload = load_descriptions()
-                else:
+                elif action == "analytics":
+                    payload = analytics_response(analytics_query_from_params(params))
+                elif action == "analytics-export":
+                    self._send_csv(200, export_public_csv(analytics_query_from_params(params)))
+                    return
+                elif action == "dashboard":
                     payload = dashboard(query_from_params(params))
+                else:
+                    self._send_json(400, {"ok": False, "error": "Ação inválida."})
+                    return
                 self._send_json(200, payload)
             except Exception as exc:
                 self._send_json(500, {"ok": False, "error": str(exc)})

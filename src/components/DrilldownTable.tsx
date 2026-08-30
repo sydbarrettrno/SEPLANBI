@@ -4,10 +4,12 @@ import type { DashboardData } from "../types";
 interface DrilldownTableProps {
   records: DashboardData["records"];
   onPage: (offset: number) => void;
+  onProtocol: (protocol: string) => void;
+  exportHref?: string | null;
   title?: string;
 }
 
-export function DrilldownTable({ records, onPage, title = "Protocolos do recorte" }: DrilldownTableProps) {
+export function DrilldownTable({ records, onPage, onProtocol, exportHref, title = "Protocolos do recorte" }: DrilldownTableProps) {
   const start = records.total ? records.offset + 1 : 0;
   const end = Math.min(records.total, records.offset + records.items.length);
   return (
@@ -15,6 +17,7 @@ export function DrilldownTable({ records, onPage, title = "Protocolos do recorte
       <div className="panel-heading table-heading">
         <div><span className="eyebrow">DRILL-DOWN AUDITÁVEL</span><h2>{title}</h2><p>{formatNumber(records.total)} registros · exibindo {start}–{end}</p></div>
         <div className="pager">
+          {exportHref ? <a className="ghost-button" href={exportHref}>Exportar CSV público</a> : null}
           <button disabled={records.offset <= 0} onClick={() => onPage(Math.max(0, records.offset - records.limit))}>← Anterior</button>
           <button disabled={records.offset + records.items.length >= records.total} onClick={() => onPage(records.offset + records.limit)}>Próxima →</button>
         </div>
@@ -25,7 +28,7 @@ export function DrilldownTable({ records, onPage, title = "Protocolos do recorte
           <tbody>
             {records.items.map((record) => (
               <tr key={record.protocol_id}>
-                <td><strong className="protocol-number">{record.protocol}</strong></td>
+                <td><button className="protocol-number protocol-link" onClick={() => onProtocol(record.protocol)}> {record.protocol}</button></td>
                 <td>{formatDate(record.opened)}</td>
                 <td>{formatDate(record.last_movement)}</td>
                 <td><span className="category-cell">{record.category}</span></td>

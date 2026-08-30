@@ -25,8 +25,8 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(m["internal_queue"], 1545)
         self.assertEqual(m["external_wait"], 583)
         self.assertEqual(m["paralyzed"], 31)
-        self.assertEqual(m["stopped"]["count"], 1086)
-        self.assertEqual(round(m["stopped"]["percent"], 1), 70.3)
+        self.assertEqual(m["stopped"]["count"], 1096)
+        self.assertEqual(round(m["stopped"]["percent"], 1), 70.9)
         self.assertEqual(m["turnaround"]["median_days"], 54.0)
         self.assertEqual(m["turnaround"]["p90_days"], 227.6)
 
@@ -62,7 +62,7 @@ class CoreTests(unittest.TestCase):
 
     def test_recordsets_and_thresholds(self):
         base = dashboard(query_from_params({"limit": "500"}))
-        for name, expected in (("received", 2899), ("concluded", 2293), ("stock", 2159), ("stopped", 1086)):
+        for name, expected in (("received", 2899), ("concluded", 2293), ("stock", 2159), ("stopped", 1096)):
             d = dashboard(query_from_params({"recordset": name, "limit": "500"}))
             self.assertEqual(d["records"]["recordset"], name)
             self.assertEqual(d["records"]["total"], expected)

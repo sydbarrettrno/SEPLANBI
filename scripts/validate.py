@@ -11,15 +11,15 @@ from backend.final_entry import dashboard, health, query_from_params  # noqa: E4
 from backend.admin_store import DEFAULT_DESCRIPTIONS, load_descriptions  # noqa: E402
 
 EXPECTED = {
-    "rows": 7063,
-    "received_default": 2898,
+    "rows": 7064,
+    "received_default": 2899,
     "concluded_operational": 2293,
     "concluded_formal": 1920,
-    "stock": 2158,
-    "internal_queue": 1544,
+    "stock": 2159,
+    "internal_queue": 1545,
     "external_wait": 583,
     "paralyzed": 31,
-    "stopped_30_internal": 1086,
+    "stopped_30_internal": 1096,
     "turnaround_median": 54.0,
     "turnaround_p90": 227.6,
 }
@@ -43,7 +43,7 @@ assert m["internal_queue"] == EXPECTED["internal_queue"], m
 assert m["external_wait"] == EXPECTED["external_wait"], m
 assert m["paralyzed"] == EXPECTED["paralyzed"], m
 assert m["stopped"]["count"] == EXPECTED["stopped_30_internal"], m
-assert round(m["stopped"]["percent"], 1) == 70.3, m
+assert round(m["stopped"]["percent"], 1) == 70.9, m
 assert m["turnaround"]["median_days"] == EXPECTED["turnaround_median"], m
 assert m["turnaround"]["p90_days"] == EXPECTED["turnaround_p90"], m
 assert len(d["charts"]["flow"]) == 8, d["charts"]["flow"]
@@ -55,11 +55,11 @@ assert len(d["records"]["items"]) <= 200
 assert any(x["id"] == "KPI06" and x["status"] != "DISPONÍVEL" for x in d["indicator_coverage"])
 
 cmp = d["management"]["comparison"]
-assert cmp["previous"]["received"] == 2825, cmp
+assert cmp["previous"]["received"] == 2838, cmp
 assert cmp["current"]["cohort_concluded_formal"] == 1344, cmp
-assert cmp["previous"]["cohort_concluded_formal"] == 1262, cmp
-assert cmp["received_change_percent"] == 2.6, cmp
-assert cmp["cohort_formal_change_percent"] == 6.5, cmp
+assert cmp["previous"]["cohort_concluded_formal"] == 1274, cmp
+assert cmp["received_change_percent"] == 2.1, cmp
+assert cmp["cohort_formal_change_percent"] == 5.5, cmp
 assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 839
 assert set(d["options"]["statuses"]) == {
     "Em Análise",

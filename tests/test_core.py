@@ -8,46 +8,46 @@ class CoreTests(unittest.TestCase):
     def test_data_audit(self):
         h = health()
         self.assertEqual(h["status"], "ok")
-        self.assertEqual(h["audit"]["rows"], 7063)
-        self.assertEqual(h["audit"]["unique_protocols"], 7063)
-        self.assertEqual(h["audit"]["stock"], 2158)
-        self.assertEqual(h["audit"]["internal_queue"], 1544)
+        self.assertEqual(h["audit"]["rows"], 7064)
+        self.assertEqual(h["audit"]["unique_protocols"], 7064)
+        self.assertEqual(h["audit"]["stock"], 2159)
+        self.assertEqual(h["audit"]["internal_queue"], 1545)
         self.assertEqual(h["audit"]["external_wait"], 583)
         self.assertEqual(h["audit"]["paralyzed"], 31)
 
     def test_default_metrics(self):
         d = dashboard(query_from_params({}))
         m = d["metrics"]
-        self.assertEqual(m["received"], 2898)
+        self.assertEqual(m["received"], 2899)
         self.assertEqual(m["concluded"], 2293)
         self.assertEqual(m["concluded_formal"], 1920)
-        self.assertEqual(m["stock"], 2158)
-        self.assertEqual(m["internal_queue"], 1544)
+        self.assertEqual(m["stock"], 2159)
+        self.assertEqual(m["internal_queue"], 1545)
         self.assertEqual(m["external_wait"], 583)
         self.assertEqual(m["paralyzed"], 31)
-        self.assertEqual(m["stopped"]["count"], 1086)
-        self.assertEqual(round(m["stopped"]["percent"], 1), 70.3)
+        self.assertEqual(m["stopped"]["count"], 1096)
+        self.assertEqual(round(m["stopped"]["percent"], 1), 70.9)
         self.assertEqual(m["turnaround"]["median_days"], 54.0)
         self.assertEqual(m["turnaround"]["p90_days"], 227.6)
 
     def test_reconciliation(self):
         m = dashboard(query_from_params({}))["metrics"]
         self.assertEqual(m["stock"], m["internal_queue"] + m["external_wait"] + m["paralyzed"])
-        self.assertEqual(m["stock"], 2158)
+        self.assertEqual(m["stock"], 2159)
 
     def test_same_period_comparison(self):
         cmp = dashboard(query_from_params({}))["management"]["comparison"]
-        self.assertEqual(cmp["current"]["received"], 2898)
-        self.assertEqual(cmp["previous"]["received"], 2825)
-        self.assertEqual(cmp["received_change_percent"], 2.6)
+        self.assertEqual(cmp["current"]["received"], 2899)
+        self.assertEqual(cmp["previous"]["received"], 2838)
+        self.assertEqual(cmp["received_change_percent"], 2.1)
         self.assertEqual(cmp["current"]["cohort_concluded_formal"], 1344)
-        self.assertEqual(cmp["previous"]["cohort_concluded_formal"], 1262)
-        self.assertEqual(cmp["cohort_formal_change_percent"], 6.5)
+        self.assertEqual(cmp["previous"]["cohort_concluded_formal"], 1274)
+        self.assertEqual(cmp["cohort_formal_change_percent"], 5.5)
         self.assertEqual(cmp["current"]["passive_absorbed"], 632)
 
     def test_period_does_not_reconstruct_stock(self):
         a = dashboard(query_from_params({"from": "2025-01-01", "to": "2025-12-31"}))["metrics"]
-        b = dashboard(query_from_params({"from": "2026-01-01", "to": "2026-08-28"}))["metrics"]
+        b = dashboard(query_from_params({"from": "2026-01-01", "to": "2026-08-29"}))["metrics"]
         self.assertEqual(a["stock"], b["stock"])
         self.assertNotEqual(a["received"], b["received"])
 
@@ -62,7 +62,7 @@ class CoreTests(unittest.TestCase):
 
     def test_recordsets_and_thresholds(self):
         base = dashboard(query_from_params({"limit": "500"}))
-        for name, expected in (("received", 2898), ("concluded", 2293), ("stock", 2158), ("stopped", 1086)):
+        for name, expected in (("received", 2899), ("concluded", 2293), ("stock", 2159), ("stopped", 1096)):
             d = dashboard(query_from_params({"recordset": name, "limit": "500"}))
             self.assertEqual(d["records"]["recordset"], name)
             self.assertEqual(d["records"]["total"], expected)

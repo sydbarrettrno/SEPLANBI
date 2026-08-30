@@ -41,7 +41,6 @@ function watchRuntime(page: Page) {
   page.on("pageerror", (error) => failures.push(`pageerror: ${error.message}`));
   page.on("requestfailed", (request) => {
     const reason = request.failure()?.errorText ?? "";
-    // O React cancela consultas anteriores ao trocar filtros rapidamente.
     if (reason.includes("ERR_ABORTED")) return;
     failures.push(`requestfailed: ${request.method()} ${request.url()} ${reason}`);
   });
@@ -51,9 +50,9 @@ function watchRuntime(page: Page) {
 test("recebidos: período homólogo, cross-filter e drill-down exato", async ({ page }) => {
   const failures = watchRuntime(page);
   await openPanel(page, "received");
-  await waitForCount(page, 2898);
-  await expect(page.getByText("2.898", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("2.825", { exact: true }).first()).toBeVisible();
+  await waitForCount(page, 2899);
+  await expect(page.getByText("2.899", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("2.838", { exact: true }).first()).toBeVisible();
 
   const month = page.locator(".month-columns [data-current-value]:not([data-current-value='0'])").first();
   const monthValue = Number(await month.getAttribute("data-current-value"));
@@ -75,7 +74,7 @@ test("recebidos: período homólogo, cross-filter e drill-down exato", async ({ 
   await page.getByRole("button", { name: "Drill-up" }).click();
   await waitForCount(page, macroValue);
   await page.getByRole("button", { name: "Limpar seleção" }).click();
-  await waitForCount(page, 2898);
+  await waitForCount(page, 2899);
   await page.screenshot({ path: join(SCREENSHOTS, "recebidos-desktop.png"), fullPage: true });
   expect(failures).toEqual([]);
 });
@@ -86,7 +85,7 @@ test("saídas: composição, saldo e seleção combinada reconciliam", async ({ 
   await waitForCount(page, 2293);
   await expect(page.getByText("961", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("1.332", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("+605", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("+606", { exact: true }).first()).toBeVisible();
 
   const month = page.locator(".flow-columns [data-output-value]:not([data-output-value='0'])").first();
   const monthValue = Number(await month.getAttribute("data-output-value"));
@@ -113,15 +112,15 @@ test("saídas: composição, saldo e seleção combinada reconciliam", async ({ 
 test("estoque: responsabilidade, idade, categoria e status chegam aos protocolos exatos", async ({ page }) => {
   const failures = watchRuntime(page);
   await openPanel(page, "stock");
-  await waitForCount(page, 2158);
-  await expect(page.getByText("1.544", { exact: true }).first()).toBeVisible();
+  await waitForCount(page, 2159);
+  await expect(page.getByText("1.545", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("583", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("31", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("71,5%", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("71,6%", { exact: true }).first()).toBeVisible();
 
   const responsibility = page.locator(".stacked-track [data-visual-key='Fila Interna SEPLAN']");
   await responsibility.click();
-  await waitForCount(page, 1544);
+  await waitForCount(page, 1545);
 
   const age = page.locator("article:has(h2:text-is('Faixas desde a abertura')) [data-visual-key]").first();
   const ageValue = Number(await age.getAttribute("data-visual-value"));
@@ -140,7 +139,7 @@ test("estoque: responsabilidade, idade, categoria e status chegam aos protocolos
   await expect(page.locator(".drill-breadcrumb")).toContainText("Status");
 
   await page.getByRole("button", { name: "Limpar seleção" }).click();
-  await waitForCount(page, 2158);
+  await waitForCount(page, 2159);
   await page.screenshot({ path: join(SCREENSHOTS, "estoque-desktop.png"), fullPage: true });
   expect(failures).toEqual([]);
 });
@@ -160,21 +159,21 @@ test("API pública não contém campos privados e exporta somente a allowlist", 
 
 test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", async ({ page }) => {
   await openPanel(page, "received");
-  await waitForCount(page, 2898);
+  await waitForCount(page, 2899);
 
   await openFilters(page);
   await page.screenshot({ path: join(SCREENSHOTS, "filtros-drawer-desktop.png"), fullPage: true });
   await page.getByLabel("Mês").selectOption("1");
   await page.getByLabel("Macroprocesso").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
-  await expect.poll(() => recordCount(page)).toBeLessThan(2898);
+  await expect.poll(() => recordCount(page)).toBeLessThan(2899);
   await expect(page.locator(".filter-launcher")).toContainText("2 ativos");
 
   await openFilters(page);
   await expect(page.locator(".active-filter-strip")).toContainText("Mês: 1");
   await expect(page.locator(".active-filter-strip")).toContainText("Macroprocesso:");
   await page.getByRole("button", { name: "Limpar filtros" }).click();
-  await waitForCount(page, 2898);
+  await waitForCount(page, 2899);
 
   const protocol = (await page.locator(".protocol-link").first().textContent())?.trim() ?? "";
   await openFilters(page);
@@ -183,10 +182,10 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await waitForCount(page, 1);
   await openFilters(page);
   await page.getByRole("button", { name: "Limpar filtros" }).click();
-  await waitForCount(page, 2898);
+  await waitForCount(page, 2899);
 
   await page.goto("/#/stock");
-  await waitForCount(page, 2158);
+  await waitForCount(page, 2159);
   await openFilters(page);
   await page.getByLabel("Status").selectOption("Em Análise");
   await page.getByLabel("Setor").selectOption({ index: 1 });
@@ -196,9 +195,9 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await expect(page.locator(".active-filter-strip")).toContainText("Status: Em Análise");
   await expect(page.locator(".active-filter-strip")).toContainText("Setor:");
   await expect(page.locator(".active-filter-strip")).toContainText("Responsabilidade: Interno");
-  await expect.poll(() => recordCount(page)).toBeLessThan(2158);
+  await expect.poll(() => recordCount(page)).toBeLessThan(2159);
   await page.getByRole("button", { name: "Limpar filtros" }).click();
-  await waitForCount(page, 2158);
+  await waitForCount(page, 2159);
 });
 
 test("filtro lateral, escala dos gráficos e cores semânticas ficam legíveis", async ({ page }) => {

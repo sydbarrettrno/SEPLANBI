@@ -12,7 +12,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from backend.final_data import load_rows  # noqa: E402
+# Importar pela entrada final é intencional: o gate deve auditar exatamente o
+# universo publicado (artefato-base + overlay incremental), não apenas os chunks.
+from backend.final_entry import load_rows  # noqa: E402
+from backend import core  # noqa: E402
 
 
 FORBIDDEN_EXTENSIONS = {
@@ -74,7 +77,25 @@ def load_payload(metadata: dict) -> dict:
     return json.loads(gzip.decompress(compressed).decode("utf-8"))
 
 
+def load_overlay() -> dict | None:
+    path = ROOT / "data" / "incremental_public.json"
+    if not path.is_file():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload.get("v") == 1, payload.get("v")
+    assert isinstance(payload.get("records"), list), "Overlay incremental sem lista de registros."
+    for row in payload["records"]:
+        assert set(row).issubset(ALLOWED_ROW_FIELDS), sorted(set(row) - ALLOWED_ROW_FIELDS)
+        assert not core.FORBIDDEN_KEYS.intersection(row), sorted(core.FORBIDDEN_KEYS.intersection(row))
+        serialized = json.dumps(row, ensure_ascii=False)
+        for forbidden_name in core.FORBIDDEN_KEYS:
+            assert forbidden_name not in serialized, f"Campo privado no overlay: {forbidden_name}"
+    return payload
+
+
+# Guardar manifesto do artefato-base antes de load_rows() promover metadados efetivos.
 metadata = json.loads((ROOT / "data" / "metadata.json").read_text(encoding="utf-8"))
+base_manifest_rows = int(metadata["source_rows"])
 tracked_forbidden = [
     str(path.relative_to(ROOT))
     for path in tracked_files()
@@ -106,7 +127,7 @@ if event_columns is not None:
     assert set(event_columns) == EXPECTED_EVENT_COLUMNS, event_columns.keys()
     event_count = len(event_columns["p"])
     assert all(len(event_columns[key]) == event_count for key in EXPECTED_EVENT_COLUMNS)
-    assert all(0 <= int(value) < int(metadata["source_rows"]) for value in event_columns["p"])
+    assert all(0 <= int(value) < base_manifest_rows for value in event_columns["p"])
     assert all(0 <= int(value) < len(payload["d"]["TipoEvento"]) for value in event_columns["k"])
     assert all(0 <= int(value) < len(payload["d"]["StatusOperacional"]) for value in event_columns["s"])
 
@@ -139,11 +160,15 @@ assert all(len(value) <= 120 for value in dictionary_values), "Rótulo semântic
 assert not any(EMAIL_PATTERN.search(value) for value in dictionary_values), "E-mail detectado em dicionário público."
 assert not any(LONG_DIGIT_PATTERN.search(value) for value in dictionary_values), "Possível CPF/CNPJ/telefone em dicionário público."
 
+overlay = load_overlay()
 rows = load_rows()
+effective_metadata = core.metadata()
 assert rows, "Dataset público vazio."
-assert set(rows[0]) == ALLOWED_ROW_FIELDS, sorted(set(rows[0]) - ALLOWED_ROW_FIELDS)
-assert len(rows) == int(metadata["source_rows"])
+assert all(set(row) == ALLOWED_ROW_FIELDS for row in rows), "Schema público efetivo fora da allowlist."
+assert len(rows) == int(effective_metadata["source_rows"])
 assert len({row["ProtocoloID"] for row in rows}) == len(rows)
+overlay_count = len(overlay["records"]) if overlay else 0
+assert len(rows) == base_manifest_rows + overlay_count
 
 print(
     json.dumps(
@@ -154,6 +179,8 @@ print(
             "event_columns": sorted(EXPECTED_EVENT_COLUMNS) if event_columns is not None else [],
             "published_events": len(event_columns["p"]) if event_columns is not None else 0,
             "published_public_projects": project_count,
+            "base_artifact_rows": base_manifest_rows,
+            "incremental_rows": overlay_count,
             "published_rows": len(rows),
             "dictionary_values_checked": len(dictionary_values),
             "note": "Minimizado, mas não anonimizado: protocolo e datas permanecem identificadores indiretos.",

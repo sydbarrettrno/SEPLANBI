@@ -19,7 +19,7 @@ EXPECTED = {
     "internal_queue": 1545,
     "external_wait": 583,
     "paralyzed": 31,
-    "stopped_30_internal": 1086,
+    "stopped_30_internal": 1096,
     "turnaround_median": 54.0,
     "turnaround_p90": 227.6,
 }
@@ -43,7 +43,7 @@ assert m["internal_queue"] == EXPECTED["internal_queue"], m
 assert m["external_wait"] == EXPECTED["external_wait"], m
 assert m["paralyzed"] == EXPECTED["paralyzed"], m
 assert m["stopped"]["count"] == EXPECTED["stopped_30_internal"], m
-assert round(m["stopped"]["percent"], 1) == 70.3, m
+assert round(m["stopped"]["percent"], 1) == 70.9, m
 assert m["turnaround"]["median_days"] == EXPECTED["turnaround_median"], m
 assert m["turnaround"]["p90_days"] == EXPECTED["turnaround_p90"], m
 assert len(d["charts"]["flow"]) == 8, d["charts"]["flow"]

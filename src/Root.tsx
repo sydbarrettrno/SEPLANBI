@@ -3,6 +3,7 @@ import App from "./App";
 import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
+import { IndicatorAuditSupplement } from "./components/IndicatorAuditSupplement";
 import { IndicatorMonthlyTrend } from "./components/IndicatorMonthlyTrend";
 import { Sidebar } from "./components/Sidebar";
 import { TimeComparisonPanel } from "./components/TimeComparisonPanel";
@@ -108,6 +109,13 @@ function RootRoutes() {
                 />
               ) : null}
               {kpi === 7 || kpi === 9 ? <IndicatorMonthlyTrend kpi={kpi} filters={filters} /> : null}
+              {kpi === 6 || kpi === 8 || kpi === 11 ? (
+                <IndicatorAuditSupplement
+                  kpi={kpi}
+                  filters={filters}
+                  onOwner={(owner) => updateExtendedFilters({ ...filters, owner: filters.owner === owner ? "" : owner })}
+                />
+              ) : null}
             </main>
           </div>
         </div>

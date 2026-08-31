@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchExtendedIndicator } from "../api";
-import { formatNumber } from "../format";
+import { formatNumber, formatPercent } from "../format";
 import type { DashboardFilters } from "../types";
 import type { ExtendedResponse } from "../extended";
 
@@ -15,6 +15,17 @@ interface MonthlyPoint {
   second: number;
 }
 
+interface CohortInfo {
+  received_cohort: number;
+  responded_from_received_cohort: number;
+  open_from_received_cohort: number;
+  response_rate_percent: number | null;
+  reference_date: string;
+  rule: string;
+}
+
+type TrendResponse = ExtendedResponse & { cohort?: CohortInfo };
+
 const MONTHS = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
 
 function monthLabel(value: string) {
@@ -23,7 +34,7 @@ function monthLabel(value: string) {
 }
 
 export function IndicatorMonthlyTrend({ kpi, filters }: Props) {
-  const [data, setData] = useState<ExtendedResponse | null>(null);
+  const [data, setData] = useState<TrendResponse | null>(null);
 
   const request = useMemo(() => ({
     kpi,
@@ -42,7 +53,7 @@ export function IndicatorMonthlyTrend({ kpi, filters }: Props) {
   useEffect(() => {
     const controller = new AbortController();
     fetchExtendedIndicator(request, controller.signal)
-      .then(setData)
+      .then((response) => setData(response as TrendResponse))
       .catch(() => setData(null));
     return () => controller.abort();
   }, [request]);
@@ -60,7 +71,7 @@ export function IndicatorMonthlyTrend({ kpi, filters }: Props) {
   const max = Math.max(1, ...points.flatMap((point) => [point.first, point.second]));
   const labels = kpi === 7
     ? { eyebrow: "EVOLUÇÃO MENSAL", title: "Diligências registradas por mês", first: "Eventos", second: "Protocolos afetados", note: "Cobertura incremental da base disponível; não representa o histórico integral anterior ao extrato." }
-    : { eyebrow: "EVOLUÇÃO MENSAL", title: "Denúncias recebidas × respondidas", first: "Recebidas", second: "Respondidas", note: "As respostas usam a saída operacional homologada da categoria Denúncia." };
+    : { eyebrow: "EVOLUÇÃO MENSAL", title: "Denúncias recebidas × respondidas", first: "Recebidas", second: "Respondidas", note: "As duas barras representam fluxos mensais. A taxa de atendimento usa, separadamente, a mesma coorte de denúncias recebidas." };
 
   return (
     <section className="panel indicator-monthly-panel" aria-label={labels.title}>
@@ -68,6 +79,14 @@ export function IndicatorMonthlyTrend({ kpi, filters }: Props) {
         <div><span className="eyebrow">{labels.eyebrow}</span><h2>{labels.title}</h2><p>{labels.note}</p></div>
         <div className="bi-legend"><span><i className="current" />{labels.first}</span><span><i className="outputs" />{labels.second}</span></div>
       </div>
+      {kpi === 9 && data?.cohort ? (
+        <div className="cohort-callout">
+          <div><small>Coorte recebida</small><strong>{formatNumber(data.cohort.received_cohort)}</strong></div>
+          <div><small>Da coorte já respondidas</small><strong>{formatNumber(data.cohort.responded_from_received_cohort)}</strong></div>
+          <div><small>Taxa da mesma coorte</small><strong>{formatPercent(data.cohort.response_rate_percent)}</strong></div>
+          <p>{data.cohort.rule}</p>
+        </div>
+      ) : null}
       <div className="indicator-monthly-bars">
         {points.map((point) => (
           <div className="indicator-month" key={point.month} title={`${monthLabel(point.month)}: ${formatNumber(point.first)} ${labels.first.toLowerCase()}, ${formatNumber(point.second)} ${labels.second.toLowerCase()}.`}>

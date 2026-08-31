@@ -6,8 +6,8 @@ interface MonthlyFlowBarChartProps {
 }
 
 const WIDTH = 860;
-const HEIGHT = 330;
-const PAD = { top: 44, right: 22, bottom: 54, left: 50 };
+const HEIGHT = 350;
+const PAD = { top: 48, right: 22, bottom: 70, left: 50 };
 
 export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
   const maxValue = Math.max(1, ...data.flatMap((item) => [item.received, item.concluded]));
@@ -20,12 +20,13 @@ export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
   const barHeight = (value: number) => (value / maxValue) * plotHeight;
 
   return (
-    <div className="flow-chart-wrap monthly-bars-wrap">
-      <div className="chart-legend" aria-label="Legenda do gráfico">
+    <div className="flow-chart-wrap monthly-bars-wrap audited-flow-wrap">
+      <div className="chart-legend audited-flow-legend" aria-label="Legenda do gráfico">
         <span><i className="legend-received" />Entradas</span>
-        <span><i className="legend-concluded" />Saídas</span>
+        <span><i className="legend-same-month" />Saídas · abertas no mês</span>
+        <span><i className="legend-backlog" />Saídas · passivo anterior</span>
       </div>
-      <svg className="flow-chart monthly-bar-chart" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Entradas e saídas mensais em barras agrupadas">
+      <svg className="flow-chart monthly-bar-chart" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Entradas mensais e saídas separadas entre protocolos abertos no próprio mês e passivo anterior">
         {Array.from({ length: 5 }, (_, index) => {
           const lineY = PAD.top + (index / 4) * plotHeight;
           const value = Math.round(maxValue * (1 - index / 4));
@@ -41,19 +42,40 @@ export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
           const receivedX = center - gap / 2 - barWidth;
           const concludedX = center + gap / 2;
           const receivedY = y(item.received);
-          const concludedY = y(item.concluded);
+          const totalOutputY = y(item.concluded);
+          const sameMonth = item.same_month_outputs ?? item.concluded;
+          const backlog = item.backlog_outputs ?? 0;
+          const sameMonthHeight = barHeight(sameMonth);
+          const backlogHeight = barHeight(backlog);
+          const sameMonthY = PAD.top + plotHeight - sameMonthHeight;
           return (
             <g key={item.month} className="monthly-bar-group">
               <rect x={receivedX} y={receivedY} width={barWidth} height={barHeight(item.received)} rx="5" className="monthly-bar received-bar" />
-              <rect x={concludedX} y={concludedY} width={barWidth} height={barHeight(item.concluded)} rx="5" className="monthly-bar concluded-bar" />
+              <rect x={concludedX} y={sameMonthY} width={barWidth} height={sameMonthHeight} rx="0" className="monthly-bar same-month-output-bar" />
+              {backlog > 0 ? (
+                <rect x={concludedX} y={totalOutputY} width={barWidth} height={backlogHeight} rx="5" className="monthly-bar backlog-output-bar" />
+              ) : null}
+
               <text x={receivedX + barWidth / 2} y={Math.max(16, receivedY - 8)} textAnchor="middle" className="bar-value received-value">{formatNumber(item.received)}</text>
-              <text x={concludedX + barWidth / 2} y={Math.max(16, concludedY - 8)} textAnchor="middle" className="bar-value concluded-value">{formatNumber(item.concluded)}</text>
-              <text x={center} y={HEIGHT - 18} textAnchor="middle" className="month-label">{monthLabel(item.month)}</text>
-              <title>{`${monthLabel(item.month)}: ${formatNumber(item.received)} entradas e ${formatNumber(item.concluded)} saídas`}</title>
+              <text x={concludedX + barWidth / 2} y={Math.max(16, totalOutputY - 8)} textAnchor="middle" className="bar-value concluded-value">{formatNumber(item.concluded)}</text>
+
+              {sameMonthHeight >= 24 ? (
+                <text x={concludedX + barWidth / 2} y={sameMonthY + sameMonthHeight / 2 + 4} textAnchor="middle" className="flow-segment-value same-month-segment-value">{formatNumber(sameMonth)}</text>
+              ) : null}
+              {backlogHeight >= 24 ? (
+                <text x={concludedX + barWidth / 2} y={totalOutputY + backlogHeight / 2 + 4} textAnchor="middle" className="flow-segment-value backlog-segment-value">{formatNumber(backlog)}</text>
+              ) : null}
+
+              <text x={center} y={HEIGHT - 32} textAnchor="middle" className="month-label">{monthLabel(item.month)}</text>
+              <text x={center} y={HEIGHT - 14} textAnchor="middle" className={`flow-balance-label ${item.received - item.concluded < 0 ? "absorbing" : "pressure"}`}>
+                {item.received - item.concluded > 0 ? "+" : ""}{formatNumber(item.received - item.concluded)}
+              </text>
+              <title>{`${monthLabel(item.month)}: ${formatNumber(item.received)} entradas; ${formatNumber(item.concluded)} saídas = ${formatNumber(sameMonth)} abertas e concluídas no mês + ${formatNumber(backlog)} do passivo anterior.`}</title>
             </g>
           );
         })}
       </svg>
+      <p className="flow-audit-note"><strong>Como ler:</strong> a saída pertence ao mês em que o processo foi concluído. A barra de saídas separa o que entrou e saiu no próprio mês do passivo aberto anteriormente.</p>
     </div>
   );
 }

@@ -3,7 +3,6 @@ import type { IndicatorCoverage as Coverage, PageId } from "../types";
 
 interface IndicatorCoverageProps {
   items: Coverage[];
-  onNavigate?: (page: PageId) => void;
 }
 
 const KPI_PAGE: Record<string, PageId> = {
@@ -17,7 +16,7 @@ const KPI_PAGE: Record<string, PageId> = {
   KPI11: "kpi11",
 };
 
-export function IndicatorCoverage({ items, onNavigate }: IndicatorCoverageProps) {
+export function IndicatorCoverage({ items }: IndicatorCoverageProps) {
   const available = items.filter((item) => item.status === "DISPONÍVEL").length;
   return (
     <section className="coverage-section">
@@ -37,7 +36,7 @@ export function IndicatorCoverage({ items, onNavigate }: IndicatorCoverageProps)
               <div><span>{item.id}</span><span className={`status-badge ${statusTone(item.status)}`}>{item.status}</span></div>
               <h2>{item.name}</h2>
               <p>{item.reason}</p>
-              {target && onNavigate ? <button type="button" className="ghost-button" onClick={() => onNavigate(target)}>Abrir painel</button> : null}
+              {target ? <a className="ghost-button" href={`#/${target}`}>Abrir painel</a> : null}
             </article>
           );
         })}

@@ -1,0 +1,53 @@
+.admin-content-group {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 18px;
+  border: 1px solid #dfe6ee;
+  border-radius: 12px;
+  background: #fbfcfe;
+}
+
+.admin-content-group legend {
+  padding: 0 8px;
+  color: #17486f;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.admin-content-group label {
+  display: grid;
+  gap: 7px;
+}
+
+.admin-content-group textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.admin-content-group small {
+  color: #8793a4;
+  overflow-wrap: anywhere;
+}
+
+.admin-form select,
+.admin-form input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 11px;
+  border: 1px solid #d6dee8;
+  border-radius: 8px;
+  background: white;
+  color: #2d4058;
+  font: inherit;
+}
+
+.admin-actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 720px) {
+  .admin-content-group { padding: 14px; }
+}

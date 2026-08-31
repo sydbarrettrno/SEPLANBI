@@ -1,0 +1,106 @@
+.private-export-trigger {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  color: #35506d;
+  border: 1px solid #d3dee9;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 5px 15px rgba(17,43,75,.05);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.private-export-trigger:hover { color: #155fae; border-color: #9bc3e7; background: #f6faff; }
+.private-export-trigger > span { color: #1871d5; font-size: 17px; line-height: 1; }
+.private-export-backdrop {
+  position: fixed;
+  z-index: 120;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(7,24,43,.48);
+  backdrop-filter: blur(4px);
+}
+.private-export-modal {
+  position: relative;
+  display: grid;
+  width: min(430px, 100%);
+  gap: 12px;
+  padding: 26px;
+  border: 1px solid #d8e1ea;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 26px 70px rgba(8,29,50,.28);
+}
+.private-export-modal > small { color: #1871d5; font-size: 9px; font-weight: 900; letter-spacing: .12em; }
+.private-export-modal h2 { margin: 0; color: #17304d; font-size: 24px; letter-spacing: -.02em; }
+.private-export-modal p { margin: 0 0 4px; color: #68758a; font-size: 12px; line-height: 1.5; }
+.private-export-modal label { display: grid; gap: 6px; }
+.private-export-modal label > span { color: #5f6f84; font-size: 10px; font-weight: 800; }
+.private-export-modal input {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  color: #24334c;
+  border: 1px solid #d4dde7;
+  border-radius: 9px;
+  outline: 0;
+  background: #fbfcfe;
+}
+.private-export-modal input:focus { border-color: #76ace0; box-shadow: 0 0 0 3px rgba(24,113,213,.1); background: #fff; }
+.private-export-icon { display: grid; width: 38px; height: 38px; place-items: center; color: #1871d5; border-radius: 10px; background: #eaf3ff; font-size: 20px; font-weight: 900; }
+.private-export-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: 0; color: #718096; background: transparent; font-size: 22px; }
+.private-export-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 9px; margin-top: 3px; }
+.private-export-error { padding: 9px 10px; color: #9c3340; border: 1px solid #f0cbd0; border-radius: 8px; background: #fff1f3; font-size: 11px; font-weight: 700; }
+
+/* A regra global antiga colocava o título e o subtítulo da legenda em colunas diferentes,
+   causando a sobreposição vista no painel de responsabilidade. */
+.stacked-composition .composition-legend button > span {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: start !important;
+  gap: 3px !important;
+  min-width: 0;
+  line-height: 1.2;
+}
+.stacked-composition .composition-legend button > span > strong {
+  display: block;
+  min-width: 0;
+  color: #34455d;
+  line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.stacked-composition .composition-legend button > span > small {
+  display: block;
+  position: static;
+  min-width: 0;
+  line-height: 1.25;
+  white-space: normal;
+}
+/* Remove a terminologia antiga residual gerada pelo componente e mantém a leitura limpa. */
+.stacked-composition .composition-legend button > span > small { font-size: 0 !important; }
+.stacked-composition .composition-legend button > span > small::after {
+  content: "Participação da carteira";
+  color: #7a8799;
+  font-size: 10px;
+  font-weight: 600;
+}
+.stacked-composition .composition-legend button {
+  min-height: 66px;
+  align-items: center !important;
+  grid-template-columns: 14px minmax(0,1fr) auto !important;
+}
+
+@media (max-width: 1100px) {
+  .topbar-meta { gap: 12px; }
+  .private-export-trigger { padding: 0 9px; }
+}
+@media (max-width: 840px) {
+  .private-export-trigger { font-size: 0; width: 38px; padding: 0; justify-content: center; }
+  .private-export-trigger > span { font-size: 18px; }
+}

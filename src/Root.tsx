@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import App from "./App";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
+import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
 import type { ExtendedKpi } from "./extended";
 import type { DashboardFilters } from "./types";
 
@@ -38,9 +39,10 @@ function currentRoute() {
   return window.location.hash.replace(/^#\/?/, "");
 }
 
-export default function Root() {
+function RootRoutes() {
   const [route, setRoute] = useState(currentRoute);
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
+  const { copy } = useDashboardContent();
 
   useEffect(() => {
     const onHashChange = () => setRoute(currentRoute());
@@ -56,8 +58,8 @@ export default function Root() {
       <div className="app-main">
         <main className="content">
           <nav className="extended-route-nav" aria-label="Navegação do indicador">
-            <a className="ghost-button" href="#/indicators">← Carteira de indicadores</a>
-            <a className="ghost-button" href="#/overview">Visão executiva</a>
+            <a className="ghost-button" href="#/indicators">← {copy.common.breadcrumbIndicators}</a>
+            <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
           </nav>
           <ExtendedIndicatorPanel
             kpi={kpi}
@@ -67,5 +69,13 @@ export default function Root() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function Root() {
+  return (
+    <DashboardContentProvider>
+      <RootRoutes />
+    </DashboardContentProvider>
   );
 }

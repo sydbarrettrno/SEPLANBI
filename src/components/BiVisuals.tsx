@@ -117,6 +117,10 @@ export function MonthlyFlow({ data, selectedMonth, onSelect }: MonthlyFlowProps)
               onClick={() => onSelect(month)}
               title={`${MONTHS[month - 1]}: ${formatNumber(item.received)} recebidos, ${formatNumber(item.outputs)} saídas, saldo ${item.balance > 0 ? "+" : ""}${formatNumber(item.balance)}. ${item.balance > 0 ? "O estoque cresceu." : item.balance < 0 ? "O estoque foi reduzido." : "Fluxo equilibrado."}`}
             >
+              <span className="month-values" aria-label={`${formatNumber(item.received)} recebidos e ${formatNumber(item.outputs)} saídas`}>
+                <small>{formatNumber(item.received)}</small>
+                <small style={{ color: "var(--green)", fontWeight: 800 }}>{formatNumber(item.outputs)}</small>
+              </span>
               <span className="flow-bars-pair">
                 <i className="received" style={{ height: `${Math.max(3, item.received / max * 100)}%` }} />
                 <i className="outputs" style={{ height: `${Math.max(3, item.outputs / max * 100)}%` }} />
@@ -165,29 +169,97 @@ interface CompositionProps {
   onSelect: (item: VisualItem) => void;
 }
 
+const PIE_COLORS = ["#1871d5", "#63728b", "#c63f47", "#16805f", "#7660c9"];
+
+function ellipsePoint(cx: number, cy: number, rx: number, ry: number, angle: number) {
+  const rad = (angle - 90) * Math.PI / 180;
+  return { x: cx + rx * Math.cos(rad), y: cy + ry * Math.sin(rad) };
+}
+
+function pieSlicePath(cx: number, cy: number, rx: number, ry: number, startAngle: number, endAngle: number) {
+  const start = ellipsePoint(cx, cy, rx, ry, endAngle);
+  const end = ellipsePoint(cx, cy, rx, ry, startAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+  return `M ${cx} ${cy} L ${start.x.toFixed(3)} ${start.y.toFixed(3)} A ${rx} ${ry} 0 ${largeArcFlag} 0 ${end.x.toFixed(3)} ${end.y.toFixed(3)} Z`;
+}
+
 export function StackedComposition({ items, selected, onSelect }: CompositionProps) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
   if (!total) return <div className="bi-empty">Sem estoque no recorte.</div>;
+
+  let cursor = 0;
+  const slices = items.map((item, index) => {
+    const startAngle = cursor / total * 360;
+    cursor += item.value;
+    const endAngle = cursor / total * 360;
+    const color = item.color || PIE_COLORS[index % PIE_COLORS.length];
+    return { item, startAngle, endAngle, color, percent: item.value / total * 100 };
+  });
+
+  const cx = 180;
+  const cy = 94;
+  const rx = 126;
+  const ry = 70;
+  const depthLayers = [20, 16, 12, 8, 4];
+
   return (
-    <div className="stacked-composition">
-      <div className="stacked-track">
-        {items.map((item, index) => (
+    <div className="stacked-composition" style={{ gridTemplateColumns: "minmax(330px, .9fr) minmax(280px, 1.1fr)", alignItems: "center", gap: 28, paddingTop: 16 }}>
+      <div style={{ minWidth: 0 }}>
+        <svg viewBox="0 0 360 220" role="img" aria-label={`Responsabilidade operacional de ${formatNumber(total)} protocolos`} style={{ width: "100%", minHeight: 250, overflow: "visible" }}>
+          <ellipse cx={cx} cy={cy + 22} rx={rx + 7} ry={ry + 7} fill="rgba(17,43,75,.10)" />
+          {depthLayers.map((depth) => (
+            <g key={`depth-${depth}`} transform={`translate(0 ${depth})`} opacity={0.36} style={{ filter: "brightness(.58) saturate(.9)" }}>
+              {slices.map(({ item, startAngle, endAngle, color }) => (
+                <path key={`${item.key}-${depth}`} d={pieSlicePath(cx, cy, rx, ry, startAngle, endAngle)} fill={color} />
+              ))}
+            </g>
+          ))}
+          {slices.map(({ item, startAngle, endAngle, color, percent }) => {
+            const mid = (startAngle + endAngle) / 2;
+            const labelPoint = ellipsePoint(cx, cy, rx * .58, ry * .58, mid);
+            const isSelected = selected === item.key;
+            return (
+              <g key={item.key}>
+                <path
+                  d={pieSlicePath(cx, cy, rx, ry, startAngle, endAngle)}
+                  fill={color}
+                  stroke={isSelected ? "#102943" : "rgba(255,255,255,.94)"}
+                  strokeWidth={isSelected ? 4 : 2}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${item.label}: ${formatNumber(item.value)} protocolos, ${formatPercent(percent)}`}
+                  onClick={() => onSelect(item)}
+                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(item); }}
+                  style={{ cursor: "pointer", transition: "filter 160ms ease", filter: isSelected ? "brightness(1.08)" : undefined }}
+                >
+                  <title>{`${item.label}: ${formatNumber(item.value)} (${formatPercent(percent)}). Clique para filtrar.`}</title>
+                </path>
+                {percent >= 7 ? (
+                  <text x={labelPoint.x} y={labelPoint.y + 4} textAnchor="middle" fill="white" fontSize="15" fontWeight="900" pointerEvents="none" style={{ textShadow: "0 1px 3px rgba(0,0,0,.28)" }}>
+                    {formatNumber(item.value)}
+                  </text>
+                ) : null}
+              </g>
+            );
+          })}
+          <text x={cx} y="205" textAnchor="middle" fill="#17243f" fontSize="12" fontWeight="800">Total: {formatNumber(total)} protocolos</text>
+        </svg>
+      </div>
+
+      <div className="composition-legend" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
+        {slices.map(({ item, color, percent }) => (
           <button
             type="button"
-            data-visual-key={item.key}
-            data-visual-value={item.value}
             key={item.key}
-            className={`segment segment-${index + 1} ${selected === item.key ? "selected" : ""}`}
-            style={{ width: `${item.value / total * 100}%`, background: item.color }}
             onClick={() => onSelect(item)}
-            title={`${item.label}: ${formatNumber(item.value)} (${formatPercent(item.value / total * 100)}). Clique para cruzar os demais gráficos.`}
+            style={{ display: "grid", gridTemplateColumns: "14px 1fr auto", alignItems: "center", gap: 10, width: "100%", padding: "11px 12px", border: selected === item.key ? "1px solid #8eb9df" : "1px solid #e0e7ef", borderRadius: 10, background: selected === item.key ? "#f2f8ff" : "#fff", color: "#46566d", textAlign: "left" }}
+            title={`${item.label}: ${formatNumber(item.value)} protocolos (${formatPercent(percent)})`}
           >
-            <span>{formatNumber(item.value)}</span>
+            <i style={{ width: 12, height: 12, borderRadius: 4, background: color }} />
+            <span style={{ display: "grid", gap: 2 }}><strong style={{ fontSize: 12 }}>{item.label}</strong><small style={{ color: "#7a8799", fontSize: 10 }}>{formatPercent(percent)} do estoque</small></span>
+            <strong style={{ color: "#17243f", fontSize: 16 }}>{formatNumber(item.value)}</strong>
           </button>
         ))}
-      </div>
-      <div className="composition-legend">
-        {items.map((item, index) => <span key={item.key}><i className={`segment-${index + 1}`} style={{ background: item.color }} />{item.label}<strong>{formatPercent(item.value / total * 100)}</strong></span>)}
       </div>
     </div>
   );

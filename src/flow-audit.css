@@ -1,0 +1,47 @@
+.audited-flow-legend {
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.legend-same-month,
+.legend-backlog {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend-same-month { background: #16805f; }
+.legend-backlog { background: #087d83; }
+
+.same-month-output-bar { fill: #16805f; }
+.backlog-output-bar { fill: #087d83; }
+
+.flow-segment-value {
+  fill: white;
+  font-family: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.flow-balance-label {
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.flow-balance-label.absorbing { fill: #16805f; }
+.flow-balance-label.pressure { fill: #b96a1b; }
+
+.flow-audit-note {
+  margin: 7px 10px 0;
+  padding: 10px 12px;
+  color: #607087;
+  border: 1px solid #dce5ee;
+  border-radius: 9px;
+  background: #f8fafc;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.flow-audit-note strong { color: #32435b; }

@@ -3,6 +3,7 @@ import App from "./App";
 import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
+import { IndicatorMonthlyTrend } from "./components/IndicatorMonthlyTrend";
 import { Sidebar } from "./components/Sidebar";
 import { TimeComparisonPanel } from "./components/TimeComparisonPanel";
 import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
@@ -106,6 +107,7 @@ function RootRoutes() {
                   onMonth={(month) => updateExtendedFilters({ ...filters, month: filters.month === month ? "" : month })}
                 />
               ) : null}
+              {kpi === 7 || kpi === 9 ? <IndicatorMonthlyTrend kpi={kpi} filters={filters} /> : null}
             </main>
           </div>
         </div>

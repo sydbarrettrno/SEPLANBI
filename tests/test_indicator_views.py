@@ -22,6 +22,20 @@ class IndicatorViewTests(unittest.TestCase):
         data = indicator_view_response({"kpi": "4", "year": "2026"})
         self.assertIsNone(data["comparison"])
 
+    def test_kpi07_monthly_events_reconcile_with_partial_metric(self):
+        data = indicator_view_response({"kpi": "7"})
+        self.assertEqual(data["status"], "PARCIAL")
+        self.assertEqual(
+            sum(row["events"] for row in data["monthly"]),
+            data["metrics"]["diligence_events"],
+        )
+        self.assertTrue(all(row["protocols"] <= row["events"] for row in data["monthly"]))
+
+    def test_kpi09_existing_monthly_series_reconciles(self):
+        data = indicator_view_response({"kpi": "9"})
+        self.assertEqual(sum(row["received"] for row in data["monthly"]), data["metrics"]["received"])
+        self.assertEqual(sum(row["responded"] for row in data["monthly"]), data["metrics"]["responded"])
+
     def test_other_kpis_keep_existing_contract(self):
         data = indicator_view_response({"kpi": "5", "threshold": "30"})
         self.assertEqual(data["status"], "DISPONÍVEL")

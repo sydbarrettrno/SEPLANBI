@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import replace
 from typing import Any
 
 from backend import analytics, core
-from backend.extended_indicators import extended_indicator_response
+from backend.extended_indicators import _events, extended_indicator_response
 
 
 def _duration(row: dict[str, Any]) -> int | None:
@@ -111,10 +111,48 @@ def _time_comparison(params: dict[str, str]) -> dict[str, Any] | None:
     }
 
 
+def _diligence_monthly(params: dict[str, str]) -> list[dict[str, Any]]:
+    raw = dict(params)
+    raw["indicator"] = "received"
+    query = analytics.query_from_params(raw)
+
+    # Os filtros semânticos definem quais protocolos pertencem ao recorte. A
+    # série temporal, porém, usa a data real do evento de diligência, e não a
+    # data de abertura do protocolo.
+    eligible_protocols = {
+        row["ProtocoloID"]
+        for row in analytics.apply_filters(analytics.canonical_rows(), query, include_period=False)
+    }
+    events = [
+        event for event in _events()
+        if event["event_type"].casefold() == "diligencia"
+        and event["protocol_id"] in eligible_protocols
+        and query.start <= event["event_at"].date() <= query.end
+    ]
+
+    event_counts: Counter[str] = Counter()
+    protocol_sets: dict[str, set[str]] = defaultdict(set)
+    for event in events:
+        month = event["event_at"].strftime("%Y-%m")
+        event_counts[month] += 1
+        protocol_sets[month].add(event["protocol_id"])
+
+    return [
+        {
+            "month": month,
+            "events": event_counts[month],
+            "protocols": len(protocol_sets[month]),
+        }
+        for month in sorted(event_counts)
+    ]
+
+
 def indicator_view_response(params: dict[str, str]) -> dict[str, Any]:
     payload = extended_indicator_response(params)
     if payload.get("kpi") == 4:
         payload["comparison"] = _time_comparison(params)
+    elif payload.get("kpi") == 7:
+        payload["monthly"] = _diligence_monthly(params)
     return payload
 
 

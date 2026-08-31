@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDashboardContent } from "../content/DashboardContentContext";
 import { cloneDashboardCopy, flattenDashboardCopy, setDashboardCopyValue, type DashboardCopy } from "../content/dashboardCopy";
+import "../admin-content.css";
 
 export function AdminDescriptions() {
   const { copy, defaults, persistent, updatedAt, save } = useDashboardContent();

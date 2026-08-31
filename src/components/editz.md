@@ -1,19 +1,19 @@
-Local Edição
-src/App.tsx
-https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/App.tsx
-Recebidos
-src/components/BiPanel.tsx
-https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/BiPanel.tsx
-Saídas
-src/components/BiPanel.tsx
-https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/BiPanel.tsx
-Estoque
-src/components/BiPanel.tsx
-https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/BiPanel.tsx
-Tempo de Tramitação
-src/components/ExtendedIndicatorPanel.tsx — seção kpi === 4 e objeto COPY[4]
-https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/ExtendedIndicatorPanel.tsx
-Processos Parados
+Local Edição  
+src/App.tsx  
+https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/App.tsx  
+Recebidos  
+src/components/BiPanel.tsx  
+https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/BiPanel.tsx  
+Saídas  
+src/components/BiPanel.tsx  
+https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/BiPanel.tsx  
+Estoque  
+src/components/BiPanel.tsx  
+https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/BiPanel.tsx  
+Tempo de Tramitação  
+src/components/ExtendedIndicatorPanel.tsx — seção kpi === 4 e objeto COPY[4]  
+https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/ExtendedIndicatorPanel.tsx  
+Processos Parados  
 src/components/ExtendedIndicatorPanel.tsx — seção kpi === 5 e COPY[5]
 https://github.com/sydbarrettrno/SEPLANBI/blob/main/src/components/ExtendedIndicatorPanel.tsx
 Dentro do Prazo

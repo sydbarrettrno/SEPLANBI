@@ -36,6 +36,19 @@ class IndicatorViewTests(unittest.TestCase):
         self.assertEqual(sum(row["received"] for row in data["monthly"]), data["metrics"]["received"])
         self.assertEqual(sum(row["responded"] for row in data["monthly"]), data["metrics"]["responded"])
 
+    def test_kpi09_response_rate_uses_same_received_cohort(self):
+        data = indicator_view_response({"kpi": "9"})
+        cohort = data["cohort"]
+        self.assertEqual(cohort["received_cohort"], data["metrics"]["received"])
+        self.assertLessEqual(cohort["responded_from_received_cohort"], cohort["received_cohort"])
+        expected = round(cohort["responded_from_received_cohort"] / cohort["received_cohort"] * 100, 1) if cohort["received_cohort"] else None
+        self.assertEqual(data["metrics"]["response_rate_percent"], expected)
+        self.assertEqual(
+            cohort["responded_from_received_cohort"] + cohort["open_from_received_cohort"],
+            cohort["received_cohort"],
+        )
+        self.assertIn("outputs_to_received_percent", data["metrics"])
+
     def test_other_kpis_keep_existing_contract(self):
         data = indicator_view_response({"kpi": "5", "threshold": "30"})
         self.assertEqual(data["status"], "DISPONÍVEL")

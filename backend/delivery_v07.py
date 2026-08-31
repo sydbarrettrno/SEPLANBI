@@ -7,6 +7,21 @@ from backend import delivery_core as base
 query_from_params = base.query_from_params
 
 
+INDICATOR_COVERAGE_V2 = [
+    {"id":"KPI01","name":"Processos recebidos","status":"DISPONÍVEL","reason":"Data de abertura e protocolo."},
+    {"id":"KPI02","name":"Processos concluídos","status":"DISPONÍVEL","reason":"Conclusão operacional e encerramento formal permanecem separados."},
+    {"id":"KPI03","name":"Estoque pendente","status":"DISPONÍVEL","reason":"Status atual separado por responsabilidade operacional."},
+    {"id":"KPI04","name":"Tempo de tramitação","status":"DISPONÍVEL","reason":"Mediana, média e P90 sobre saídas operacionais, com drill-down."},
+    {"id":"KPI05","name":"% parados > X dias","status":"DISPONÍVEL","reason":"Calculado exclusivamente sobre a fila interna SEPLAN."},
+    {"id":"KPI06","name":"% concluído dentro do prazo","status":"NÃO HOMOLOGADO","reason":"Falta regra oficial de SLA/prazo por categoria e tratamento de suspensões."},
+    {"id":"KPI07","name":"Diligências por processo","status":"PARCIAL","reason":"Eventos incrementais disponíveis; a fonte não representa o histórico integral de tramitação."},
+    {"id":"KPI08","name":"Fiscalizações realizadas","status":"NÃO HOMOLOGADO","reason":"Protocolos de fiscalização não comprovam, sozinhos, a realização do ato ou vistoria."},
+    {"id":"KPI09","name":"Denúncias recebidas/respondidas","status":"DISPONÍVEL","reason":"Categoria Denúncia permite medir entradas, saídas, estoque e tempo de resposta operacional."},
+    {"id":"KPI10","name":"Projetos públicos por etapa","status":"DISPONÍVEL","reason":"Carteira complementar específica de 20 projetos com referência em 27/08/2026."},
+    {"id":"KPI11","name":"Pendências por responsável/setor","status":"DISPONÍVEL","reason":"Responsabilidade, setor, categoria e status podem ser cruzados sem exposição de dados pessoais."},
+]
+
+
 def _period_rows(rows, field, query):
     return [r for r in rows if core._in_period(r.get(field), query.start, query.end)]
 
@@ -55,6 +70,7 @@ def dashboard(query):
         "reference_date": core.metadata().get("public_projects", {}).get("reference_dates", [None])[0],
         "note": "Carteira específica de projetos públicos da V04; os nomes, atividades, bloqueios, evidências e observações não entram no transporte público."
     }
+    data["indicator_coverage"] = INDICATOR_COVERAGE_V2
 
     return data
 

@@ -42,7 +42,11 @@ function comparisonLabel(value: number | null | undefined, subject: string) {
   return `${direction} ${formatPercent(Math.abs(value))} vs. período anterior`;
 }
 
-export default function App() {
+interface AppProps {
+  adminAuthorized?: boolean;
+}
+
+export default function App({ adminAuthorized = false }: AppProps) {
   const { copy } = useDashboardContent();
   const [page, setPage] = useState<PageId>("overview");
   const [selectedDetail, setSelectedDetail] = useState<DetailId>("all");
@@ -57,12 +61,14 @@ export default function App() {
     const allowed: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators", "admin"];
     const syncHash = () => {
       const candidate = window.location.hash.replace(/^#\/?/, "") as PageId;
-      if (allowed.includes(candidate)) setPage(candidate);
+      if (!allowed.includes(candidate)) return;
+      if (candidate === "admin" && !adminAuthorized) return;
+      setPage(candidate);
     };
     syncHash();
     window.addEventListener("hashchange", syncHash);
     return () => window.removeEventListener("hashchange", syncHash);
-  }, []);
+  }, [adminAuthorized]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -106,6 +112,7 @@ export default function App() {
   };
 
   const navigate = (nextPage: PageId) => {
+    if (nextPage === "admin" && !adminAuthorized) return;
     setPage(nextPage);
     window.history.pushState(null, "", `#/${nextPage}`);
     if (nextPage === "overview") {
@@ -268,7 +275,7 @@ export default function App() {
 
           {data && page === "indicators" ? <IndicatorCoverage items={data.indicator_coverage} /> : null}
 
-          {page === "admin" ? <AdminDescriptions /> : null}
+          {page === "admin" && adminAuthorized ? <AdminDescriptions /> : null}
 
           {data ? (
             <footer className="data-footer">

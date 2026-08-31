@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import Root from "./Root";
 import "./styles.css";
 import "./indicator-enhancements.css";
+import "./flow-audit.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

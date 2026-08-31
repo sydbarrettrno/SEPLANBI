@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from backend.final_entry import dashboard, health, query_from_params  # noqa: E402
-from backend.admin_store import DEFAULT_DESCRIPTIONS, load_descriptions  # noqa: E402
+from backend.admin_store import DEFAULT_COPY, DEFAULT_DESCRIPTIONS, load_copy, load_descriptions  # noqa: E402
 
 EXPECTED = {
     "rows": 7064,
@@ -72,12 +72,20 @@ assert set(d["options"]["statuses"]) == {
 assert d["management"]["public_projects"]["protocols_identified"] == 20
 assert d["management"]["public_projects"]["reference_date"] == "2026-08-27"
 
-admin = load_descriptions()
-assert set(admin["descriptions"]) == set(DEFAULT_DESCRIPTIONS)
+admin = load_copy()
+assert set(admin["copy"]) == set(DEFAULT_COPY)
+assert admin["copy"]["overview"]["title"]
+assert admin["copy"]["received"]["title"]
+assert admin["copy"]["kpi11"]["matrixTitle"]
+assert set(admin["copy"]["indicators"]["items"]) == {f"KPI{i:02d}" for i in range(1, 12)}
+
+legacy_admin = load_descriptions()
+assert set(legacy_admin["descriptions"]) == set(DEFAULT_DESCRIPTIONS)
 
 print(json.dumps({
     "status": "VALIDADO",
     "health": h,
     "default_metrics": m,
     "comparison": cmp,
+    "editorial_sections": sorted(admin["copy"]),
 }, ensure_ascii=False, indent=2))

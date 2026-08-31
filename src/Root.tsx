@@ -4,6 +4,7 @@ import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
 import { Sidebar } from "./components/Sidebar";
+import { TimeComparisonPanel } from "./components/TimeComparisonPanel";
 import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
 import type { ExtendedKpi } from "./extended";
 import type { DashboardFilters, PageId } from "./types";
@@ -73,6 +74,7 @@ function RootRoutes() {
 
   const openAdmin = () => navigate("admin");
   const kpi = useMemo(() => KPI_BY_ROUTE[route], [route]);
+  const updateExtendedFilters = (next: DashboardFilters) => setFilters({ ...next, recordset: "all", offset: 0 });
 
   return (
     <>
@@ -96,8 +98,14 @@ function RootRoutes() {
               <ExtendedIndicatorPanel
                 kpi={kpi}
                 filters={filters}
-                onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })}
+                onFilters={updateExtendedFilters}
               />
+              {kpi === 4 ? (
+                <TimeComparisonPanel
+                  filters={filters}
+                  onMonth={(month) => updateExtendedFilters({ ...filters, month: filters.month === month ? "" : month })}
+                />
+              ) : null}
             </main>
           </div>
         </div>

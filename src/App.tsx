@@ -4,13 +4,13 @@ import { AdminDescriptions } from "./components/AdminDescriptions";
 import { BarList } from "./components/BarList";
 import { BiPanel } from "./components/BiPanel";
 import { DrilldownTable } from "./components/DrilldownTable";
-import { ExceptionPanel } from "./components/ExceptionPanel";
 import { FilterBar } from "./components/FilterBar";
 import { Header } from "./components/Header";
 import { IndicatorCoverage } from "./components/IndicatorCoverage";
 import { IndicatorDetail } from "./components/IndicatorDetail";
 import { KpiCard } from "./components/KpiCard";
 import { MonthlyFlowBarChart } from "./components/MonthlyFlowBarChart";
+import { OverviewIndicatorPanel } from "./components/OverviewIndicatorPanel";
 import { Sidebar } from "./components/Sidebar";
 import { useDashboardContent } from "./content/DashboardContentContext";
 import { formatDays, formatNumber, formatPercent, monthLabel } from "./format";
@@ -185,67 +185,114 @@ export default function App({ adminAuthorized = false }: AppProps) {
 
           {data && page === "overview" ? (
             <>
-              <section className="page-hero overview-hero">
+              <section className="page-hero overview-hero overview-hero-clean">
                 <div>
-                  <span className="eyebrow">{copy.overview.eyebrow} · {data.meta.period.from.slice(0, 4)}</span>
-                  <h1>{copy.overview.title}</h1>
-                  <p>{copy.overview.description}</p>
-                </div>
-                <div className="hero-summary">
-                  <small>{copy.overview.balanceLabel}</small>
-                  <strong className={(metrics?.period_balance ?? 0) > 0 ? "pressure" : "positive"}>
-                    {(metrics?.period_balance ?? 0) > 0 ? "+" : ""}{formatNumber(metrics?.period_balance)}
-                  </strong>
-                  <span>{(metrics?.period_balance ?? 0) > 0 ? copy.overview.balancePressure : copy.overview.balanceOk}</span>
+                  <span className="eyebrow">VISÃO EXECUTIVA · {data.meta.period.from.slice(0, 4)}</span>
+                  <h1>Indicadores de Desempenho</h1>
+                  <p>Período de análise: {data.meta.period.from} — {data.meta.period.to}</p>
                 </div>
               </section>
 
               {metrics ? (
-                <section className="kpi-grid" aria-label="Indicadores principais">
-                  <KpiCard icon="↗" eyebrow={copy.overview.cards.received.eyebrow} value={formatNumber(metrics.received)} description={copy.overview.cards.received.description} detail={copy.overview.cards.received.detail} tone="blue" trend={comparisonLabel(comparison?.received_change_percent, copy.overview.cards.received.trendSubject)} onClick={() => navigate("received")} />
-                  <KpiCard icon="✓" eyebrow={copy.overview.cards.outputs.eyebrow} value={formatNumber(metrics.concluded)} description={copy.overview.cards.outputs.description} detail={copy.overview.cards.outputs.detail} tone="green" trend={comparisonLabel(comparison?.cohort_concluded_change_percent, copy.overview.cards.outputs.trendSubject)} onClick={() => navigate("outputs")} />
-                  <KpiCard icon="⇄" eyebrow={copy.overview.cards.balance.eyebrow} value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`} description={copy.overview.cards.balance.description} detail={`${formatPercent(metrics.completion_rate)} ${copy.overview.cards.balance.detailSuffix}`} tone={metrics.period_balance > 0 ? "orange" : "green"} onClick={() => openDetail("balance", "all")} />
-                  <KpiCard icon="▤" eyebrow={copy.overview.cards.stock.eyebrow} value={formatNumber(metrics.stock)} description={copy.overview.cards.stock.description} detail={`${formatNumber(metrics.internal_queue)} ${copy.overview.cards.stock.detailSuffix}`} tone="orange" onClick={() => navigate("stock")} />
-                  <KpiCard icon="◷" eyebrow={copy.overview.cards.time.eyebrow} value={formatDays(metrics.turnaround.median_days)} description={copy.overview.cards.time.description} detail={`${copy.overview.cards.time.detailPrefix} ${formatDays(metrics.turnaround.mean_days)} · ${copy.overview.cards.time.detailP90} ${formatDays(metrics.turnaround.p90_days)}`} tone="purple" onClick={() => window.location.hash = "#/kpi04"} />
+                <section className="kpi-grid executive-kpi-grid" aria-label="Indicadores principais">
+                  <KpiCard
+                    icon="↗"
+                    eyebrow="01 · RECEBIDOS"
+                    value={formatNumber(metrics.received)}
+                    description="Contagem de ProtocoloID pela DataAbertura no período."
+                    detail={`${data.meta.period.from} → ${data.meta.period.to}`}
+                    tone="blue"
+                    trend={comparisonLabel(comparison?.received_change_percent, "Entradas")}
+                    onClick={() => navigate("received")}
+                  />
+                  <KpiCard
+                    icon="✓"
+                    eyebrow="02 · FINALIZADOS"
+                    value={formatNumber(metrics.concluded)}
+                    description="Concluído + Encerrado por DataSaida no período."
+                    detail="Coorte do mês + passivo anterior absorvido"
+                    tone="green"
+                    trend={comparisonLabel(comparison?.cohort_concluded_change_percent, "Coorte concluída")}
+                    onClick={() => navigate("outputs")}
+                  />
+                  <KpiCard
+                    icon="⇄"
+                    eyebrow="SALDO MENSAL"
+                    value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`}
+                    description="Recebidos − saídas operacionais no período."
+                    detail={`${formatNumber(metrics.received)} − ${formatNumber(metrics.concluded)}`}
+                    tone={metrics.period_balance > 0 ? "orange" : "green"}
+                    onClick={() => openDetail("balance", "all")}
+                  />
+                  <KpiCard
+                    icon="▤"
+                    eyebrow="03 · ESTOQUE"
+                    value={formatNumber(metrics.stock)}
+                    description="Protocolos em status não terminal na data de corte."
+                    detail={`${formatNumber(metrics.internal_queue)} internos · ${formatNumber(metrics.external_wait)} externos · ${formatNumber(metrics.paralyzed)} paralisados`}
+                    tone="orange"
+                    onClick={() => navigate("stock")}
+                  />
+                  <KpiCard
+                    icon="◷"
+                    eyebrow="04 · TEMPO MEDIANO"
+                    value={formatDays(metrics.turnaround.median_days)}
+                    description="Mediana de DataFim − DataAbertura nas saídas elegíveis."
+                    detail={`n=${formatNumber(metrics.turnaround.eligible)} · média ${formatDays(metrics.turnaround.mean_days)} · P90 ${formatDays(metrics.turnaround.p90_days)}`}
+                    tone="purple"
+                    onClick={() => window.location.hash = "#/kpi04"}
+                  />
                 </section>
               ) : null}
 
-              <section className="executive-workspace">
-                <div className="executive-charts">
-                  <section className="analytics-grid main-analysis">
-                    <article className="panel flow-panel">
-                      <div className="panel-heading">
-                        <div><span className="eyebrow">{copy.overview.flow.eyebrow}</span><h2>{copy.overview.flow.title}</h2><p>{copy.overview.flow.description}</p></div>
-                        <span className="panel-chip">{copy.overview.flow.chip}</span>
-                      </div>
-                      <MonthlyFlowBarChart data={data.charts.flow} />
-                    </article>
-                    <aside className="panel seasonality-panel">
-                      <span className="eyebrow">{copy.overview.signals.eyebrow}</span>
-                      <h2>{copy.overview.signals.title}</h2>
-                      {seasonality ? (
-                        <div className="seasonality-signals">
-                          <div><i className="signal-blue" /><span><small>{copy.overview.signals.peakIn}</small><strong>{monthLabel(seasonality.peakIn.month)}</strong><p>{formatNumber(seasonality.peakIn.received)} protocolos</p></span></div>
-                          <div><i className="signal-green" /><span><small>{copy.overview.signals.peakOut}</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} conclusões</p></span></div>
-                          <div><i className="signal-slate" /><span><small>{copy.overview.signals.valleyIn}</small><strong>{monthLabel(seasonality.valleyIn.month)}</strong><p>{formatNumber(seasonality.valleyIn.received)} protocolos</p></span></div>
-                        </div>
-                      ) : <p>{copy.overview.signals.empty}</p>}
-                      <div className="management-note"><strong>{copy.overview.signals.howToTitle}</strong><p>{copy.overview.signals.howToText}</p></div>
-                    </aside>
-                  </section>
+              <section className="overview-primary-analysis">
+                <article className="panel flow-panel overview-flow-panel">
+                  <div className="panel-heading">
+                    <div>
+                      <span className="eyebrow">FLUXO MENSAL</span>
+                      <h2>Recebidos × Finalizados</h2>
+                      <p>Entradas e saídas por mês, com a saída decomposta entre coorte do próprio mês e passivo anterior absorvido.</p>
+                    </div>
+                    <span className="panel-chip">MENSAL</span>
+                  </div>
+                  <MonthlyFlowBarChart data={data.charts.flow} />
+                </article>
+                <OverviewIndicatorPanel data={data} filters={filters} />
+              </section>
 
-                  <section className="analytics-grid secondary-analysis">
-                    <article className="panel">
-                      <div className="panel-heading"><div><span className="eyebrow">{copy.overview.internalAging.eyebrow}</span><h2>{copy.overview.internalAging.title}</h2><p>{copy.overview.internalAging.description}</p></div></div>
-                      <BarList data={data.charts.internal_aging} tone="orange" />
-                    </article>
-                    <article className="panel">
-                      <div className="panel-heading"><div><span className="eyebrow">{copy.overview.responsibility.eyebrow}</span><h2>{copy.overview.responsibility.title}</h2><p>{copy.overview.responsibility.description}</p></div></div>
-                      <BarList data={data.charts.owners} tone="teal" limit={7} />
-                    </article>
-                  </section>
-                </div>
-                {metrics ? <ExceptionPanel metrics={metrics} onOpen={openDetail} /> : null}
+              <section className="overview-support-grid">
+                <article className="panel">
+                  <div className="panel-heading">
+                    <div>
+                      <span className="eyebrow">{copy.overview.internalAging.eyebrow}</span>
+                      <h2>{copy.overview.internalAging.title}</h2>
+                      <p>{copy.overview.internalAging.description}</p>
+                    </div>
+                  </div>
+                  <BarList data={data.charts.internal_aging} tone="orange" />
+                </article>
+                <article className="panel">
+                  <div className="panel-heading">
+                    <div>
+                      <span className="eyebrow">{copy.overview.responsibility.eyebrow}</span>
+                      <h2>{copy.overview.responsibility.title}</h2>
+                      <p>{copy.overview.responsibility.description}</p>
+                    </div>
+                  </div>
+                  <BarList data={data.charts.owners} tone="teal" limit={7} />
+                </article>
+                <aside className="panel seasonality-panel">
+                  <span className="eyebrow">{copy.overview.signals.eyebrow}</span>
+                  <h2>{copy.overview.signals.title}</h2>
+                  {seasonality ? (
+                    <div className="seasonality-signals">
+                      <div><i className="signal-blue" /><span><small>{copy.overview.signals.peakIn}</small><strong>{monthLabel(seasonality.peakIn.month)}</strong><p>{formatNumber(seasonality.peakIn.received)} protocolos</p></span></div>
+                      <div><i className="signal-green" /><span><small>{copy.overview.signals.peakOut}</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} conclusões</p></span></div>
+                      <div><i className="signal-slate" /><span><small>{copy.overview.signals.valleyIn}</small><strong>{monthLabel(seasonality.valleyIn.month)}</strong><p>{formatNumber(seasonality.valleyIn.received)} protocolos</p></span></div>
+                    </div>
+                  ) : <p>{copy.overview.signals.empty}</p>}
+                  <div className="management-note"><strong>{copy.overview.signals.howToTitle}</strong><p>{copy.overview.signals.howToText}</p></div>
+                </aside>
               </section>
             </>
           ) : null}

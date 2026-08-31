@@ -1,3 +1,4 @@
+import { useDashboardContent } from "../content/DashboardContentContext";
 import { statusTone } from "../format";
 import type { IndicatorCoverage as Coverage, PageId } from "../types";
 
@@ -17,25 +18,28 @@ const KPI_PAGE: Record<string, PageId> = {
 };
 
 export function IndicatorCoverage({ items }: IndicatorCoverageProps) {
+  const { copy } = useDashboardContent();
   const available = items.filter((item) => item.status === "DISPONÍVEL").length;
+  const editorialItems = copy.indicators.items as Record<string, { name: string; reason: string }>;
   return (
     <section className="coverage-section">
       <div className="page-hero simple-hero">
         <div>
-          <span className="eyebrow">CARTEIRA DE INDICADORES</span>
-          <h1>O que já podemos medir com segurança</h1>
-          <p>Cobertura explícita evita transformar ausência de fonte em número inventado. Os indicadores 4–11 abrem em painéis próprios.</p>
+          <span className="eyebrow">{copy.indicators.eyebrow}</span>
+          <h1>{copy.indicators.title}</h1>
+          <p>{copy.indicators.description}</p>
         </div>
-        <div className="coverage-score"><strong>{available}/{items.length}</strong><span>indicadores disponíveis</span></div>
+        <div className="coverage-score"><strong>{available}/{items.length}</strong><span>{copy.indicators.availableSuffix}</span></div>
       </div>
       <div className="coverage-grid">
         {items.map((item) => {
           const target = KPI_PAGE[item.id];
+          const editorial = editorialItems[item.id];
           return (
             <article className={`coverage-card ${target ? "is-navigable" : ""}`} key={item.id}>
               <div><span>{item.id}</span><span className={`status-badge ${statusTone(item.status)}`}>{item.status}</span></div>
-              <h2>{item.name}</h2>
-              <p>{item.reason}</p>
+              <h2>{editorial?.name ?? item.name}</h2>
+              <p>{editorial?.reason ?? item.reason}</p>
               {target ? <a className="ghost-button" href={`#/${target}`}>Abrir painel</a> : null}
             </article>
           );

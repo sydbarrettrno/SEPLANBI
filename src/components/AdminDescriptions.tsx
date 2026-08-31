@@ -6,7 +6,6 @@ import "../admin-content.css";
 export function AdminDescriptions() {
   const { copy, defaults, persistent, updatedAt, save } = useDashboardContent();
   const [draft, setDraft] = useState<DashboardCopy>(() => cloneDashboardCopy(copy));
-  const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [query, setQuery] = useState("");
   const [section, setSection] = useState("Todas");
@@ -39,10 +38,6 @@ export function AdminDescriptions() {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!password) {
-      setFeedback({ tone: "error", text: "Informe a senha de gravação." });
-      return;
-    }
     if (!changed) {
       setFeedback({ tone: "error", text: "Nenhum texto foi alterado." });
       return;
@@ -50,11 +45,10 @@ export function AdminDescriptions() {
     setSaving(true);
     setFeedback(null);
     try {
-      await save(draft, password);
-      setPassword("");
+      await save(draft);
       setFeedback({ tone: "success", text: "Conteúdo editorial publicado. As páginas passam a usar estes textos sem alterar dados ou fórmulas." });
     } catch (reason) {
-      setFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "Não foi possível gravar." });
+      setFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "Não foi possível gravar. Se a sessão expirou, reabra o acesso pela engrenagem." });
     } finally {
       setSaving(false);
     }
@@ -110,11 +104,11 @@ export function AdminDescriptions() {
 
           {!fields.length ? <p className="admin-feedback error">Nenhum campo corresponde ao filtro.</p> : null}
 
-          <div className="admin-password-row">
-            <label>
-              <span>Senha de gravação</span>
-              <input type="password" value={password} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)} placeholder="Informe a senha para publicar" />
-            </label>
+          <div className="admin-publish-row">
+            <div>
+              <strong>Sessão administrativa ativa</strong>
+              <span>A publicação usa a sessão segura validada pela engrenagem. A senha não é reenviada nem armazenada no navegador.</span>
+            </div>
             <button className="primary-button" type="submit" disabled={saving || !changed}>{saving ? "Publicando…" : "Publicar textos"}</button>
           </div>
 
@@ -134,7 +128,8 @@ export function AdminDescriptions() {
             <li>não altera fórmulas ou resultados;</li>
             <li>não altera categorias, status ou regras de classificação;</li>
             <li>não altera SLA nem transforma indicador não homologado em disponível;</li>
-            <li>a gravação exige senha e mantém histórico técnico;</li>
+            <li>o acesso é validado no servidor e a sessão expira automaticamente;</li>
+            <li>a senha nunca é incluída no código do GitHub nem persistida no navegador;</li>
             <li>os textos padrão continuam versionados no GitHub.</li>
           </ul>
         </aside>

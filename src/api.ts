@@ -10,6 +10,12 @@ export interface DashboardCopyPayload {
   persistent: boolean;
 }
 
+export interface AdminSessionPayload {
+  ok: boolean;
+  authorized: boolean;
+  expires_in?: number;
+}
+
 export async function fetchDashboard(
   filters: DashboardFilters,
   signal?: AbortSignal,
@@ -84,11 +90,36 @@ export async function fetchDashboardCopy(signal?: AbortSignal): Promise<Dashboar
   return readJson<DashboardCopyPayload>(response);
 }
 
-export async function saveDashboardCopy(copy: DashboardCopy, password: string): Promise<DashboardCopyPayload> {
+export async function fetchAdminSession(signal?: AbortSignal): Promise<AdminSessionPayload> {
+  const response = await fetch("/api?action=admin-session", {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  return readJson<AdminSessionPayload>(response);
+}
+
+export async function authenticateAdmin(password: string): Promise<AdminSessionPayload> {
+  const response = await fetch("/api?action=admin-auth", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  return readJson<AdminSessionPayload>(response);
+}
+
+export async function logoutAdmin(): Promise<void> {
+  const response = await fetch("/api?action=admin-logout", {
+    method: "POST",
+    headers: { Accept: "application/json" },
+  });
+  await readJson<{ ok: boolean }>(response);
+}
+
+export async function saveDashboardCopy(copy: DashboardCopy): Promise<DashboardCopyPayload> {
   const response = await fetch("/api?action=dashboard-copy", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ copy, password }),
+    body: JSON.stringify({ copy }),
   });
   return readJson<DashboardCopyPayload>(response);
 }

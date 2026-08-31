@@ -8,7 +8,7 @@ interface DashboardContentState {
   persistent: boolean;
   updatedAt: string | null;
   loading: boolean;
-  save: (next: DashboardCopy, password: string) => Promise<void>;
+  save: (next: DashboardCopy) => Promise<void>;
 }
 
 const DashboardContentContext = createContext<DashboardContentState | null>(null);
@@ -43,8 +43,8 @@ export function DashboardContentProvider({ children }: { children: ReactNode }) 
     persistent,
     updatedAt,
     loading,
-    save: async (next, password) => {
-      const result = await saveDashboardCopy(next, password);
+    save: async (next) => {
+      const result = await saveDashboardCopy(next);
       setCopy(result.copy);
       setPersistent(result.persistent);
       setUpdatedAt(result.updated_at);

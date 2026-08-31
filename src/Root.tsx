@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import App from "./App";
+import { fetchAdminSession } from "./api";
+import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
 import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
 import type { ExtendedKpi } from "./extended";
@@ -42,6 +44,8 @@ function currentRoute() {
 function RootRoutes() {
   const [route, setRoute] = useState(currentRoute);
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
+  const [adminAuthorized, setAdminAuthorized] = useState(false);
+  const [adminChecked, setAdminChecked] = useState(false);
   const { copy } = useDashboardContent();
 
   useEffect(() => {
@@ -50,25 +54,51 @@ function RootRoutes() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchAdminSession(controller.signal)
+      .then((result) => setAdminAuthorized(result.authorized))
+      .catch(() => setAdminAuthorized(false))
+      .finally(() => { if (!controller.signal.aborted) setAdminChecked(true); });
+    return () => controller.abort();
+  }, []);
+
+  const openAdmin = () => {
+    setRoute("admin");
+    window.location.hash = "#/admin";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const kpi = useMemo(() => KPI_BY_ROUTE[route], [route]);
-  if (!kpi) return <App />;
 
   return (
-    <div className="app-shell extended-route-shell">
-      <div className="app-main">
-        <main className="content">
-          <nav className="extended-route-nav" aria-label="Navegação do indicador">
-            <a className="ghost-button" href="#/indicators">← {copy.common.breadcrumbIndicators}</a>
-            <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
-          </nav>
-          <ExtendedIndicatorPanel
-            kpi={kpi}
-            filters={filters}
-            onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })}
-          />
-        </main>
-      </div>
-    </div>
+    <>
+      {kpi ? (
+        <div className="app-shell extended-route-shell">
+          <div className="app-main">
+            <main className="content">
+              <nav className="extended-route-nav" aria-label="Navegação do indicador">
+                <a className="ghost-button" href="#/indicators">← {copy.common.breadcrumbIndicators}</a>
+                <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
+              </nav>
+              <ExtendedIndicatorPanel
+                kpi={kpi}
+                filters={filters}
+                onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })}
+              />
+            </main>
+          </div>
+        </div>
+      ) : <App adminAuthorized={adminAuthorized} />}
+
+      <AdminAccessGate
+        authorized={adminAuthorized}
+        checking={!adminChecked}
+        autoOpen={route === "admin" && adminChecked && !adminAuthorized}
+        onAuthenticated={() => setAdminAuthorized(true)}
+        onOpenAdmin={openAdmin}
+      />
+    </>
   );
 }
 

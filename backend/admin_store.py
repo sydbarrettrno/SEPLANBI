@@ -17,6 +17,7 @@ HISTORY_PREFIX = "admin/content-history/"
 LEGACY_PATH = "admin/card-descriptions.json"
 MAX_TEXT_LENGTH = 600
 MAX_DOCUMENT_BYTES = 64_000
+SESSION_TTL_SECONDS = 30 * 60
 
 
 class AdminStoreError(Exception):
@@ -48,6 +49,13 @@ DEFAULT_DESCRIPTIONS = {
 
 def _blob_configured() -> bool:
     return bool(os.getenv("BLOB_READ_WRITE_TOKEN"))
+
+
+def _admin_secret() -> str:
+    secret = os.getenv("SEPLAN_ADMIN_PASSWORD")
+    if not secret:
+        raise AdminStoreError(503, "Senha administrativa ainda não configurada.")
+    return secret
 
 
 def _blob_client():
@@ -220,23 +228,62 @@ def _register_failed_attempt(path: str, attempts: int, now: datetime) -> None:
     _write_blob(path, json.dumps(document, separators=(",", ":")).encode("utf-8"), overwrite=True)
 
 
-def save_copy(raw_copy, password: str, client_ip: str) -> dict:
-    expected = os.getenv("SEPLAN_ADMIN_PASSWORD")
-    if not expected:
-        raise AdminStoreError(503, "Senha administrativa ainda não configurada.")
-    if not _blob_configured():
-        raise AdminStoreError(503, "Armazenamento administrativo ainda não configurado.")
-
+def _authorize_password(password: str, client_ip: str) -> None:
+    expected = _admin_secret()
     now = datetime.now(timezone.utc)
     attempt_path = _attempt_path(client_ip)
-    attempts = _load_attempts(attempt_path, now)
+    attempts = _load_attempts(attempt_path, now) if _blob_configured() else 0
     if attempts >= 5:
         raise AdminStoreError(429, "Muitas tentativas inválidas. Aguarde dez minutos.")
-
     if not hmac.compare_digest(str(password or ""), expected):
-        _register_failed_attempt(attempt_path, attempts, now)
-        raise AdminStoreError(401, "Senha de gravação inválida.")
+        if _blob_configured():
+            _register_failed_attempt(attempt_path, attempts, now)
+        raise AdminStoreError(401, "Senha administrativa inválida.")
+    if _blob_configured():
+        _delete_blob(attempt_path)
 
+
+def create_admin_session(password: str, client_ip: str) -> str:
+    """Valida a senha somente no servidor e devolve um token assinado de curta duração.
+
+    O token não contém a senha e deve ser enviado ao navegador somente como cookie HttpOnly.
+    """
+    _authorize_password(password, client_ip)
+    secret = _admin_secret().encode("utf-8")
+    expires = int(datetime.now(timezone.utc).timestamp()) + SESSION_TTL_SECONDS
+    nonce = uuid4().hex
+    payload = f"{expires}.{nonce}"
+    signature = hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}.{signature}"
+
+
+def validate_admin_session(token: str | None) -> bool:
+    if not token:
+        return False
+    try:
+        expires_raw, nonce, supplied_signature = token.split(".", 2)
+        expires = int(expires_raw)
+    except (ValueError, AttributeError):
+        return False
+    now = int(datetime.now(timezone.utc).timestamp())
+    if expires <= now or expires > now + SESSION_TTL_SECONDS + 60:
+        return False
+    try:
+        secret = _admin_secret().encode("utf-8")
+    except AdminStoreError:
+        return False
+    payload = f"{expires}.{nonce}"
+    expected_signature = hmac.new(secret, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(supplied_signature, expected_signature)
+
+
+def save_copy(raw_copy, password: str = "", client_ip: str = "", session_token: str | None = None) -> dict:
+    if not _blob_configured():
+        raise AdminStoreError(503, "Armazenamento administrativo ainda não configurado.")
+    if not validate_admin_session(session_token):
+        _authorize_password(password, client_ip)
+
+    now = datetime.now(timezone.utc)
     copy = _validate_copy(raw_copy)
     updated_at = now.replace(microsecond=0).isoformat()
     stored = json.dumps(
@@ -250,7 +297,6 @@ def save_copy(raw_copy, password: str, client_ip: str) -> dict:
     history_path = f"{HISTORY_PREFIX}{now.strftime('%Y%m%dT%H%M%S')}-{uuid4().hex[:8]}.json"
     _write_blob(history_path, stored, overwrite=False)
     _write_blob(CURRENT_PATH, stored, overwrite=True)
-    _delete_blob(attempt_path)
     _prune_history()
     return {"ok": True, "copy": copy, "updated_at": updated_at, "persistent": True}
 
@@ -273,7 +319,7 @@ def load_descriptions() -> dict:
     }
 
 
-def save_descriptions(raw_descriptions, password: str, client_ip: str) -> dict:
+def save_descriptions(raw_descriptions, password: str, client_ip: str, session_token: str | None = None) -> dict:
     base = load_copy()["copy"]
     if not isinstance(raw_descriptions, dict):
         raise AdminStoreError(400, "Descrições inválidas.")
@@ -289,5 +335,5 @@ def save_descriptions(raw_descriptions, password: str, client_ip: str) -> dict:
         if not value:
             raise AdminStoreError(400, f"Descrição inválida: {old_key}.")
         base["overview"]["cards"][card_key]["description"] = value
-    saved = save_copy(base, password, client_ip)
+    saved = save_copy(base, password, client_ip, session_token=session_token)
     return load_descriptions() | {"updated_at": saved["updated_at"], "persistent": saved["persistent"]}

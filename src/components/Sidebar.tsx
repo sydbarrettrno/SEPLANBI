@@ -15,10 +15,9 @@ const NAV_ICONS: Record<string, string> = {
   stock: "▤",
   processes: "▤",
   indicators: "◫",
-  admin: "⚙",
 };
 
-const NAV_ORDER: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators", "admin"];
+const NAV_ORDER: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators"];
 
 export function Sidebar({ page, onNavigate, open, onClose }: SidebarProps) {
   const { copy } = useDashboardContent();

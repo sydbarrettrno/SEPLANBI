@@ -90,11 +90,11 @@ class CoreTests(unittest.TestCase):
 
     def test_indicator_coverage_is_explicit(self):
         coverage = {x["id"]: x for x in dashboard(query_from_params({}))["indicator_coverage"]}
-        for kpi in ("KPI06", "KPI07", "KPI10"):
-            self.assertNotEqual(coverage[kpi]["status"], "DISPONÍVEL")
-        self.assertEqual(coverage["KPI08"]["status"], "PARCIAL")
-        self.assertEqual(coverage["KPI09"]["status"], "PARCIAL")
-        self.assertEqual(coverage["KPI11"]["status"], "DISPONÍVEL")
+        self.assertEqual(coverage["KPI06"]["status"], "NÃO HOMOLOGADO")
+        self.assertEqual(coverage["KPI07"]["status"], "PARCIAL")
+        self.assertEqual(coverage["KPI08"]["status"], "NÃO HOMOLOGADO")
+        for kpi in ("KPI04", "KPI05", "KPI09", "KPI10", "KPI11"):
+            self.assertEqual(coverage[kpi]["status"], "DISPONÍVEL")
 
     def test_owner_is_categorical(self):
         allowed = {"Interno", "Externo", "Paralisado", "Nenhum"}

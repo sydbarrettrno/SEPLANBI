@@ -1,23 +1,22 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import json
 import os
+from pathlib import Path
 from uuid import uuid4
 
 
-CURRENT_PATH = "admin/card-descriptions.json"
-HISTORY_PREFIX = "admin/history/"
-DESCRIPTION_FIELDS = ("received", "concluded", "balance", "stock", "time")
-DEFAULT_DESCRIPTIONS = {
-    "received": "Demandas que entraram na SEPLAN durante o período selecionado.",
-    "concluded": "Produção entregue, incluindo conclusões operacionais reconhecidas.",
-    "balance": "Diferença entre entradas e conclusões; saldo positivo pressiona o estoque.",
-    "stock": "Pendências existentes na data final do recorte, independentemente da abertura.",
-    "time": "Tempo entre abertura e conclusão dos processos entregues no período.",
-}
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_COPY_PATH = ROOT / "src" / "content" / "dashboard-copy.json"
+CURRENT_PATH = "admin/dashboard-copy.json"
+HISTORY_PREFIX = "admin/content-history/"
+LEGACY_PATH = "admin/card-descriptions.json"
+MAX_TEXT_LENGTH = 600
+MAX_DOCUMENT_BYTES = 64_000
 
 
 class AdminStoreError(Exception):
@@ -25,6 +24,26 @@ class AdminStoreError(Exception):
         super().__init__(public_message)
         self.status = status
         self.public_message = public_message
+
+
+def _load_default_copy() -> dict:
+    try:
+        document = json.loads(DEFAULT_COPY_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise AdminStoreError(503, "Catálogo editorial padrão indisponível no servidor.") from exc
+    if not isinstance(document, dict):
+        raise AdminStoreError(503, "Catálogo editorial padrão inválido.")
+    return document
+
+
+DEFAULT_COPY = _load_default_copy()
+DEFAULT_DESCRIPTIONS = {
+    "received": DEFAULT_COPY["overview"]["cards"]["received"]["description"],
+    "concluded": DEFAULT_COPY["overview"]["cards"]["outputs"]["description"],
+    "balance": DEFAULT_COPY["overview"]["cards"]["balance"]["description"],
+    "stock": DEFAULT_COPY["overview"]["cards"]["stock"]["description"],
+    "time": DEFAULT_COPY["overview"]["cards"]["time"]["description"],
+}
 
 
 def _blob_configured() -> bool:
@@ -78,7 +97,6 @@ def _delete_blob(path: str) -> None:
         with _blob_client() as client:
             client.delete(path)
     except Exception:
-        # Limpeza de tentativa/histórico não pode invalidar uma gravação já confirmada.
         return
 
 
@@ -90,22 +108,27 @@ def _prune_history(limit: int = 20) -> None:
             if excess:
                 client.delete([item.url for item in excess])
     except Exception:
-        # O histórico é contingência; o arquivo vigente continua sendo a fonte de leitura.
         return
 
 
-def _validate_descriptions(raw) -> dict[str, str]:
-    if not isinstance(raw, dict):
-        raise AdminStoreError(400, "Descrições inválidas.")
-    if set(raw) != set(DESCRIPTION_FIELDS):
-        raise AdminStoreError(400, "O conjunto de descrições não corresponde aos cinco cards autorizados.")
-    output = {}
-    for field in DESCRIPTION_FIELDS:
-        value = str(raw.get(field, "")).strip()
-        if not value or len(value) > 180:
-            raise AdminStoreError(400, f"A descrição de {field} deve ter entre 1 e 180 caracteres.")
-        output[field] = value
-    return output
+def _validate_copy(raw, template=None, path: str = ""):
+    if template is None:
+        template = DEFAULT_COPY
+    if isinstance(template, dict):
+        if not isinstance(raw, dict):
+            raise AdminStoreError(400, f"Estrutura editorial inválida em {path or 'raiz'}.")
+        if set(raw) != set(template):
+            raise AdminStoreError(400, f"Campos editoriais divergentes em {path or 'raiz'}.")
+        return {
+            key: _validate_copy(raw[key], template[key], f"{path}.{key}" if path else key)
+            for key in template
+        }
+    if not isinstance(template, str):
+        raise AdminStoreError(503, "Contrato editorial padrão contém tipo não autorizado.")
+    value = str(raw if raw is not None else "").strip()
+    if not value or len(value) > MAX_TEXT_LENGTH:
+        raise AdminStoreError(400, f"O texto {path} deve ter entre 1 e {MAX_TEXT_LENGTH} caracteres.")
+    return value
 
 
 def _decode_document(raw: bytes, invalid_message: str) -> dict:
@@ -118,27 +141,51 @@ def _decode_document(raw: bytes, invalid_message: str) -> dict:
     return document
 
 
-def load_descriptions() -> dict:
+def _migrate_legacy_descriptions() -> dict | None:
+    raw = _read_blob(LEGACY_PATH)
+    if raw is None:
+        return None
+    document = _decode_document(raw, "Configuração editorial legada inválida.")
+    descriptions = document.get("descriptions")
+    if not isinstance(descriptions, dict):
+        return None
+    migrated = deepcopy(DEFAULT_COPY)
+    mapping = {
+        "received": "received",
+        "concluded": "outputs",
+        "balance": "balance",
+        "stock": "stock",
+        "time": "time",
+    }
+    for old_key, card_key in mapping.items():
+        value = descriptions.get(old_key)
+        if isinstance(value, str) and value.strip():
+            migrated["overview"]["cards"][card_key]["description"] = value.strip()
+    return migrated
+
+
+def load_copy() -> dict:
     if not _blob_configured():
         return {
             "ok": True,
-            "descriptions": DEFAULT_DESCRIPTIONS,
+            "copy": deepcopy(DEFAULT_COPY),
             "updated_at": None,
             "persistent": False,
         }
     raw = _read_blob(CURRENT_PATH)
     if raw is None:
+        migrated = _migrate_legacy_descriptions()
         return {
             "ok": True,
-            "descriptions": DEFAULT_DESCRIPTIONS,
+            "copy": _validate_copy(migrated or deepcopy(DEFAULT_COPY)),
             "updated_at": None,
             "persistent": True,
         }
-    stored = _decode_document(raw, "A configuração administrativa armazenada está inválida.")
-    descriptions = _validate_descriptions(stored.get("descriptions"))
+    stored = _decode_document(raw, "A configuração editorial armazenada está inválida.")
+    copy = _validate_copy(stored.get("copy"))
     return {
         "ok": True,
-        "descriptions": descriptions,
+        "copy": copy,
         "updated_at": stored.get("updated_at"),
         "persistent": True,
     }
@@ -173,7 +220,7 @@ def _register_failed_attempt(path: str, attempts: int, now: datetime) -> None:
     _write_blob(path, json.dumps(document, separators=(",", ":")).encode("utf-8"), overwrite=True)
 
 
-def save_descriptions(raw_descriptions, password: str, client_ip: str) -> dict:
+def save_copy(raw_copy, password: str, client_ip: str) -> dict:
     expected = os.getenv("SEPLAN_ADMIN_PASSWORD")
     if not expected:
         raise AdminStoreError(503, "Senha administrativa ainda não configurada.")
@@ -190,19 +237,57 @@ def save_descriptions(raw_descriptions, password: str, client_ip: str) -> dict:
         _register_failed_attempt(attempt_path, attempts, now)
         raise AdminStoreError(401, "Senha de gravação inválida.")
 
-    descriptions = _validate_descriptions(raw_descriptions)
+    copy = _validate_copy(raw_copy)
     updated_at = now.replace(microsecond=0).isoformat()
     stored = json.dumps(
-        {"descriptions": descriptions, "updated_at": updated_at},
+        {"copy": copy, "updated_at": updated_at},
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode("utf-8")
+    if len(stored) > MAX_DOCUMENT_BYTES:
+        raise AdminStoreError(400, "O catálogo editorial excede o limite permitido.")
 
-    # O histórico é escrito antes do arquivo vigente. Se a última etapa falhar,
-    # a configuração anterior continua íntegra e a tentativa fica auditável.
     history_path = f"{HISTORY_PREFIX}{now.strftime('%Y%m%dT%H%M%S')}-{uuid4().hex[:8]}.json"
     _write_blob(history_path, stored, overwrite=False)
     _write_blob(CURRENT_PATH, stored, overwrite=True)
     _delete_blob(attempt_path)
     _prune_history()
-    return {"ok": True, "descriptions": descriptions, "updated_at": updated_at, "persistent": True}
+    return {"ok": True, "copy": copy, "updated_at": updated_at, "persistent": True}
+
+
+# Compatibilidade temporária para chamadas antigas durante o rollout.
+def load_descriptions() -> dict:
+    data = load_copy()
+    cards = data["copy"]["overview"]["cards"]
+    return {
+        "ok": True,
+        "descriptions": {
+            "received": cards["received"]["description"],
+            "concluded": cards["outputs"]["description"],
+            "balance": cards["balance"]["description"],
+            "stock": cards["stock"]["description"],
+            "time": cards["time"]["description"],
+        },
+        "updated_at": data["updated_at"],
+        "persistent": data["persistent"],
+    }
+
+
+def save_descriptions(raw_descriptions, password: str, client_ip: str) -> dict:
+    base = load_copy()["copy"]
+    if not isinstance(raw_descriptions, dict):
+        raise AdminStoreError(400, "Descrições inválidas.")
+    mapping = {
+        "received": "received",
+        "concluded": "outputs",
+        "balance": "balance",
+        "stock": "stock",
+        "time": "time",
+    }
+    for old_key, card_key in mapping.items():
+        value = str(raw_descriptions.get(old_key, "")).strip()
+        if not value:
+            raise AdminStoreError(400, f"Descrição inválida: {old_key}.")
+        base["overview"]["cards"][card_key]["description"] = value
+    saved = save_copy(base, password, client_ip)
+    return load_descriptions() | {"updated_at": saved["updated_at"], "persistent": saved["persistent"]}

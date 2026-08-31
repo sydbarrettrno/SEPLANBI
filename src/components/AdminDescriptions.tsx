@@ -1,28 +1,41 @@
-import { useState } from "react";
-import type { CardDescriptionMap } from "../types";
+import { useEffect, useMemo, useState } from "react";
+import { useDashboardContent } from "../content/DashboardContentContext";
+import { cloneDashboardCopy, flattenDashboardCopy, setDashboardCopyValue, type DashboardCopy } from "../content/dashboardCopy";
+import "../admin-content.css";
 
-interface AdminDescriptionsProps {
-  descriptions: CardDescriptionMap;
-  defaults: CardDescriptionMap;
-  onChange: (key: string, value: string) => void;
-  onReset: () => void;
-  onSave: (password: string) => Promise<void>;
-  persistent: boolean;
-  updatedAt: string | null;
-}
-
-const LABELS: Record<string, string> = {
-  received: "Processos recebidos",
-  concluded: "Processos concluídos",
-  balance: "Saldo do período",
-  stock: "Estoque pendente",
-  time: "Tempo médio",
-};
-
-export function AdminDescriptions({ descriptions, defaults, onChange, onReset, onSave, persistent, updatedAt }: AdminDescriptionsProps) {
+export function AdminDescriptions() {
+  const { copy, defaults, persistent, updatedAt, save } = useDashboardContent();
+  const [draft, setDraft] = useState<DashboardCopy>(() => cloneDashboardCopy(copy));
   const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [query, setQuery] = useState("");
+  const [section, setSection] = useState("Todas");
   const [feedback, setFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => setDraft(cloneDashboardCopy(copy)), [copy]);
+
+  const allFields = useMemo(() => flattenDashboardCopy(draft), [draft]);
+  const sections = useMemo(() => ["Todas", ...Array.from(new Set(allFields.map((field) => field.section)))], [allFields]);
+  const fields = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase("pt-BR");
+    return allFields.filter((field) => {
+      if (section !== "Todas" && field.section !== section) return false;
+      if (!needle) return true;
+      return `${field.section} ${field.label} ${field.path} ${field.value}`.toLocaleLowerCase("pt-BR").includes(needle);
+    });
+  }, [allFields, query, section]);
+
+  const grouped = useMemo(() => {
+    const result = new Map<string, typeof fields>();
+    for (const field of fields) {
+      const list = result.get(field.section) ?? [];
+      list.push(field);
+      result.set(field.section, list);
+    }
+    return Array.from(result.entries());
+  }, [fields]);
+
+  const changed = JSON.stringify(draft) !== JSON.stringify(copy);
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -30,12 +43,16 @@ export function AdminDescriptions({ descriptions, defaults, onChange, onReset, o
       setFeedback({ tone: "error", text: "Informe a senha de gravação." });
       return;
     }
+    if (!changed) {
+      setFeedback({ tone: "error", text: "Nenhum texto foi alterado." });
+      return;
+    }
     setSaving(true);
     setFeedback(null);
     try {
-      await onSave(password);
+      await save(draft, password);
       setPassword("");
-      setFeedback({ tone: "success", text: "Descrições gravadas na configuração central." });
+      setFeedback({ tone: "success", text: "Conteúdo editorial publicado. As páginas passam a usar estes textos sem alterar dados ou fórmulas." });
     } catch (reason) {
       setFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "Não foi possível gravar." });
     } finally {
@@ -47,46 +64,79 @@ export function AdminDescriptions({ descriptions, defaults, onChange, onReset, o
     <section className="admin-page">
       <div className="page-hero simple-hero">
         <div>
-          <span className="eyebrow">PAINEL ADMINISTRATIVO · CONFIGURAÇÃO CENTRAL</span>
-          <h1>Editar a leitura dos cards</h1>
-          <p>Os textos ajudam a interpretar os números. Fórmulas, valores e regras dos indicadores não podem ser alterados aqui.</p>
+          <span className="eyebrow">{copy.admin.eyebrow}</span>
+          <h1>{copy.admin.title}</h1>
+          <p>{copy.admin.description}</p>
         </div>
         <span className={persistent ? "live-pill" : "prototype-pill"}>{persistent ? "Persistência ativa" : "Armazenamento pendente"}</span>
       </div>
+
       <div className="admin-grid">
         <form className="panel admin-form" onSubmit={submit}>
-          <div className="panel-heading"><div><span className="eyebrow">TEXTOS AUTORIZADOS</span><h2>Descrições dos cinco sinais</h2></div></div>
-          {Object.keys(defaults).map((key) => (
-            <label key={key}>
-              <span>{LABELS[key] ?? key}</span>
-              <textarea value={descriptions[key] ?? ""} maxLength={180} onChange={(e) => onChange(key, e.target.value)} />
-              <small>{(descriptions[key] ?? "").length}/180</small>
+          <div className="panel-heading">
+            <div><span className="eyebrow">{copy.admin.formEyebrow}</span><h2>{copy.admin.formTitle}</h2><p>{allFields.length} campos editoriais centralizados.</p></div>
+          </div>
+
+          <div className="admin-password-row">
+            <label>
+              <span>Filtrar página/seção</span>
+              <select value={section} onChange={(event) => setSection(event.target.value)}>
+                {sections.map((item) => <option key={item} value={item}>{item}</option>)}
+              </select>
             </label>
+            <label>
+              <span>Buscar texto</span>
+              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ex.: estoque, sazonalidade, menu..." />
+            </label>
+          </div>
+
+          {grouped.map(([group, groupFields]) => (
+            <fieldset className="admin-content-group" key={group}>
+              <legend>{group}</legend>
+              {groupFields.map((field) => (
+                <label key={field.path}>
+                  <span>{field.label}</span>
+                  <textarea
+                    value={field.value}
+                    maxLength={600}
+                    rows={field.value.length > 140 ? 4 : 2}
+                    onChange={(event) => setDraft((current) => setDashboardCopyValue(current, field.path, event.target.value))}
+                  />
+                  <small>{field.path} · {field.value.length}/600</small>
+                </label>
+              ))}
+            </fieldset>
           ))}
+
+          {!fields.length ? <p className="admin-feedback error">Nenhum campo corresponde ao filtro.</p> : null}
+
           <div className="admin-password-row">
             <label>
               <span>Senha de gravação</span>
               <input type="password" value={password} autoComplete="current-password" onChange={(event) => setPassword(event.target.value)} placeholder="Informe a senha para publicar" />
             </label>
-            <button className="primary-button" type="submit" disabled={saving}>{saving ? "Gravando…" : "Gravar na base"}</button>
+            <button className="primary-button" type="submit" disabled={saving || !changed}>{saving ? "Publicando…" : "Publicar textos"}</button>
           </div>
+
           {feedback ? <p className={`admin-feedback ${feedback.tone}`} role="status">{feedback.text}</p> : null}
           <div className="admin-actions">
-            <button className="ghost-button" type="button" onClick={onReset}>Restaurar textos padrão</button>
-            <span>{updatedAt ? `Última gravação: ${new Date(updatedAt).toLocaleString("pt-BR")}` : "Nenhuma alteração central registrada."}</span>
+            <button className="ghost-button" type="button" onClick={() => { setDraft(cloneDashboardCopy(defaults)); setFeedback(null); }}>Restaurar textos padrão</button>
+            <button className="ghost-button" type="button" disabled={!changed} onClick={() => { setDraft(cloneDashboardCopy(copy)); setFeedback(null); }}>Descartar alterações</button>
+            <span>{updatedAt ? `Última publicação: ${new Date(updatedAt).toLocaleString("pt-BR")}` : "Nenhuma publicação editorial registrada."}</span>
           </div>
         </form>
+
         <aside className="panel admin-boundary">
-          <span className="eyebrow">LIMITE DE SEGURANÇA</span>
-          <h2>Proteções da edição</h2>
+          <span className="eyebrow">{copy.admin.securityEyebrow}</span>
+          <h2>{copy.admin.securityTitle}</h2>
+          <p>{copy.admin.securityText}</p>
           <ul>
             <li>não altera fórmulas ou resultados;</li>
-            <li>a leitura permanece pública, mas a gravação exige senha;</li>
-            <li>a senha fica somente no ambiente protegido do servidor;</li>
-            <li>as últimas 20 gravações permanecem no histórico técnico;</li>
-            <li>cinco erros de senha bloqueiam novas tentativas por dez minutos.</li>
+            <li>não altera categorias, status ou regras de classificação;</li>
+            <li>não altera SLA nem transforma indicador não homologado em disponível;</li>
+            <li>a gravação exige senha e mantém histórico técnico;</li>
+            <li>os textos padrão continuam versionados no GitHub.</li>
           </ul>
-          <p>Ao gravar, os novos textos passam a valer para todos os navegadores. A base operacional de protocolos e a classificação semântica permanecem imutáveis.</p>
         </aside>
       </div>
     </section>

@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
 from backend.final_entry import dashboard, health, query_from_params
 from backend.analytics import analytics_response, export_public_csv, query_from_params as analytics_query_from_params
 from backend.extended_indicators import extended_indicator_response
-from backend.admin_store import AdminStoreError, load_descriptions, save_descriptions
+from backend.admin_store import AdminStoreError, load_copy, save_copy, load_descriptions, save_descriptions
 
 
 def _flatten(query_string: str) -> dict[str, str]:
@@ -49,6 +49,9 @@ class handler(BaseHTTPRequestHandler):
             if action == "health":
                 self._json(200, health())
                 return
+            if action == "dashboard-copy":
+                self._json(200, load_copy())
+                return
             if action == "card-descriptions":
                 self._json(200, load_descriptions())
                 return
@@ -75,17 +78,20 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.get("action", "")
-            if action != "card-descriptions":
+            if action not in {"dashboard-copy", "card-descriptions"}:
                 self._json(400, {"ok": False, "error": "Ação inválida."})
                 return
             length = int(self.headers.get("Content-Length", "0"))
-            if length <= 0 or length > 16_384:
+            if length <= 0 or length > 96_000:
                 self._json(400, {"ok": False, "error": "Corpo da requisição inválido."})
                 return
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
             forwarded = self.headers.get("X-Forwarded-For", "")
             client_ip = forwarded.split(",", 1)[0].strip() or self.client_address[0]
-            result = save_descriptions(payload.get("descriptions"), payload.get("password", ""), client_ip)
+            if action == "dashboard-copy":
+                result = save_copy(payload.get("copy"), payload.get("password", ""), client_ip)
+            else:
+                result = save_descriptions(payload.get("descriptions"), payload.get("password", ""), client_ip)
             self._json(200, result)
         except AdminStoreError as exc:
             self._json(exc.status, {"ok": False, "error": exc.public_message})

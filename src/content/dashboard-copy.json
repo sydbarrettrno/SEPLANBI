@@ -1,0 +1,130 @@
+{
+  "sidebar": {
+    "contextLabel": "Navegação",
+    "contextTitle": "Painel Executivo",
+    "footerTitle": "Base validada",
+    "footerCaption": "Taxonomia V07",
+    "items": {
+      "overview": { "label": "Visão executiva", "caption": "Gestão por exceção" },
+      "received": { "label": "Recebidos", "caption": "Demanda e origem" },
+      "outputs": { "label": "Saídas", "caption": "Produção e saldo" },
+      "stock": { "label": "Estoque", "caption": "Fila e concentração" },
+      "processes": { "label": "Protocolos", "caption": "Filtros e drill-down" },
+      "indicators": { "label": "Indicadores", "caption": "Cobertura dos 11 KPI" },
+      "admin": { "label": "Administração", "caption": "Conteúdo editorial" }
+    }
+  },
+  "overview": {
+    "eyebrow": "VISÃO EXECUTIVA",
+    "title": "O que os processos estão dizendo?",
+    "description": "Entradas, entregas, sazonalidade e exceções organizadas para orientar a próxima decisão.",
+    "balanceLabel": "BALANÇO DO PERÍODO",
+    "balancePressure": "entradas acima das conclusões",
+    "balanceOk": "conclusões absorveram as entradas",
+    "cards": {
+      "received": { "eyebrow": "01 · RECEBIDOS", "description": "Demandas que entraram na SEPLAN durante o período selecionado.", "detail": "Abrir BI de recebidos", "trendSubject": "Entradas" },
+      "outputs": { "eyebrow": "02 · SAÍDAS", "description": "Produção entregue, incluindo conclusões operacionais reconhecidas.", "detail": "Abrir BI de saídas", "trendSubject": "Entregas" },
+      "balance": { "eyebrow": "FLUXO · SALDO", "description": "Diferença entre entradas e conclusões; saldo positivo pressiona o estoque.", "detailSuffix": "concluídos/recebidos" },
+      "stock": { "eyebrow": "03 · ESTOQUE", "description": "Pendências existentes na data final do recorte, independentemente da abertura.", "detailSuffix": "na fila interna" },
+      "time": { "eyebrow": "04 · TEMPO MEDIANO", "description": "Tempo entre abertura e conclusão dos processos entregues no período.", "detailPrefix": "Média", "detailP90": "P90" }
+    },
+    "flow": { "eyebrow": "TENDÊNCIA E SAZONALIDADE", "title": "Entradas x saídas por mês", "description": "As barras mostram o volume mensal e a quantidade exata de protocolos em cada fluxo.", "chip": "Mensal" },
+    "signals": { "eyebrow": "LEITURA AUTOMÁTICA", "title": "Sinais do período", "peakIn": "Pico de entrada", "peakOut": "Pico de entrega", "valleyIn": "Menor entrada", "empty": "Sem série mensal suficiente para leitura.", "howToTitle": "Como usar", "howToText": "Compare picos recorrentes entre anos antes de redistribuir equipe ou definir prazo." },
+    "internalAging": { "eyebrow": "FILA INTERNA", "title": "Tempo sem movimentação", "description": "Distribuição das pendências sob gestão direta da SEPLAN." },
+    "responsibility": { "eyebrow": "RESPONSABILIDADE", "title": "Pendências por responsável", "description": "Concentrações que podem exigir redistribuição ou apoio." }
+  },
+  "received": {
+    "eyebrow": "PAINEL 1 · DEMANDA",
+    "title": "Processos recebidos",
+    "description": "Compare períodos equivalentes e investigue mês, macroprocesso, categoria e protocolo.",
+    "metrics": { "current": "Recebidos no período", "previous": "Mesmo período", "previousDetail": "Comparação homóloga", "absolute": "Variação absoluta", "absoluteDetail": "Período atual menos anterior", "percent": "Variação percentual", "percentDetail": "Períodos equivalentes" },
+    "monthly": { "eyebrow": "GRÁFICO PRINCIPAL", "title": "Recebidos por mês", "description": "Clique no mês; os gráficos de macroprocesso, categoria e a tabela serão recalculados." },
+    "macro": { "eyebrow": "NÍVEL 2", "title": "Macroprocessos", "description": "Barras ordenadas no recorte ativo." },
+    "category": { "eyebrow": "NÍVEL 3", "title": "Recebidos por categoria", "description": "Expanda a lista sem ocultar o restante do universo." },
+    "reading": { "eyebrow": "LEITURA EM 5 SEGUNDOS", "titleSuffix": "protocolos no cruzamento", "reconciled": "fechada", "divergent": "divergente" }
+  },
+  "outputs": {
+    "eyebrow": "PAINEL 2 · PRODUÇÃO",
+    "title": "Saídas e saldo",
+    "description": "Separe Concluído de Encerrado e confronte a produção com o volume recebido.",
+    "metrics": { "total": "Saídas totais", "concluded": "Concluídos", "closed": "Encerrados", "balance": "Saldo recebido - saída", "balancePositive": "Estoque cresceu", "balanceNegative": "Estoque reduziu", "previous": "Saídas no período anterior" },
+    "flow": { "eyebrow": "FLUXO MENSAL", "title": "Recebidos × Saídas", "description": "O saldo em cada mês indica pressão ou redução do estoque." },
+    "composition": { "eyebrow": "COMPOSIÇÃO DO RESULTADO", "title": "Concluído e Encerrado", "description": "Resultados separados, sem equivalência semântica." },
+    "category": { "eyebrow": "PRODUÇÃO POR CATEGORIA", "title": "Categorias com mais saídas", "description": "Clique na categoria e depois no tipo de saída para chegar aos protocolos." },
+    "balanceEvolution": { "eyebrow": "EVOLUÇÃO DO SALDO", "title": "Recebidos - Saídas", "description": "Positivo aumenta o estoque; negativo reduz." }
+  },
+  "stock": {
+    "eyebrow": "PAINEL 3 · POSIÇÃO ATUAL",
+    "title": "Estoque e concentração operacional",
+    "description": "Identifique responsabilidade, idade e gargalos sem transformar concentração em ranking punitivo.",
+    "metrics": { "total": "Estoque total", "internal": "Fila Interna SEPLAN", "external": "Responsável externo", "paralyzed": "Paralisado", "depends": "Depende da SEPLAN", "dependsDetail": "Fila interna / estoque" },
+    "composition": { "eyebrow": "COMPOSIÇÃO DO ESTOQUE", "title": "Responsabilidade operacional", "description": "Clique em um segmento para cruzar idade, gargalos e protocolos." },
+    "age": { "eyebrow": "IDADE DO ESTOQUE", "title": "Faixas desde a abertura", "description": "Responde à responsabilidade e aos demais filtros." },
+    "gargles": { "eyebrow": "GARGALOS · FOCO INICIAL INTERNO", "title": "Categorias com maior estoque", "defaultDescription": "Por padrão, este ranking prioriza a Fila Interna SEPLAN.", "selectedDescription": "Responsabilidade selecionada." },
+    "concentration": { "eyebrow": "CONCENTRAÇÃO OPERACIONAL", "title": "Alternar dimensão", "description": "Leitura gerencial; não é avaliação individual de servidor." },
+    "status": { "eyebrow": "NÍVEL STATUS", "titleDefault": "Status do estoque selecionado", "titlePrefix": "Status em", "description": "Selecione primeiro uma categoria e depois um status para chegar ao conjunto exato de protocolos.", "chip": "Categoria → Status → Protocolos" }
+  },
+  "processes": {
+    "recordsetLabel": "RECORTE ATIVO",
+    "allLabel": "Todos os protocolos",
+    "details": {
+      "all": { "eyebrow": "PROTOCOLOS", "title": "Base operacional", "description": "Consulte os protocolos do recorte ativo e refine por filtros." },
+      "received": { "eyebrow": "ENTRADAS", "title": "Protocolos recebidos", "description": "Registros que compõem o volume de recebidos no período." },
+      "concluded": { "eyebrow": "SAÍDAS", "title": "Protocolos com saída", "description": "Registros que compõem as saídas operacionais do período." },
+      "balance": { "eyebrow": "FLUXO", "title": "Saldo do período", "description": "Rastreie entradas e saídas que formam o saldo operacional." },
+      "stock": { "eyebrow": "ESTOQUE", "title": "Protocolos pendentes", "description": "Registros não terminais existentes no snapshot atual." },
+      "time": { "eyebrow": "TEMPO", "title": "Tempo de tramitação", "description": "Protocolos usados no cálculo de tempo das saídas operacionais." },
+      "stopped": { "eyebrow": "GARGALO", "title": "Fila interna parada", "description": "Protocolos internos acima do limite de dias sem movimentação." },
+      "external": { "eyebrow": "RESPONSABILIDADE EXTERNA", "title": "Aguardando responsável externo", "description": "Pendências cujo próximo movimento não depende da SEPLAN." },
+      "paralyzed": { "eyebrow": "PARALISADOS", "title": "Processos paralisados", "description": "Protocolos sem fluxo operacional normal no snapshot atual." }
+    }
+  },
+  "indicators": {
+    "eyebrow": "CARTEIRA DE INDICADORES",
+    "title": "O que já podemos medir com segurança",
+    "description": "Cobertura explícita evita transformar ausência de fonte em número inventado.",
+    "availableSuffix": "indicadores disponíveis",
+    "items": {
+      "KPI01": { "name": "Processos recebidos", "reason": "Data de abertura e protocolo." },
+      "KPI02": { "name": "Processos concluídos", "reason": "Conclusão operacional e encerramento formal permanecem separados." },
+      "KPI03": { "name": "Estoque pendente", "reason": "Status atual separado por responsabilidade." },
+      "KPI04": { "name": "Tempo de tramitação", "reason": "Mediana, média e P90 da saída operacional." },
+      "KPI05": { "name": "% parados > X dias", "reason": "Calculado exclusivamente sobre a fila interna SEPLAN." },
+      "KPI06": { "name": "% concluído dentro do prazo", "reason": "Aguardando dimensão oficial de SLA e regras de suspensão." },
+      "KPI07": { "name": "Diligências por processo", "reason": "Cobertura incremental disponível; não equivale ao histórico integral." },
+      "KPI08": { "name": "Fiscalizações realizadas", "reason": "Sem evidência auditada suficiente do ato de fiscalização realizado." },
+      "KPI09": { "name": "Denúncias recebidas/respondidas", "reason": "Categoria homologada com recebimento, saída, estoque e tempo." },
+      "KPI10": { "name": "Projetos públicos por etapa", "reason": "Carteira específica de projetos com data de referência própria." },
+      "KPI11": { "name": "Pendências por responsável/setor", "reason": "Concentração operacional por responsabilidade, setor e categoria." }
+    }
+  },
+  "kpi04": { "eyebrow": "INDICADOR 04 · TEMPO", "title": "Tempo de tramitação", "description": "Mediana como leitura principal, média e P90 como contexto; investigue mês, categoria e protocolos.", "evolutionEyebrow": "EVOLUÇÃO", "evolutionTitle": "Mediana por mês de saída", "distributionEyebrow": "DISTRIBUIÇÃO", "distributionTitle": "Faixas de tramitação", "categoryEyebrow": "CATEGORIAS", "categoryTitle": "Mediana por categoria" },
+  "kpi05": { "eyebrow": "INDICADOR 05 · GARGALO", "title": "Processos parados", "description": "Somente a fila interna da SEPLAN entra no denominador; esperas externas e paralisados ficam fora.", "ageEyebrow": "IDADE SEM MOVIMENTO", "ageTitle": "Fila interna", "categoryEyebrow": "GARGALO", "categoryTitle": "Parados por categoria", "sectorEyebrow": "SETOR", "sectorTitle": "Parados por setor" },
+  "kpi06": { "eyebrow": "INDICADOR 06 · SLA", "title": "Concluídos dentro do prazo", "description": "Este indicador só é liberado quando houver regra oficial de prazo por categoria." },
+  "kpi07": { "eyebrow": "INDICADOR 07 · RETORNOS", "title": "Diligências por processo", "description": "Cobertura incremental dos eventos disponíveis, sem apresentar o extrato como histórico integral.", "distributionEyebrow": "REINCIDÊNCIA", "distributionTitle": "Diligências por protocolo", "categoryEyebrow": "CATEGORIA", "categoryTitle": "Protocolos com diligência", "coverageTitle": "Cobertura parcial" },
+  "kpi08": { "eyebrow": "INDICADOR 08 · FISCALIZAÇÃO", "title": "Fiscalizações realizadas", "description": "Nenhum protocolo é contado como ato realizado sem evidência auditada de fiscalização ou vistoria." },
+  "kpi09": { "eyebrow": "INDICADOR 09 · DENÚNCIAS", "title": "Denúncias recebidas e respondidas", "description": "Volume recebido, saídas, estoque e tempo de resposta da categoria homologada Denúncia.", "statusEyebrow": "STATUS ATUAL", "statusTitle": "Denúncias em estoque" },
+  "kpi10": { "eyebrow": "INDICADOR 10 · PROJETOS", "title": "Projetos públicos por etapa", "description": "Carteira específica de projetos, com referência 27/08/2026; protocolos IPM não são usados como proxy.", "phaseEyebrow": "PIPELINE", "phaseTitle": "Projetos por etapa", "statusEyebrow": "STATUS", "statusTitle": "Carteira por situação" },
+  "kpi11": { "eyebrow": "INDICADOR 11 · RESPONSABILIDADE", "title": "Pendências por responsável / setor", "description": "Concentração operacional por responsabilidade, setor e categoria, com matriz dinâmica e drill-down.", "responsibilityEyebrow": "RESPONSABILIDADE", "responsibilityTitle": "De quem depende o próximo movimento?", "sectorEyebrow": "SETOR", "sectorTitle": "Concentração atual", "matrixEyebrow": "MATRIZ DINÂMICA", "matrixTitle": "Cruze duas dimensões" },
+  "common": {
+    "breadcrumbOverview": "Visão executiva",
+    "breadcrumbIndicators": "Indicadores",
+    "hardGateEyebrow": "HARD GATE",
+    "hardGateTitle": "Indicador não publicado como número",
+    "ruleLabel": "Regra",
+    "drilldownEyebrow": "DRILL-DOWN AUDITÁVEL",
+    "drilldownTitle": "Registros que compõem o número",
+    "loadingTitle": "Reconciliando indicador",
+    "loadingDescription": "Aplicando os filtros sobre a base validada…"
+  },
+  "admin": {
+    "eyebrow": "PAINEL ADMINISTRATIVO · CONTEÚDO CENTRAL",
+    "title": "Editar textos do SEPLANBI",
+    "description": "Edite títulos, subtítulos, explicações, nomes de gráficos e textos do menu. Fórmulas, dados e regras dos indicadores permanecem protegidos.",
+    "formEyebrow": "CONTEÚDO EDITORIAL",
+    "formTitle": "Textos publicados no dashboard",
+    "securityEyebrow": "LIMITE DE SEGURANÇA",
+    "securityTitle": "O que esta tela não altera",
+    "securityText": "A edição modifica apenas conteúdo editorial. Dados, fórmulas, classificação semântica, status, regras de SLA e demais regras de negócio continuam definidos no código e nas bases homologadas."
+  }
+}

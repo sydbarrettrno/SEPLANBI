@@ -1,6 +1,14 @@
-import type { CardDescriptionMap, CardDescriptionsPayload, DashboardData, DashboardFilters } from "./types";
+import type { DashboardData, DashboardFilters } from "./types";
 import { analyticsSearchParams, type AnalyticsRequest, type AnalyticsResponse } from "./analytics";
 import { extendedSearchParams, type ExtendedRequest, type ExtendedResponse } from "./extended";
+import type { DashboardCopy } from "./content/dashboardCopy";
+
+export interface DashboardCopyPayload {
+  ok: boolean;
+  copy: DashboardCopy;
+  updated_at: string | null;
+  persistent: boolean;
+}
 
 export async function fetchDashboard(
   filters: DashboardFilters,
@@ -68,19 +76,19 @@ async function readJson<T>(response: Response): Promise<T> {
   return payload;
 }
 
-export async function fetchCardDescriptions(signal?: AbortSignal): Promise<CardDescriptionsPayload> {
-  const response = await fetch("/api?action=card-descriptions", {
+export async function fetchDashboardCopy(signal?: AbortSignal): Promise<DashboardCopyPayload> {
+  const response = await fetch("/api?action=dashboard-copy", {
     signal,
     headers: { Accept: "application/json" },
   });
-  return readJson<CardDescriptionsPayload>(response);
+  return readJson<DashboardCopyPayload>(response);
 }
 
-export async function saveCardDescriptions(descriptions: CardDescriptionMap, password: string): Promise<CardDescriptionsPayload> {
-  const response = await fetch("/api?action=card-descriptions", {
+export async function saveDashboardCopy(copy: DashboardCopy, password: string): Promise<DashboardCopyPayload> {
+  const response = await fetch("/api?action=dashboard-copy", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ descriptions, password }),
+    body: JSON.stringify({ copy, password }),
   });
-  return readJson<CardDescriptionsPayload>(response);
+  return readJson<DashboardCopyPayload>(response);
 }

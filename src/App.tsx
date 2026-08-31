@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchCardDescriptions, fetchDashboard, saveCardDescriptions } from "./api";
+import { fetchDashboard } from "./api";
 import { AdminDescriptions } from "./components/AdminDescriptions";
 import { BarList } from "./components/BarList";
 import { BiPanel } from "./components/BiPanel";
@@ -8,21 +8,14 @@ import { ExceptionPanel } from "./components/ExceptionPanel";
 import { FilterBar } from "./components/FilterBar";
 import { Header } from "./components/Header";
 import { IndicatorCoverage } from "./components/IndicatorCoverage";
-import { DETAIL_COPY, IndicatorDetail } from "./components/IndicatorDetail";
+import { IndicatorDetail } from "./components/IndicatorDetail";
 import { KpiCard } from "./components/KpiCard";
 import { MonthlyFlowBarChart } from "./components/MonthlyFlowBarChart";
 import { Sidebar } from "./components/Sidebar";
+import { useDashboardContent } from "./content/DashboardContentContext";
 import { formatDays, formatNumber, formatPercent, monthLabel } from "./format";
-import type { CardDescriptionMap, DashboardData, DashboardFilters, DetailId, PageId, Recordset } from "./types";
+import type { DashboardData, DashboardFilters, DetailId, PageId, Recordset } from "./types";
 import { drillBreadcrumb, publicAnalyticsExportUrl, type AnalyticsIndicator } from "./analytics";
-
-const DEFAULT_DESCRIPTIONS: CardDescriptionMap = {
-  received: "Demandas que entraram na SEPLAN durante o período selecionado.",
-  concluded: "Produção entregue, incluindo conclusões operacionais reconhecidas.",
-  balance: "Diferença entre entradas e conclusões; saldo positivo pressiona o estoque.",
-  stock: "Pendências existentes na data final do recorte, independentemente da abertura.",
-  time: "Tempo entre abertura e conclusão dos processos entregues no período.",
-};
 
 const INITIAL_FILTERS: DashboardFilters = {
   from: "",
@@ -50,6 +43,7 @@ function comparisonLabel(value: number | null | undefined, subject: string) {
 }
 
 export default function App() {
+  const { copy } = useDashboardContent();
   const [page, setPage] = useState<PageId>("overview");
   const [selectedDetail, setSelectedDetail] = useState<DetailId>("all");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -58,9 +52,6 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
-  const [descriptions, setDescriptions] = useState<CardDescriptionMap>(DEFAULT_DESCRIPTIONS);
-  const [adminPersistent, setAdminPersistent] = useState(false);
-  const [adminUpdatedAt, setAdminUpdatedAt] = useState<string | null>(null);
 
   useEffect(() => {
     const allowed: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators", "admin"];
@@ -71,20 +62,6 @@ export default function App() {
     syncHash();
     window.addEventListener("hashchange", syncHash);
     return () => window.removeEventListener("hashchange", syncHash);
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchCardDescriptions(controller.signal)
-      .then((result) => {
-        setDescriptions({ ...DEFAULT_DESCRIPTIONS, ...result.descriptions });
-        setAdminPersistent(result.persistent);
-        setAdminUpdatedAt(result.updated_at);
-      })
-      .catch(() => {
-        setAdminPersistent(false);
-      });
-    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -168,6 +145,8 @@ export default function App() {
     });
   }, [filters, selectedDetail]);
 
+  const processCopy = copy.processes.details[selectedDetail];
+
   return (
     <div className="app-shell">
       <Sidebar page={page} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
@@ -201,26 +180,26 @@ export default function App() {
             <>
               <section className="page-hero overview-hero">
                 <div>
-                  <span className="eyebrow">VISÃO EXECUTIVA · {data.meta.period.from.slice(0, 4)}</span>
-                  <h1>O que os processos estão dizendo?</h1>
-                  <p>Entradas, entregas, sazonalidade e exceções organizadas para orientar a próxima decisão.</p>
+                  <span className="eyebrow">{copy.overview.eyebrow} · {data.meta.period.from.slice(0, 4)}</span>
+                  <h1>{copy.overview.title}</h1>
+                  <p>{copy.overview.description}</p>
                 </div>
                 <div className="hero-summary">
-                  <small>BALANÇO DO PERÍODO</small>
+                  <small>{copy.overview.balanceLabel}</small>
                   <strong className={(metrics?.period_balance ?? 0) > 0 ? "pressure" : "positive"}>
                     {(metrics?.period_balance ?? 0) > 0 ? "+" : ""}{formatNumber(metrics?.period_balance)}
                   </strong>
-                  <span>{(metrics?.period_balance ?? 0) > 0 ? "entradas acima das conclusões" : "conclusões absorveram as entradas"}</span>
+                  <span>{(metrics?.period_balance ?? 0) > 0 ? copy.overview.balancePressure : copy.overview.balanceOk}</span>
                 </div>
               </section>
 
               {metrics ? (
                 <section className="kpi-grid" aria-label="Indicadores principais">
-                  <KpiCard icon="↗" eyebrow="01 · RECEBIDOS" value={formatNumber(metrics.received)} description={descriptions.received} detail="Abrir BI de recebidos" tone="blue" trend={comparisonLabel(comparison?.received_change_percent, "Entradas")} onClick={() => navigate("received")} />
-                  <KpiCard icon="✓" eyebrow="02 · SAÍDAS" value={formatNumber(metrics.concluded)} description={descriptions.concluded} detail="Abrir BI de saídas" tone="green" trend={comparisonLabel(comparison?.cohort_concluded_change_percent, "Entregas")} onClick={() => navigate("outputs")} />
-                  <KpiCard icon="⇄" eyebrow="FLUXO · SALDO" value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`} description={descriptions.balance} detail={`${formatPercent(metrics.completion_rate)} concluídos/recebidos`} tone={metrics.period_balance > 0 ? "orange" : "green"} onClick={() => openDetail("balance", "all")} />
-                  <KpiCard icon="▤" eyebrow="03 · ESTOQUE" value={formatNumber(metrics.stock)} description={descriptions.stock} detail={`${formatNumber(metrics.internal_queue)} na fila interna`} tone="orange" onClick={() => navigate("stock")} />
-                  <KpiCard icon="◷" eyebrow="04 · TEMPO MÉDIO" value={formatDays(metrics.turnaround.mean_days)} description={descriptions.time} detail={`Mediana ${formatDays(metrics.turnaround.median_days)} · P90 ${formatDays(metrics.turnaround.p90_days)}`} tone="purple" onClick={() => openDetail("time", "concluded")} />
+                  <KpiCard icon="↗" eyebrow={copy.overview.cards.received.eyebrow} value={formatNumber(metrics.received)} description={copy.overview.cards.received.description} detail={copy.overview.cards.received.detail} tone="blue" trend={comparisonLabel(comparison?.received_change_percent, copy.overview.cards.received.trendSubject)} onClick={() => navigate("received")} />
+                  <KpiCard icon="✓" eyebrow={copy.overview.cards.outputs.eyebrow} value={formatNumber(metrics.concluded)} description={copy.overview.cards.outputs.description} detail={copy.overview.cards.outputs.detail} tone="green" trend={comparisonLabel(comparison?.cohort_concluded_change_percent, copy.overview.cards.outputs.trendSubject)} onClick={() => navigate("outputs")} />
+                  <KpiCard icon="⇄" eyebrow={copy.overview.cards.balance.eyebrow} value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`} description={copy.overview.cards.balance.description} detail={`${formatPercent(metrics.completion_rate)} ${copy.overview.cards.balance.detailSuffix}`} tone={metrics.period_balance > 0 ? "orange" : "green"} onClick={() => openDetail("balance", "all")} />
+                  <KpiCard icon="▤" eyebrow={copy.overview.cards.stock.eyebrow} value={formatNumber(metrics.stock)} description={copy.overview.cards.stock.description} detail={`${formatNumber(metrics.internal_queue)} ${copy.overview.cards.stock.detailSuffix}`} tone="orange" onClick={() => navigate("stock")} />
+                  <KpiCard icon="◷" eyebrow={copy.overview.cards.time.eyebrow} value={formatDays(metrics.turnaround.median_days)} description={copy.overview.cards.time.description} detail={`${copy.overview.cards.time.detailPrefix} ${formatDays(metrics.turnaround.mean_days)} · ${copy.overview.cards.time.detailP90} ${formatDays(metrics.turnaround.p90_days)}`} tone="purple" onClick={() => window.location.hash = "#/kpi04"} />
                 </section>
               ) : null}
 
@@ -229,32 +208,32 @@ export default function App() {
                   <section className="analytics-grid main-analysis">
                     <article className="panel flow-panel">
                       <div className="panel-heading">
-                        <div><span className="eyebrow">TENDÊNCIA E SAZONALIDADE</span><h2>Entradas x saídas por mês</h2><p>As barras mostram o volume mensal e a quantidade exata de protocolos em cada fluxo.</p></div>
-                        <span className="panel-chip">Mensal</span>
+                        <div><span className="eyebrow">{copy.overview.flow.eyebrow}</span><h2>{copy.overview.flow.title}</h2><p>{copy.overview.flow.description}</p></div>
+                        <span className="panel-chip">{copy.overview.flow.chip}</span>
                       </div>
                       <MonthlyFlowBarChart data={data.charts.flow} />
                     </article>
                     <aside className="panel seasonality-panel">
-                      <span className="eyebrow">LEITURA AUTOMÁTICA</span>
-                      <h2>Sinais do período</h2>
+                      <span className="eyebrow">{copy.overview.signals.eyebrow}</span>
+                      <h2>{copy.overview.signals.title}</h2>
                       {seasonality ? (
                         <div className="seasonality-signals">
-                          <div><i className="signal-blue" /><span><small>Pico de entrada</small><strong>{monthLabel(seasonality.peakIn.month)}</strong><p>{formatNumber(seasonality.peakIn.received)} protocolos</p></span></div>
-                          <div><i className="signal-green" /><span><small>Pico de entrega</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} conclusões</p></span></div>
-                          <div><i className="signal-slate" /><span><small>Menor entrada</small><strong>{monthLabel(seasonality.valleyIn.month)}</strong><p>{formatNumber(seasonality.valleyIn.received)} protocolos</p></span></div>
+                          <div><i className="signal-blue" /><span><small>{copy.overview.signals.peakIn}</small><strong>{monthLabel(seasonality.peakIn.month)}</strong><p>{formatNumber(seasonality.peakIn.received)} protocolos</p></span></div>
+                          <div><i className="signal-green" /><span><small>{copy.overview.signals.peakOut}</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} conclusões</p></span></div>
+                          <div><i className="signal-slate" /><span><small>{copy.overview.signals.valleyIn}</small><strong>{monthLabel(seasonality.valleyIn.month)}</strong><p>{formatNumber(seasonality.valleyIn.received)} protocolos</p></span></div>
                         </div>
-                      ) : <p>Sem série mensal suficiente para leitura.</p>}
-                      <div className="management-note"><strong>Como usar</strong><p>Compare picos recorrentes entre anos antes de redistribuir equipe ou definir prazo.</p></div>
+                      ) : <p>{copy.overview.signals.empty}</p>}
+                      <div className="management-note"><strong>{copy.overview.signals.howToTitle}</strong><p>{copy.overview.signals.howToText}</p></div>
                     </aside>
                   </section>
 
                   <section className="analytics-grid secondary-analysis">
                     <article className="panel">
-                      <div className="panel-heading"><div><span className="eyebrow">FILA INTERNA</span><h2>Tempo sem movimentação</h2><p>Distribuição das pendências sob gestão direta da SEPLAN.</p></div></div>
+                      <div className="panel-heading"><div><span className="eyebrow">{copy.overview.internalAging.eyebrow}</span><h2>{copy.overview.internalAging.title}</h2><p>{copy.overview.internalAging.description}</p></div></div>
                       <BarList data={data.charts.internal_aging} tone="orange" />
                     </article>
                     <article className="panel">
-                      <div className="panel-heading"><div><span className="eyebrow">RESPONSABILIDADE</span><h2>Pendências por responsável</h2><p>Concentrações que podem exigir redistribuição ou apoio.</p></div></div>
+                      <div className="panel-heading"><div><span className="eyebrow">{copy.overview.responsibility.eyebrow}</span><h2>{copy.overview.responsibility.title}</h2><p>{copy.overview.responsibility.description}</p></div></div>
                       <BarList data={data.charts.owners} tone="teal" limit={7} />
                     </article>
                   </section>
@@ -270,8 +249,8 @@ export default function App() {
                 {drillBreadcrumb(selectedDetail, filters).map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
               </nav>
               <div className="page-hero simple-hero">
-                <div><span className="eyebrow">{DETAIL_COPY[selectedDetail].eyebrow}</span><h1>{DETAIL_COPY[selectedDetail].title}</h1><p>{DETAIL_COPY[selectedDetail].description}</p></div>
-                <div className="recordset-label"><small>RECORTE ATIVO</small><strong>{data.records.recordset === "all" ? "Todos os protocolos" : data.records.recordset}</strong></div>
+                <div><span className="eyebrow">{processCopy.eyebrow}</span><h1>{processCopy.title}</h1><p>{processCopy.description}</p></div>
+                <div className="recordset-label"><small>{copy.processes.recordsetLabel}</small><strong>{data.records.recordset === "all" ? copy.processes.allLabel : data.records.recordset}</strong></div>
               </div>
               <IndicatorDetail data={data} detail={selectedDetail} />
               <DrilldownTable
@@ -289,22 +268,7 @@ export default function App() {
 
           {data && page === "indicators" ? <IndicatorCoverage items={data.indicator_coverage} /> : null}
 
-          {page === "admin" ? (
-            <AdminDescriptions
-              descriptions={descriptions}
-              defaults={DEFAULT_DESCRIPTIONS}
-              onChange={(key, value) => setDescriptions((current) => ({ ...current, [key]: value }))}
-              onReset={() => setDescriptions(DEFAULT_DESCRIPTIONS)}
-              onSave={async (password) => {
-                const result = await saveCardDescriptions(descriptions, password);
-                setDescriptions({ ...DEFAULT_DESCRIPTIONS, ...result.descriptions });
-                setAdminPersistent(result.persistent);
-                setAdminUpdatedAt(result.updated_at);
-              }}
-              persistent={adminPersistent}
-              updatedAt={adminUpdatedAt}
-            />
-          ) : null}
+          {page === "admin" ? <AdminDescriptions /> : null}
 
           {data ? (
             <footer className="data-footer">

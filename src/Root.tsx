@@ -3,9 +3,10 @@ import App from "./App";
 import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
+import { Sidebar } from "./components/Sidebar";
 import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
 import type { ExtendedKpi } from "./extended";
-import type { DashboardFilters } from "./types";
+import type { DashboardFilters, PageId } from "./types";
 
 const KPI_BY_ROUTE: Record<string, ExtendedKpi> = {
   kpi04: 4,
@@ -46,6 +47,7 @@ function RootRoutes() {
   const [filters, setFilters] = useState<DashboardFilters>(INITIAL_FILTERS);
   const [adminAuthorized, setAdminAuthorized] = useState(false);
   const [adminChecked, setAdminChecked] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const { copy } = useDashboardContent();
 
   useEffect(() => {
@@ -63,21 +65,31 @@ function RootRoutes() {
     return () => controller.abort();
   }, []);
 
-  const openAdmin = () => {
-    setRoute("admin");
-    window.location.hash = "#/admin";
+  const navigate = (page: PageId) => {
+    setRoute(page);
+    window.location.hash = `#/${page}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const openAdmin = () => navigate("admin");
   const kpi = useMemo(() => KPI_BY_ROUTE[route], [route]);
 
   return (
     <>
       {kpi ? (
         <div className="app-shell extended-route-shell">
+          <Sidebar
+            page={route as PageId}
+            onNavigate={navigate}
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+          />
           <div className="app-main">
             <main className="content">
               <nav className="extended-route-nav" aria-label="Navegação do indicador">
+                <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
+                  ☰ Menu
+                </button>
                 <a className="ghost-button" href="#/indicators">← {copy.common.breadcrumbIndicators}</a>
                 <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
               </nav>

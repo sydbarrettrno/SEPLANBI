@@ -37,6 +37,13 @@ def _load_default_copy() -> dict:
 
 
 DEFAULT_COPY = _load_default_copy()
+DEFAULT_DESCRIPTIONS = {
+    "received": DEFAULT_COPY["overview"]["cards"]["received"]["description"],
+    "concluded": DEFAULT_COPY["overview"]["cards"]["outputs"]["description"],
+    "balance": DEFAULT_COPY["overview"]["cards"]["balance"]["description"],
+    "stock": DEFAULT_COPY["overview"]["cards"]["stock"]["description"],
+    "time": DEFAULT_COPY["overview"]["cards"]["time"]["description"],
+}
 
 
 def _blob_configured() -> bool:
@@ -144,16 +151,16 @@ def _migrate_legacy_descriptions() -> dict | None:
         return None
     migrated = deepcopy(DEFAULT_COPY)
     mapping = {
-        "received": ("received",),
-        "concluded": ("outputs",),
-        "balance": ("balance",),
-        "stock": ("stock",),
-        "time": ("time",),
+        "received": "received",
+        "concluded": "outputs",
+        "balance": "balance",
+        "stock": "stock",
+        "time": "time",
     }
-    for old_key, path in mapping.items():
+    for old_key, card_key in mapping.items():
         value = descriptions.get(old_key)
         if isinstance(value, str) and value.strip():
-            migrated["overview"]["cards"][path[0]]["description"] = value.strip()
+            migrated["overview"]["cards"][card_key]["description"] = value.strip()
     return migrated
 
 

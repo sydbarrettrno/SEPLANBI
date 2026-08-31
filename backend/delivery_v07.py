@@ -3,6 +3,7 @@ from __future__ import annotations
 from backend import core
 from backend import analytics
 from backend import delivery_core as base
+from backend.flow_audit import enrich_monthly_flow
 
 query_from_params = base.query_from_params
 
@@ -30,6 +31,7 @@ def dashboard(query):
     data = base.dashboard(query)
 
     rows = base._rows()
+    enrich_monthly_flow(data, query, rows)
     received_query = analytics.query_from_dashboard(query, "received")
     outputs_query = analytics.query_from_dashboard(query, "outputs")
     stock_query = analytics.query_from_dashboard(query, "stock")

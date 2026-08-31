@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { authenticateAdmin } from "../api";
+import "../admin-gate.css";
 
 interface AdminAccessGateProps {
   authorized: boolean;

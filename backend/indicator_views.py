@@ -147,12 +147,38 @@ def _diligence_monthly(params: dict[str, str]) -> list[dict[str, Any]]:
     ]
 
 
+def _complaint_cohort(params: dict[str, str]) -> dict[str, Any]:
+    raw = dict(params)
+    raw["indicator"] = "received"
+    query = replace(analytics.query_from_params(raw), categories=("Denúncia",))
+    received = analytics.indicator_rows(query)
+    responded = [row for row in received if analytics.is_output(row)]
+    rate = round(len(responded) / len(received) * 100, 1) if received else None
+    return {
+        "received_cohort": len(received),
+        "responded_from_received_cohort": len(responded),
+        "open_from_received_cohort": len(received) - len(responded),
+        "response_rate_percent": rate,
+        "reference_date": core.metadata().get("source_updated_at"),
+        "rule": "Percentual calculado sobre a mesma coorte: denúncias abertas no período selecionado que já possuem saída operacional até a data de corte da base.",
+    }
+
+
 def indicator_view_response(params: dict[str, str]) -> dict[str, Any]:
     payload = extended_indicator_response(params)
     if payload.get("kpi") == 4:
         payload["comparison"] = _time_comparison(params)
     elif payload.get("kpi") == 7:
         payload["monthly"] = _diligence_monthly(params)
+    elif payload.get("kpi") == 9:
+        cohort = _complaint_cohort(params)
+        metrics = dict(payload.get("metrics") or {})
+        metrics["outputs_to_received_percent"] = metrics.get("response_rate_percent")
+        metrics["response_rate_percent"] = cohort["response_rate_percent"]
+        metrics["received_cohort_responded"] = cohort["responded_from_received_cohort"]
+        metrics["received_cohort_open"] = cohort["open_from_received_cohort"]
+        payload["metrics"] = metrics
+        payload["cohort"] = cohort
     return payload
 
 

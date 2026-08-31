@@ -7,6 +7,8 @@ export interface FlowPoint {
   received: number;
   concluded: number;
   concluded_formal: number;
+  same_month_outputs: number;
+  backlog_outputs: number;
 }
 
 export interface NamedValue {
@@ -87,6 +89,7 @@ export interface DashboardData {
         cohort_concluded: number;
         cohort_concluded_formal: number;
         passive_absorbed: number;
+        passive_absorbed_formal: number;
       };
       previous: {
         from: string;
@@ -99,6 +102,11 @@ export interface DashboardData {
       cohort_concluded_change_percent: number;
       cohort_formal_change_percent: number;
       note: string;
+    };
+    flow_explanation: {
+      rule: string;
+      same_month_label: string;
+      backlog_label: string;
     };
     position: {
       stock: number;

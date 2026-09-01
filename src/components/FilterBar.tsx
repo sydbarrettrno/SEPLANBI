@@ -42,15 +42,30 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     setDraft((current) => ({ ...current, [field]: value, offset: 0 }));
   };
 
-  const categories = useMemo(() => selectedValues(draft.category), [draft.category]);
+  const availableCategories = options?.categories ?? [];
+  const explicitCategories = useMemo(() => selectedValues(draft.category), [draft.category]);
+  const allCategoriesSelected = explicitCategories.length === 0;
+  const categories = useMemo(
+    () => allCategoriesSelected ? availableCategories : explicitCategories,
+    [allCategoriesSelected, availableCategories, explicitCategories],
+  );
   const categorySet = useMemo(() => new Set(categories), [categories]);
 
   const toggleCategory = (category: string) => {
     setDraft((current) => {
-      const selected = new Set(selectedValues(current.category));
-      if (selected.has(category)) selected.delete(category);
-      else selected.add(category);
-      return { ...current, category: Array.from(selected).join("|"), offset: 0 };
+      const currentValues = selectedValues(current.category);
+      const selected = new Set(currentValues.length ? currentValues : availableCategories);
+
+      if (selected.has(category)) {
+        if (selected.size === 1) return current;
+        selected.delete(category);
+      } else {
+        selected.add(category);
+      }
+
+      const nextValues = availableCategories.filter((value) => selected.has(value));
+      const nextCategory = nextValues.length === availableCategories.length ? "" : nextValues.join("|");
+      return { ...current, category: nextCategory, offset: 0 };
     });
   };
 
@@ -135,8 +150,12 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
               <fieldset className="category-multiselect">
                 <legend>Categoria</legend>
                 <div className="category-multiselect-summary">
-                  <span>{categories.length ? `${categories.length} categoria${categories.length > 1 ? "s" : ""} selecionada${categories.length > 1 ? "s" : ""}` : "Todas as categorias"}</span>
-                  {categories.length ? <button type="button" onClick={() => update("category", "")}>Limpar</button> : null}
+                  <span>
+                    {allCategoriesSelected
+                      ? `Todas as ${availableCategories.length} categorias selecionadas`
+                      : `${categories.length} categoria${categories.length > 1 ? "s" : ""} selecionada${categories.length > 1 ? "s" : ""}`}
+                  </span>
+                  {!allCategoriesSelected ? <button type="button" onClick={() => update("category", "")}>Selecionar todas</button> : null}
                 </div>
                 <div className="category-options" role="group" aria-label="Selecionar categorias">
                   {options?.categories.map((value) => {

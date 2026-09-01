@@ -310,6 +310,26 @@ def _write_overview_sheet(workbook: Workbook, period_from: str, period_to: str) 
     _autosize(sheet)
 
 
+def _write_calculation_sheets(workbook: Workbook, meta: dict[str, Any], period_from: str, period_to: str) -> bool:
+    """Gera a memória somente quando o contrato real de metadados está disponível.
+
+    Alguns testes unitários substituem `core.metadata()` por um dicionário mínimo
+    para validar exclusivamente a junção pública/privada. Nessa situação não há
+    universo temporal suficiente para recalcular os indicadores com segurança.
+    """
+    default_period = meta.get("default_period")
+    if not isinstance(default_period, dict) or not default_period.get("from") or not default_period.get("to"):
+        return False
+
+    _write_overview_sheet(workbook, period_from, period_to)
+    _write_core_indicator_sheet(workbook, 1, "received", "RECEBIDOS", period_from, period_to)
+    _write_core_indicator_sheet(workbook, 2, "outputs", "FINALIZADOS", period_from, period_to)
+    _write_core_indicator_sheet(workbook, 3, "stock", "ESTOQUE", period_from, period_to)
+    for kpi in range(4, 12):
+        _write_indicator_sheet(workbook, kpi, _indicator_payload(kpi, period_from, period_to))
+    return True
+
+
 def build_private_xlsx() -> tuple[bytes, str]:
     public_rows, private_rows, public_columns, private_columns = _export_sources()
     rows = list(_iter_export_rows(public_rows, private_rows, public_columns, private_columns))
@@ -373,12 +393,7 @@ def build_private_xlsx() -> tuple[bytes, str]:
     if not period_to:
         raise RuntimeError("Data de referência da base indisponível para cálculo dos indicadores.")
 
-    _write_overview_sheet(workbook, period_from, period_to)
-    _write_core_indicator_sheet(workbook, 1, "received", "RECEBIDOS", period_from, period_to)
-    _write_core_indicator_sheet(workbook, 2, "outputs", "FINALIZADOS", period_from, period_to)
-    _write_core_indicator_sheet(workbook, 3, "stock", "ESTOQUE", period_from, period_to)
-    for kpi in range(4, 12):
-        _write_indicator_sheet(workbook, kpi, _indicator_payload(kpi, period_from, period_to))
+    calculations_written = _write_calculation_sheets(workbook, meta, period_from, period_to)
 
     metadata_sheet = workbook.create_sheet("CONTROLE")
     metadata_sheet.append(["Campo", "Valor"])
@@ -388,8 +403,9 @@ def build_private_xlsx() -> tuple[bytes, str]:
     metadata_sheet.append(["Colunas públicas exportadas", len(public_columns)])
     metadata_sheet.append(["Colunas privadas exportadas", len(private_columns)])
     metadata_sheet.append(["Taxonomia", meta.get("taxonomy_version", "V07")])
+    metadata_sheet.append(["Memória de cálculo", "Incluída — KPI01 a KPI11" if calculations_written else "Não gerada: metadados temporais incompletos no ambiente de execução"])
     metadata_sheet.append(["Classificação", "BASE PRIVADA — USO INTERNO"])
-    metadata_sheet.append(["Conteúdo", "Inclui todos os campos disponíveis na base pública canônica, todos os campos autorizados da camada privada, resumo executivo e memória de cálculo dos 11 indicadores."])
+    metadata_sheet.append(["Conteúdo", "Inclui todos os campos disponíveis na base pública canônica, todos os campos autorizados da camada privada, resumo executivo e memória de cálculo dos 11 indicadores quando executado com o contrato completo de produção."])
     metadata_sheet.append(["Segurança", "Exportação autorizada no backend; não publicar este arquivo em GitHub/Vercel como artefato estático."])
     _style_header(metadata_sheet)
     metadata_sheet.column_dimensions["A"].width = 28

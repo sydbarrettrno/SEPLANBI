@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { fetchDashboard, fetchExtendedIndicator } from "./api";
 import { AdminDescriptions } from "./components/AdminDescriptions";
-import { BarList } from "./components/BarList";
 import { BiPanel } from "./components/BiPanel";
 import { DrilldownTable } from "./components/DrilldownTable";
 import { FilterBar } from "./components/FilterBar";
@@ -10,12 +9,11 @@ import { IndicatorCoverage } from "./components/IndicatorCoverage";
 import { IndicatorDetail } from "./components/IndicatorDetail";
 import { KpiCard } from "./components/KpiCard";
 import { MonthlyFlowBarChart } from "./components/MonthlyFlowBarChart";
-import { OverviewIndicatorPanel } from "./components/OverviewIndicatorPanel";
 import { Sidebar } from "./components/Sidebar";
 import { useDashboardContent } from "./content/DashboardContentContext";
 import { formatDays, formatNumber, formatPercent, monthLabel } from "./format";
-import type { DashboardData, DashboardFilters, DetailId, PageId, Recordset } from "./types";
-import { drillBreadcrumb, publicAnalyticsExportUrl, type AnalyticsIndicator } from "./analytics";
+import type { DashboardData, DashboardFilters, DetailId, PageId } from "./types";
+import { drillBreadcrumb } from "./analytics";
 
 const INITIAL_FILTERS: DashboardFilters = {
   from: "",
@@ -167,21 +165,11 @@ export default function App({ adminAuthorized = false }: AppProps) {
     return { received, concluded, balance, stock };
   }, [data, filters.status, filters.owner, filters.sector]);
 
-  const openDetail = (detail: DetailId, recordset: Recordset) => {
-    setSelectedDetail(detail);
-    setPage("processes");
-    setFilters((current) => ({ ...current, recordset, offset: 0 }));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const navigate = (nextPage: PageId) => {
     if (nextPage === "admin" && !adminAuthorized) return;
     setPage(nextPage);
     window.history.pushState(null, "", `#/${nextPage}`);
-    if (nextPage === "overview") {
-      setSelectedDetail("all");
-      setFilters((current) => ({ ...current, recordset: "all", offset: 0 }));
-    } else if (nextPage === "processes") {
+    if (nextPage === "overview" || nextPage === "processes") {
       setSelectedDetail("all");
       setFilters((current) => ({ ...current, recordset: "all", offset: 0 }));
     }
@@ -190,36 +178,12 @@ export default function App({ adminAuthorized = false }: AppProps) {
 
   const metrics = data?.metrics;
   const comparison = data?.management.comparison;
-  const exportHref = useMemo(() => {
-    const indicator: AnalyticsIndicator | null = selectedDetail === "received"
-      ? "received"
-      : selectedDetail === "concluded"
-        ? "outputs"
-        : (["stock", "external", "paralyzed"] as DetailId[]).includes(selectedDetail)
-          ? "stock"
-          : null;
-    if (!indicator) return null;
-    return publicAnalyticsExportUrl({
-      indicator,
-      from: filters.from,
-      to: filters.to,
-      macro: filters.macro ? [filters.macro] : undefined,
-      category: filters.category ? [filters.category] : undefined,
-      status: filters.status ? [filters.status] : undefined,
-      sector: filters.sector ? [filters.sector] : undefined,
-      outputType: filters.outputType ? [filters.outputType as "Concluído" | "Encerrado"] : undefined,
-      ageBand: filters.ageBand ? [filters.ageBand] : undefined,
-      year: filters.year ? [filters.year] : undefined,
-      month: filters.month ? [Number(filters.month)] : undefined,
-      search: filters.q,
-    });
-  }, [filters, selectedDetail]);
-
   const processCopy = copy.processes.details[selectedDetail];
+  const periodLabel = data ? `${data.meta.period.from} a ${data.meta.period.to}` : "Período selecionado";
 
   return (
     <div className="app-shell">
-      <Sidebar page={page} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <Sidebar page={page} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} adminAuthorized={adminAuthorized} />
       <div className="app-main">
         <Header sourceDate={data?.meta.source_updated_at} scopeRows={data?.meta.scope_rows} onMenu={() => setMenuOpen(true)} />
         <main className="content">
@@ -242,7 +206,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
           {!data && loading ? (
             <section className="loading-screen" aria-live="polite">
               <span className="loading-mark" />
-              <div><strong>Preparando a visão executiva</strong><p>Aplicando as regras oficiais à base validada…</p></div>
+              <div><strong>Preparando a visão executiva</strong><p>Aplicando os filtros aos dados validados…</p></div>
             </section>
           ) : null}
 
@@ -250,9 +214,9 @@ export default function App({ adminAuthorized = false }: AppProps) {
             <>
               <section className="page-hero overview-hero overview-hero-clean">
                 <div>
-                  <span className="eyebrow">VISÃO EXECUTIVA · {data.meta.period.from.slice(0, 4)}</span>
-                  <h1>Indicadores de Desempenho</h1>
-                  <p>Período de análise: {data.meta.period.from} — {data.meta.period.to}</p>
+                  <span className="eyebrow">{copy.overview.eyebrow}</span>
+                  <h1>{copy.overview.title}</h1>
+                  <p>{copy.overview.description}</p>
                 </div>
               </section>
 
@@ -260,102 +224,106 @@ export default function App({ adminAuthorized = false }: AppProps) {
                 <section className="kpi-grid executive-kpi-grid" aria-label="Indicadores principais">
                   <KpiCard
                     icon="↗"
-                    eyebrow="01 · RECEBIDOS"
+                    eyebrow={copy.overview.cards.received.eyebrow}
                     value={formatNumber(metrics.received)}
-                    description="Contagem de ProtocoloID pela DataAbertura no período."
-                    detail={`${data.meta.period.from} → ${data.meta.period.to}`}
+                    description={copy.overview.cards.received.description}
+                    detail={periodLabel}
                     tone="blue"
-                    trend={comparisonLabel(comparison?.received_change_percent, "Entradas")}
+                    trend={comparisonLabel(comparison?.received_change_percent, copy.overview.cards.received.trendSubject)}
                     series={kpiTrends?.received}
+                    tooltip={{
+                      what: copy.overview.cards.received.description,
+                      interpret: "Mostra o volume de novas demandas que chegaram à SEPLAN.",
+                      period: periodLabel,
+                    }}
                     onClick={() => navigate("received")}
                   />
                   <KpiCard
                     icon="✓"
-                    eyebrow="02 · FINALIZADOS"
+                    eyebrow={copy.overview.cards.outputs.eyebrow}
                     value={formatNumber(metrics.concluded)}
-                    description="Concluído + Encerrado por DataSaida no período."
-                    detail="Coorte do mês + passivo anterior absorvido"
+                    description={copy.overview.cards.outputs.description}
+                    detail={copy.overview.cards.outputs.detail}
                     tone="green"
-                    trend={comparisonLabel(comparison?.cohort_concluded_change_percent, "Coorte concluída")}
+                    trend={comparisonLabel(comparison?.cohort_concluded_change_percent, copy.overview.cards.outputs.trendSubject)}
                     series={kpiTrends?.concluded}
+                    tooltip={{
+                      what: copy.overview.cards.outputs.description,
+                      interpret: "Compare este volume com os recebidos para entender se a equipe está absorvendo a demanda.",
+                      period: periodLabel,
+                    }}
                     onClick={() => navigate("outputs")}
                   />
                   <KpiCard
                     icon="⇄"
-                    eyebrow="SALDO MENSAL"
+                    eyebrow={copy.overview.cards.balance.eyebrow}
                     value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`}
-                    description="Recebidos − saídas operacionais no período."
-                    detail={`${formatNumber(metrics.received)} − ${formatNumber(metrics.concluded)}`}
+                    description={copy.overview.cards.balance.description}
+                    detail={`${formatNumber(metrics.received)} recebidos · ${formatNumber(metrics.concluded)} finalizados`}
                     tone={metrics.period_balance > 0 ? "orange" : "green"}
                     series={kpiTrends?.balance}
-                    onClick={() => openDetail("balance", "all")}
+                    tooltip={{
+                      what: copy.overview.cards.balance.description,
+                      interpret: metrics.period_balance > 0 ? "Saldo positivo indica pressão de crescimento sobre a fila." : "Saldo neutro ou negativo indica que as finalizações acompanharam ou superaram as entradas.",
+                      period: periodLabel,
+                    }}
+                    onClick={() => navigate("outputs")}
                   />
                   <KpiCard
                     icon="▤"
-                    eyebrow="03 · ESTOQUE"
+                    eyebrow={copy.overview.cards.stock.eyebrow}
                     value={formatNumber(metrics.stock)}
-                    description="Protocolos em status não terminal na data de corte."
-                    detail={`${formatNumber(metrics.internal_queue)} internos · ${formatNumber(metrics.external_wait)} externos · ${formatNumber(metrics.paralyzed)} paralisados`}
+                    description={copy.overview.cards.stock.description}
+                    detail={`${formatNumber(metrics.internal_queue)} internos · ${formatNumber(metrics.external_wait)} externos`}
                     tone="orange"
                     series={kpiTrends?.stock}
+                    tooltip={{
+                      what: copy.overview.cards.stock.description,
+                      interpret: "Mostra o volume que ainda depende de alguma etapa para sair da carteira de atendimento.",
+                      period: `Posição em ${data.meta.period.to}`,
+                    }}
                     onClick={() => navigate("stock")}
                   />
                   <KpiCard
                     icon="◷"
-                    eyebrow="04 · TEMPO MEDIANO"
+                    eyebrow={copy.overview.cards.time.eyebrow}
                     value={formatDays(metrics.turnaround.median_days)}
-                    description="Mediana de DataFim − DataAbertura nas saídas elegíveis."
-                    detail={`n=${formatNumber(metrics.turnaround.eligible)} · média ${formatDays(metrics.turnaround.mean_days)} · P90 ${formatDays(metrics.turnaround.p90_days)}`}
+                    description={copy.overview.cards.time.description}
+                    detail={`${copy.overview.cards.time.detailPrefix} ${formatDays(metrics.turnaround.mean_days)} · ${copy.overview.cards.time.detailP90} ${formatDays(metrics.turnaround.p90_days)}`}
                     tone="purple"
                     series={turnaroundTrend}
+                    tooltip={{
+                      what: copy.overview.cards.time.description,
+                      interpret: "A mediana representa o tempo típico das finalizações, reduzindo o efeito de casos extremos.",
+                      period: periodLabel,
+                    }}
                     onClick={() => window.location.hash = "#/kpi04"}
                   />
                 </section>
               ) : null}
 
-              <section className="overview-primary-analysis">
+              <section className="overview-primary-analysis executive-flow-only">
                 <article className="panel flow-panel overview-flow-panel">
                   <div className="panel-heading">
                     <div>
-                      <span className="eyebrow">FLUXO MENSAL</span>
-                      <h2>Recebidos × Finalizados</h2>
-                      <p>Entradas e saídas por mês, com a saída decomposta entre coorte do próprio mês e passivo anterior absorvido.</p>
+                      <span className="eyebrow">{copy.overview.flow.eyebrow}</span>
+                      <h2>{copy.overview.flow.title}</h2>
+                      <p>{copy.overview.flow.description}</p>
                     </div>
-                    <span className="panel-chip">MENSAL</span>
+                    <span className="panel-chip">{copy.overview.flow.chip}</span>
                   </div>
                   <MonthlyFlowBarChart data={data.charts.flow} />
                 </article>
-                <OverviewIndicatorPanel data={data} filters={filters} />
               </section>
 
-              <section className="overview-support-grid">
-                <article className="panel">
-                  <div className="panel-heading">
-                    <div>
-                      <span className="eyebrow">{copy.overview.internalAging.eyebrow}</span>
-                      <h2>{copy.overview.internalAging.title}</h2>
-                      <p>{copy.overview.internalAging.description}</p>
-                    </div>
-                  </div>
-                  <BarList data={data.charts.internal_aging} tone="orange" />
-                </article>
-                <article className="panel">
-                  <div className="panel-heading">
-                    <div>
-                      <span className="eyebrow">{copy.overview.responsibility.eyebrow}</span>
-                      <h2>{copy.overview.responsibility.title}</h2>
-                      <p>{copy.overview.responsibility.description}</p>
-                    </div>
-                  </div>
-                  <BarList data={data.charts.owners} tone="teal" limit={7} />
-                </article>
+              <section className="overview-support-grid overview-support-compact">
                 <aside className="panel seasonality-panel">
                   <span className="eyebrow">{copy.overview.signals.eyebrow}</span>
                   <h2>{copy.overview.signals.title}</h2>
                   {seasonality ? (
                     <div className="seasonality-signals">
                       <div><i className="signal-blue" /><span><small>{copy.overview.signals.peakIn}</small><strong>{monthLabel(seasonality.peakIn.month)}</strong><p>{formatNumber(seasonality.peakIn.received)} protocolos</p></span></div>
-                      <div><i className="signal-green" /><span><small>{copy.overview.signals.peakOut}</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} conclusões</p></span></div>
+                      <div><i className="signal-green" /><span><small>{copy.overview.signals.peakOut}</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} finalizações</p></span></div>
                       <div><i className="signal-slate" /><span><small>{copy.overview.signals.valleyIn}</small><strong>{monthLabel(seasonality.valleyIn.month)}</strong><p>{formatNumber(seasonality.valleyIn.received)} protocolos</p></span></div>
                     </div>
                   ) : <p>{copy.overview.signals.empty}</p>}
@@ -379,7 +347,6 @@ export default function App({ adminAuthorized = false }: AppProps) {
                 records={data.records}
                 onPage={(offset) => setFilters((current) => ({ ...current, offset }))}
                 onProtocol={(protocol) => setFilters((current) => ({ ...current, q: protocol, offset: 0 }))}
-                exportHref={exportHref}
               />
             </section>
           ) : null}
@@ -391,13 +358,6 @@ export default function App({ adminAuthorized = false }: AppProps) {
           {data && page === "indicators" ? <IndicatorCoverage items={data.indicator_coverage} /> : null}
 
           {page === "admin" && adminAuthorized ? <AdminDescriptions /> : null}
-
-          {data ? (
-            <footer className="data-footer">
-              <span>Fonte: {data.meta.dataset} · esquema v{data.meta.schema_version} · taxonomia {data.meta.taxonomy_version}</span>
-              <span>{data.meta.privacy_note}</span>
-            </footer>
-          ) : null}
         </main>
         {loading && data ? <div className="refresh-strip" aria-label="Atualizando dados"><i /></div> : null}
       </div>

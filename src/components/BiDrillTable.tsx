@@ -1,5 +1,4 @@
 import { formatDate, formatNumber, statusTone } from "../format";
-import { PrivateExportButton } from "./PrivateExportButton";
 
 type PublicRecord = Record<string, string | number | null>;
 
@@ -13,8 +12,6 @@ interface BiDrillTableProps {
   onPage: (offset: number) => void;
   onSort: (field: string) => void;
   onProtocol: (protocol: string) => void;
-  exportHref: string;
-  privateDetail: boolean;
 }
 
 const COLUMNS = [
@@ -27,34 +24,29 @@ const COLUMNS = [
   ["last_movement", "Último trâmite"],
 ] as const;
 
-export function BiDrillTable({ total, items, offset, limit, sortBy, sortDir, onPage, onSort, onProtocol, exportHref, privateDetail }: BiDrillTableProps) {
-  void exportHref;
+export function BiDrillTable({ total, items, offset, limit, sortBy, sortDir, onPage, onSort, onProtocol }: BiDrillTableProps) {
   const start = total ? offset + 1 : 0;
   const end = Math.min(total, offset + items.length);
   return (
     <section className="panel bi-detail-table" aria-label="Tabela dinâmica dos protocolos selecionados">
       <div className="panel-heading table-heading">
         <div>
-          <span className="eyebrow">DRILL-DOWN EXATO</span>
+          <span className="eyebrow">DRILL-DOWN</span>
           <h2 data-record-count={total}>{formatNumber(total)} registros encontrados</h2>
-          <p>Exibindo {start}–{end}. O total corresponde ao cruzamento indicado no breadcrumb.</p>
+          <p>Exibindo {start}–{end}. Refine os filtros para investigar o conjunto desejado.</p>
         </div>
         <div className="pager">
-          <PrivateExportButton label="Exportar base completa" />
           <button disabled={offset <= 0} onClick={() => onPage(Math.max(0, offset - limit))}>← Anterior</button>
           <button disabled={offset + items.length >= total} onClick={() => onPage(offset + limit)}>Próxima →</button>
         </div>
       </div>
-      {!privateDetail ? (
-        <div className="privacy-boundary">A tabela permanece pública e minimizada. Para nomes, responsáveis e observações, use “Exportar base completa” e informe a senha administrativa.</div>
-      ) : null}
       <div className="table-scroll">
         <table>
           <thead><tr>{COLUMNS.map(([field, label]) => (
             <th key={field}><button type="button" onClick={() => onSort(field)}>{label}{sortBy === field ? (sortDir === "asc" ? " ↑" : " ↓") : ""}</button></th>
           ))}</tr></thead>
           <tbody>{items.map((record) => (
-            <tr key={String(record.protocol_id)}>
+            <tr key={String(record.protocol)}>
               <td><button className="protocol-number protocol-link" onClick={() => onProtocol(String(record.protocol))}>{String(record.protocol)}</button></td>
               <td>{formatDate(String(record.opened || ""))}</td>
               <td><span className="category-cell">{String(record.category || "—")}</span></td>

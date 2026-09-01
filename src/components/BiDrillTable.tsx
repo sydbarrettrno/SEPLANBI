@@ -12,6 +12,8 @@ interface BiDrillTableProps {
   onPage: (offset: number) => void;
   onSort: (field: string) => void;
   onProtocol: (protocol: string) => void;
+  exportHref?: string;
+  privateDetail?: boolean;
 }
 
 const COLUMNS = [

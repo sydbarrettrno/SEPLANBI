@@ -243,6 +243,11 @@ def _authorize_password(password: str, client_ip: str) -> None:
         _delete_blob(attempt_path)
 
 
+def verify_admin_password(password: str, client_ip: str) -> None:
+    """Exige nova validação da senha para operações administrativas sensíveis."""
+    _authorize_password(password, client_ip)
+
+
 def create_admin_session(password: str, client_ip: str) -> str:
     """Valida a senha somente no servidor e devolve um token assinado de curta duração.
 

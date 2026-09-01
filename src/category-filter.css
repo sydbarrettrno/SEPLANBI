@@ -1,3 +1,79 @@
+.special-filter-panel {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #bcd7f1;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #f5faff, #ffffff);
+}
+
+.special-filter-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.special-filter-heading > div { display: grid; gap: 2px; }
+.special-filter-heading span {
+  color: #1767bc;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.special-filter-heading strong { color: #31445d; font-size: 13px; }
+.special-filter-heading b {
+  max-width: 180px;
+  overflow: hidden;
+  padding: 5px 8px;
+  color: #126b50;
+  border: 1px solid #c9e8dc;
+  border-radius: 999px;
+  background: #eff9f5;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.special-filter-row,
+.special-filter-create {
+  display: flex;
+  gap: 8px;
+}
+
+.special-filter-row select,
+.special-filter-create input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 10px;
+  color: #24334c;
+  border: 1px solid #cdd9e5;
+  border-radius: 8px;
+  outline: none;
+  background: white;
+  font-size: 12px;
+}
+
+.special-filter-create button,
+.special-filter-delete {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid #b9cfe4;
+  border-radius: 8px;
+  background: #eef6fd;
+  color: #155fae;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.special-filter-create button:disabled { opacity: .45; cursor: not-allowed; }
+.special-filter-delete { color: #a33b45; border-color: #e9c7cb; background: #fff7f8; }
+.special-filter-panel > small { color: #718096; font-size: 10px; line-height: 1.4; }
+
 .category-multiselect {
   grid-column: 1 / -1;
   min-width: 0;
@@ -89,4 +165,10 @@
   text-overflow: ellipsis;
   text-transform: none;
   white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .special-filter-heading { align-items: flex-start; flex-direction: column; }
+  .special-filter-row,
+  .special-filter-create { flex-direction: column; }
 }

@@ -77,7 +77,19 @@
 }
 
 .executive-flow-only {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.overview-support-compact {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+.overview-support-compact .seasonality-signals {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.overview-support-compact .management-note {
+  margin-top: 8px;
 }
 
 .public-surface-note {
@@ -208,6 +220,21 @@
   line-height: 1.45;
 }
 
+.admin-preview-card.is-menu {
+  color: white;
+  border-color: #234e70;
+  background: linear-gradient(165deg, #173e60, #0d2842 72%);
+}
+
+.admin-preview-card.is-menu strong,
+.admin-preview-card.is-menu p {
+  color: white;
+}
+
+.admin-preview-card.is-menu small {
+  color: #9ab8d5;
+}
+
 .admin-diff {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -240,9 +267,17 @@
   line-height: 1.45;
 }
 
+.admin-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .admin-selector-grid,
-  .admin-diff {
+  .admin-diff,
+  .overview-support-compact .seasonality-signals {
     grid-template-columns: 1fr;
   }
 }

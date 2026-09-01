@@ -3,7 +3,7 @@ from http.cookies import SimpleCookie
 import json
 from pathlib import Path
 import sys
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -14,6 +14,7 @@ from backend.analytics import analytics_response, export_public_csv, query_from_
 from backend.indicator_views import indicator_view_response
 from backend.private_export import build_private_xlsx
 from backend.private_data import load_private_rows
+from backend.private_import import install_private_xlsx
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -46,6 +47,12 @@ PUBLIC_ANALYTICS_RECORD_FIELDS = {
     "days_without_movement",
     "sector",
 }
+PRIVATE_UPLOAD_TYPES = {
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel.sheet.macroenabled.12",
+    "application/octet-stream",
+}
+MAX_PRIVATE_UPLOAD_BYTES = 12 * 1024 * 1024
 
 
 def _flatten(query_string: str) -> dict[str, str]:
@@ -214,7 +221,8 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.get("action", "")
-            if action not in {"admin-auth", "admin-logout", "dashboard-copy", "private-export"}:
+            allowed_actions = {"admin-auth", "admin-logout", "dashboard-copy", "private-export", "private-base-upload"}
+            if action not in allowed_actions:
                 self._json(400, {"ok": False, "error": "Ação inválida."})
                 return
             if not self._same_origin():
@@ -225,7 +233,33 @@ class handler(BaseHTTPRequestHandler):
                 self._json(200, {"ok": True}, {"Set-Cookie": self._clear_session_cookie()})
                 return
 
+            client_ip = self._client_ip()
             content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+
+            if action == "private-base-upload":
+                if not self._require_admin():
+                    return
+                verify_admin_password(self.headers.get("X-SEPLAN-Admin-Password", ""), client_ip)
+                if content_type not in PRIVATE_UPLOAD_TYPES:
+                    self._json(415, {"ok": False, "error": "Selecione uma planilha XLSX ou XLSM."})
+                    return
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > MAX_PRIVATE_UPLOAD_BYTES:
+                    self._json(413, {"ok": False, "error": "A planilha é vazia ou excede o limite de 12 MB."})
+                    return
+                body = self.rfile.read(length)
+                source_name = unquote(self.headers.get("X-SEPLAN-Source-Name", ""))
+                try:
+                    result = install_private_xlsx(body, source_name=source_name)
+                except ValueError as exc:
+                    self._json(400, {"ok": False, "error": str(exc)})
+                    return
+                except RuntimeError as exc:
+                    self._json(503, {"ok": False, "error": str(exc)})
+                    return
+                self._json(200, result)
+                return
+
             if content_type != "application/json":
                 self._json(415, {"ok": False, "error": "Tipo de conteúdo não suportado."})
                 return
@@ -236,7 +270,6 @@ class handler(BaseHTTPRequestHandler):
                 self._json(400, {"ok": False, "error": "Corpo da requisição inválido."})
                 return
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
-            client_ip = self._client_ip()
 
             if action == "admin-auth":
                 token = create_admin_session(payload.get("password", ""), client_ip)

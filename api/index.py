@@ -20,8 +20,6 @@ from backend.admin_store import (
     create_admin_session,
     load_copy,
     save_copy,
-    load_descriptions,
-    save_descriptions,
     validate_admin_session,
 )
 
@@ -149,6 +147,13 @@ class handler(BaseHTTPRequestHandler):
         self._json(403, {"ok": False, "error": "Acesso não autorizado."})
         return False
 
+    def _same_origin(self) -> bool:
+        origin = self.headers.get("Origin", "").strip().lower()
+        if not origin:
+            return True
+        host = self.headers.get("Host", "").strip().lower()
+        return bool(host) and origin in {f"https://{host}", f"http://{host}"}
+
     def _session_cookie(self, token: str) -> str:
         return (
             f"{ADMIN_COOKIE}={token}; Path=/; HttpOnly; Secure; SameSite=Strict; "
@@ -181,9 +186,6 @@ class handler(BaseHTTPRequestHandler):
             if action == "dashboard-copy":
                 self._json(200, load_copy())
                 return
-            if action == "card-descriptions":
-                self._json(200, load_descriptions())
-                return
             if action == "analytics":
                 self._json(200, _public_analytics_payload(analytics_response(_analytics_query(params))))
                 return
@@ -211,12 +213,20 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.get("action", "")
-            if action not in {"admin-auth", "admin-logout", "dashboard-copy", "card-descriptions", "private-export"}:
+            if action not in {"admin-auth", "admin-logout", "dashboard-copy", "private-export"}:
                 self._json(400, {"ok": False, "error": "Ação inválida."})
+                return
+            if not self._same_origin():
+                self._json(403, {"ok": False, "error": "Origem não autorizada."})
                 return
 
             if action == "admin-logout":
                 self._json(200, {"ok": True}, {"Set-Cookie": self._clear_session_cookie()})
+                return
+
+            content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+            if content_type != "application/json":
+                self._json(415, {"ok": False, "error": "Tipo de conteúdo não suportado."})
                 return
 
             max_body = 4_096 if action in {"admin-auth", "private-export"} else 96_000
@@ -254,20 +264,12 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             session_token = self._admin_token()
-            if action == "dashboard-copy":
-                result = save_copy(
-                    payload.get("copy"),
-                    "",
-                    client_ip,
-                    session_token=session_token,
-                )
-            else:
-                result = save_descriptions(
-                    payload.get("descriptions"),
-                    "",
-                    client_ip,
-                    session_token=session_token,
-                )
+            result = save_copy(
+                payload.get("copy"),
+                "",
+                client_ip,
+                session_token=session_token,
+            )
             self._json(200, result)
         except AdminStoreError as exc:
             self._json(exc.status, {"ok": False, "error": exc.public_message})

@@ -1,53 +1,293 @@
-.admin-content-group {
+.admin-page {
   display: grid;
-  gap: 14px;
-  margin: 18px 0 0;
-  padding: 18px;
-  border: 1px solid #dfe6ee;
-  border-radius: 12px;
-  background: #fbfcfe;
+  gap: 22px;
 }
 
-.admin-content-group legend {
-  padding: 0 8px;
-  color: #17486f;
-  font-size: 13px;
-  font-weight: 900;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-}
-
-.admin-content-group label {
+.admin-grid {
   display: grid;
-  gap: 7px;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.8fr);
+  gap: 20px;
+  align-items: start;
 }
 
-.admin-content-group textarea {
+.admin-editor-shell,
+.admin-boundary {
+  min-width: 0;
+}
+
+.admin-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.admin-selector-grid label,
+.admin-edit-field label,
+.admin-export-dialog label {
+  display: grid;
+  gap: 8px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.admin-selector-grid select,
+.admin-edit-field textarea,
+.admin-export-dialog input {
   width: 100%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font: inherit;
+  outline: none;
+}
+
+.admin-selector-grid select:focus,
+.admin-edit-field textarea:focus,
+.admin-export-dialog input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.admin-current-value,
+.admin-preview-card,
+.admin-diff > div {
+  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  border-radius: 14px;
+}
+
+.admin-current-value {
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.admin-current-value span,
+.admin-preview-card small,
+.admin-diff span {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.admin-current-value p,
+.admin-preview-card p,
+.admin-diff p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.admin-edit-field textarea {
+  min-height: 150px;
   resize: vertical;
 }
 
-.admin-content-group small {
-  color: #8793a4;
-  overflow-wrap: anywhere;
+.admin-preview-card {
+  padding: 16px;
+  margin-top: 14px;
 }
 
-.admin-form select,
-.admin-form input {
-  width: 100%;
-  min-height: 44px;
-  padding: 0 11px;
-  border: 1px solid #d6dee8;
-  border-radius: 8px;
-  background: white;
-  color: #2d4058;
-  font: inherit;
+.admin-preview-card strong {
+  display: block;
+  margin-bottom: 8px;
 }
 
-.admin-actions {
+.admin-preview-card.is-card {
+  border-left: 4px solid var(--accent);
+}
+
+.admin-preview-card.is-menu {
+  border-left: 4px solid var(--success);
+}
+
+.admin-diff {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.admin-diff > div {
+  padding: 14px;
+}
+
+.admin-publish-row {
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.admin-publish-row > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-publish-row span {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.admin-inline-actions,
+.admin-actions,
+.admin-export-dialog-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
   flex-wrap: wrap;
 }
 
-@media (max-width: 720px) {
-  .admin-content-group { padding: 14px; }
+.admin-actions {
+  justify-content: space-between;
+  padding-top: 12px;
+}
+
+.admin-actions > span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.admin-feedback {
+  margin: 12px 0 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.admin-feedback.success {
+  color: var(--success);
+}
+
+.admin-feedback.error {
+  color: var(--danger);
+}
+
+.admin-boundary ul {
+  margin: 14px 0 0;
+  padding-left: 20px;
+  color: var(--text-soft);
+}
+
+.admin-boundary li + li {
+  margin-top: 8px;
+}
+
+.admin-export-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 20px;
+}
+
+.admin-export-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  font-size: 1.6rem;
+  color: var(--accent);
+}
+
+.admin-export-copy h2 {
+  margin: 4px 0 6px;
+}
+
+.admin-export-copy p {
+  margin: 0;
+  max-width: 900px;
+}
+
+.admin-export-button {
+  white-space: nowrap;
+}
+
+.admin-export-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(8, 20, 32, 0.58);
+  backdrop-filter: blur(5px);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.admin-export-dialog {
+  position: relative;
+  width: min(520px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 26px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.admin-export-dialog h2,
+.admin-export-dialog p {
+  margin: 0;
+}
+
+.admin-export-dialog-actions {
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.admin-export-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+@media (max-width: 980px) {
+  .admin-grid,
+  .admin-export-card {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-selector-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-export-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 680px) {
+  .admin-diff {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-publish-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-inline-actions > button,
+  .admin-export-dialog-actions > button {
+    flex: 1;
+  }
 }

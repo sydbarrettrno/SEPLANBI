@@ -24,16 +24,17 @@ jobs:
       - name: Prepare Vercel deployment bundle
         run: |
           rm -rf deploy-bundle
-          mkdir deploy-bundle
+          mkdir -p deploy-bundle/src
           cp -R dist/. deploy-bundle/
           cp -R api backend data deploy-bundle/
+          cp -R src/content deploy-bundle/src/
           cp requirements.txt deploy-bundle/
           cat > deploy-bundle/vercel.json <<'EOF'
           {
             "$schema": "https://openapi.vercel.sh/vercel.json",
             "functions": {
               "api/index.py": {
-                "includeFiles": "{backend,data}/**",
+                "includeFiles": "{backend,data,src/content}/**",
                 "maxDuration": 10
               }
             },

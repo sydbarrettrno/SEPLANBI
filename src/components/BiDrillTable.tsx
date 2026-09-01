@@ -1,4 +1,5 @@
 import { formatDate, formatNumber, statusTone } from "../format";
+import { PrivateExportButton } from "./PrivateExportButton";
 
 type PublicRecord = Record<string, string | number | null>;
 
@@ -27,6 +28,7 @@ const COLUMNS = [
 ] as const;
 
 export function BiDrillTable({ total, items, offset, limit, sortBy, sortDir, onPage, onSort, onProtocol, exportHref, privateDetail }: BiDrillTableProps) {
+  void exportHref;
   const start = total ? offset + 1 : 0;
   const end = Math.min(total, offset + items.length);
   return (
@@ -38,13 +40,13 @@ export function BiDrillTable({ total, items, offset, limit, sortBy, sortDir, onP
           <p>Exibindo {start}–{end}. O total corresponde ao cruzamento indicado no breadcrumb.</p>
         </div>
         <div className="pager">
-          <a className="ghost-button" href={exportHref}>Exportar CSV público</a>
+          <PrivateExportButton label="Exportar base completa" />
           <button disabled={offset <= 0} onClick={() => onPage(Math.max(0, offset - limit))}>← Anterior</button>
           <button disabled={offset + items.length >= total} onClick={() => onPage(offset + limit)}>Próxima →</button>
         </div>
       </div>
       {!privateDetail ? (
-        <div className="privacy-boundary">Pessoa responsável e observação permanecem ocultas: o deployment público não possui autenticação/autorização para PII.</div>
+        <div className="privacy-boundary">A tabela permanece pública e minimizada. Para nomes, responsáveis e observações, use “Exportar base completa” e informe a senha administrativa.</div>
       ) : null}
       <div className="table-scroll">
         <table>

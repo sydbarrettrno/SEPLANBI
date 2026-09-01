@@ -87,6 +87,7 @@ function RootRoutes() {
             onNavigate={navigate}
             open={menuOpen}
             onClose={() => setMenuOpen(false)}
+            adminAuthorized={adminAuthorized}
           />
           <div className="app-main">
             <main className="content">

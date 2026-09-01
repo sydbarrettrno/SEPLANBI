@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import type { DashboardFilters, DashboardData } from "../types";
 import { activeDashboardFilters } from "../analytics";
+import {
+  allFilterPresets,
+  findPresetByCategoryValue,
+  loadCustomFilterPresets,
+  presetCategoryValue,
+  saveCustomFilterPresets,
+  type FilterPreset,
+} from "../filterPresets";
 
 interface FilterBarProps {
   filters: DashboardFilters;
@@ -16,6 +24,9 @@ function selectedValues(value: string): string[] {
 export function FilterBar({ filters, options, onApply, loading }: FilterBarProps) {
   const [draft, setDraft] = useState(filters);
   const [open, setOpen] = useState(false);
+  const [customPresets, setCustomPresets] = useState<FilterPreset[]>(() => loadCustomFilterPresets());
+  const [presetName, setPresetName] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState("");
 
   useEffect(() => {
     setDraft(filters);
@@ -50,6 +61,12 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     [allCategoriesSelected, availableCategories, explicitCategories],
   );
   const categorySet = useMemo(() => new Set(categories), [categories]);
+  const presets = useMemo(() => allFilterPresets(customPresets), [customPresets]);
+  const activePreset = useMemo(() => findPresetByCategoryValue(draft.category), [draft.category, customPresets]);
+
+  useEffect(() => {
+    setSelectedPresetId(activePreset?.id ?? "");
+  }, [activePreset?.id]);
 
   const toggleCategory = (category: string) => {
     setDraft((current) => {
@@ -69,6 +86,36 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     });
   };
 
+  const applyPreset = (presetId: string) => {
+    setSelectedPresetId(presetId);
+    const preset = presets.find((item) => item.id === presetId);
+    if (!preset) return;
+    const category = presetCategoryValue(preset, availableCategories);
+    if (!category) return;
+    setDraft((current) => ({ ...current, category, offset: 0 }));
+  };
+
+  const saveCurrentAsPreset = () => {
+    const name = presetName.trim().slice(0, 48);
+    if (!name || !categories.length) return;
+    const id = `custom-${Date.now().toString(36)}`;
+    const next: FilterPreset[] = [...customPresets, { id, name, categories: [...categories] }].slice(-20);
+    setCustomPresets(next);
+    saveCustomFilterPresets(next);
+    setPresetName("");
+    setSelectedPresetId(id);
+  };
+
+  const deleteCustomPreset = () => {
+    if (!selectedPresetId) return;
+    const selected = customPresets.find((item) => item.id === selectedPresetId);
+    if (!selected) return;
+    const next = customPresets.filter((item) => item.id !== selectedPresetId);
+    setCustomPresets(next);
+    saveCustomFilterPresets(next);
+    setSelectedPresetId("");
+  };
+
   const reset = () => {
     const clean = {
       ...filters,
@@ -86,6 +133,7 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
       offset: 0,
     };
     setDraft(clean);
+    setSelectedPresetId("");
     onApply(clean);
     setOpen(false);
   };
@@ -138,6 +186,35 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
                 <strong>Filtros ativos</strong>
                 {active.length ? active.map((item) => <span key={item.key}>{item.label}: {item.value}</span>) : <span>Nenhum</span>}
               </div>
+
+              <section className="special-filter-panel" aria-label="Filtros especiais">
+                <div className="special-filter-heading">
+                  <div><span>Filtro especial</span><strong>Aplicar conjunto de categorias</strong></div>
+                  {activePreset ? <b>{activePreset.name}</b> : null}
+                </div>
+                <div className="special-filter-row">
+                  <select value={selectedPresetId} onChange={(event) => applyPreset(event.target.value)} aria-label="Escolher filtro especial">
+                    <option value="">Escolher filtro…</option>
+                    {presets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}{preset.builtin ? " · padrão" : ""}</option>)}
+                  </select>
+                  {customPresets.some((preset) => preset.id === selectedPresetId) ? (
+                    <button type="button" className="special-filter-delete" onClick={deleteCustomPreset}>Excluir</button>
+                  ) : null}
+                </div>
+                <div className="special-filter-create">
+                  <input
+                    type="text"
+                    maxLength={48}
+                    value={presetName}
+                    placeholder="Nome do novo filtro"
+                    aria-label="Nome do novo filtro especial"
+                    onChange={(event) => setPresetName(event.target.value)}
+                  />
+                  <button type="button" onClick={saveCurrentAsPreset} disabled={!presetName.trim() || !categories.length}>Salvar seleção atual</button>
+                </div>
+                <small>Filtros criados aqui ficam salvos neste navegador. O filtro “Processos de Obra” já está disponível como padrão.</small>
+              </section>
+
               <label className="filter-half"><span>De</span><input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} /></label>
               <label className="filter-half"><span>Até</span><input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} /></label>
               <label className="filter-half"><span>Ano</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>

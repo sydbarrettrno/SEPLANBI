@@ -5,6 +5,7 @@ interface DrilldownTableProps {
   records: DashboardData["records"];
   onPage: (offset: number) => void;
   onProtocol: (protocol: string) => void;
+  exportHref?: string | null;
   title?: string;
 }
 

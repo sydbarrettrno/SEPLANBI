@@ -1,0 +1,217 @@
+/* Ajustes pontuais da Visão Executiva conforme referência aprovada. */
+
+.executive-kpi-grid .kpi-card {
+  min-height: 210px;
+  padding: 15px 15px 12px;
+}
+
+.executive-kpi-grid .kpi-topline {
+  min-height: 28px;
+  align-items: center;
+}
+
+.executive-kpi-grid .kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.executive-kpi-grid .kpi-label i {
+  display: grid;
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--card-color);
+  background: color-mix(in srgb, var(--card-color) 10%, white);
+  font-size: 14px;
+  font-style: normal;
+  letter-spacing: 0;
+}
+
+.executive-kpi-grid .kpi-card > strong {
+  margin-top: 7px;
+  font-size: clamp(30px, 2.25vw, 38px);
+}
+
+.executive-kpi-grid .kpi-card > p {
+  min-height: 31px;
+  margin: 6px 0 2px;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.kpi-sparkline {
+  width: 100%;
+  height: 42px;
+  margin: 1px 0 6px;
+  color: var(--card-color);
+}
+
+.kpi-sparkline svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.kpi-sparkline-empty {
+  opacity: 0;
+}
+
+.kpi-spark-area {
+  fill: color-mix(in srgb, currentColor 18%, transparent);
+  stroke: none;
+}
+
+.kpi-spark-line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.15;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.kpi-spark-point {
+  fill: white;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  opacity: 0;
+  transition: opacity 140ms ease, r 140ms ease;
+}
+
+.kpi-card:hover .kpi-spark-point,
+.kpi-card:focus-visible .kpi-spark-point {
+  opacity: 1;
+}
+
+.executive-kpi-grid .kpi-card footer {
+  padding-top: 7px;
+}
+
+/* Fluxo mensal: linha acumulada + tooltip React/HTML sobre o SVG existente. */
+.audited-flow-wrap {
+  position: relative;
+}
+
+.legend-accumulated {
+  position: relative;
+  width: 16px !important;
+  height: 2px !important;
+  overflow: visible;
+  background: #c98318;
+}
+
+.legend-accumulated::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #c98318;
+  box-shadow: 0 0 0 1px #c98318;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.accumulated-line {
+  fill: none;
+  stroke: #c98318;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.accumulated-point {
+  fill: #c98318;
+  stroke: white;
+  stroke-width: 2;
+  transition: r 120ms ease, filter 120ms ease;
+}
+
+.accumulated-point.is-hovered {
+  r: 5.5px;
+  filter: drop-shadow(0 2px 3px rgba(84, 54, 12, .25));
+}
+
+.flow-hover-zone {
+  fill: transparent;
+  pointer-events: all;
+  cursor: crosshair;
+}
+
+.monthly-bar-group.is-hovered .monthly-bar {
+  opacity: .88;
+  filter: saturate(1.08);
+}
+
+.flow-hover-tooltip {
+  position: absolute;
+  z-index: 8;
+  top: 44px;
+  display: grid;
+  width: 198px;
+  gap: 7px;
+  padding: 13px 14px;
+  color: #34435a;
+  border: 1px solid #d8e1eb;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .98);
+  box-shadow: 0 12px 30px rgba(17, 43, 75, .16);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.flow-hover-tooltip strong {
+  padding-bottom: 5px;
+  color: var(--navy);
+  border-bottom: 1px solid #edf1f5;
+  font-size: 12px;
+}
+
+.flow-hover-tooltip span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+}
+
+.flow-hover-tooltip b {
+  color: #66758a;
+  font-weight: 750;
+}
+
+.flow-hover-tooltip em {
+  color: #283950;
+  font-style: normal;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-hover-tooltip .tooltip-accumulated {
+  margin-top: 1px;
+  padding-top: 7px;
+  color: #a8660f;
+  border-top: 1px solid #edf1f5;
+}
+
+.flow-hover-tooltip .tooltip-accumulated b,
+.flow-hover-tooltip .tooltip-accumulated em {
+  color: #b36c10;
+}
+
+@media (max-width: 760px) {
+  .executive-kpi-grid .kpi-card {
+    min-height: 198px;
+  }
+
+  .flow-hover-tooltip {
+    width: 174px;
+    padding: 10px 11px;
+  }
+}

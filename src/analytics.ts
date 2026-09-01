@@ -146,7 +146,10 @@ export function activeDashboardFilters(filters: DashboardFilters): ActiveFilterC
     ["ageBand", "Idade", filters.ageBand],
     ["q", "Pesquisa", filters.q],
   ] as const) {
-    if (value) chips.push({ key, label, value });
+    if (value) {
+      const displayValue = key === "category" ? value.split("|").filter(Boolean).join(", ") : value;
+      chips.push({ key, label, value: displayValue });
+    }
   }
   return chips;
 }

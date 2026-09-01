@@ -52,7 +52,9 @@ SECTION_FONT = Font(bold=True)
 def _safe(value):
     if value is None:
         return ""
-    return value
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
 
 
 def _iter_export_rows() -> Iterable[list]:
@@ -90,8 +92,6 @@ def _append_key_values(sheet, title: str, values: dict[str, Any]) -> None:
         cell.fill = SECTION_FILL
         cell.font = SECTION_FONT
     for key, value in values.items():
-        if isinstance(value, (dict, list, tuple)):
-            value = str(value)
         sheet.append([key, _safe(value)])
     sheet.append([])
 

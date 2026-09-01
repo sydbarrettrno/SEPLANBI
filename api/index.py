@@ -21,6 +21,7 @@ from backend.admin_store import (
     load_copy,
     save_copy,
     validate_admin_session,
+    verify_admin_password,
 )
 
 
@@ -250,6 +251,7 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             if action == "private-export":
+                verify_admin_password(payload.get("password", ""), client_ip)
                 try:
                     body, filename = build_private_xlsx()
                 except RuntimeError:

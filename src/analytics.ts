@@ -1,4 +1,5 @@
 import type { DashboardFilters, DetailId } from "./types";
+import { findPresetByCategoryValue } from "./filterPresets";
 
 export type AnalyticsIndicator = "received" | "outputs" | "stock";
 
@@ -147,6 +148,13 @@ export function activeDashboardFilters(filters: DashboardFilters): ActiveFilterC
     ["q", "Pesquisa", filters.q],
   ] as const) {
     if (value) {
+      if (key === "category") {
+        const preset = findPresetByCategoryValue(value);
+        if (preset) {
+          chips.push({ key: "specialFilter", label: "Filtro especial", value: preset.name });
+          continue;
+        }
+      }
       const displayValue = key === "category" ? value.split("|").filter(Boolean).join(", ") : value;
       chips.push({ key, label, value: displayValue });
     }

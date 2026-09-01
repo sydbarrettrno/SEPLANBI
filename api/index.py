@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 from backend.final_entry import dashboard, health, query_from_params
 from backend.analytics import analytics_response, export_public_csv, query_from_params as analytics_query_from_params
 from backend.indicator_views import indicator_view_response
+from backend.private_export import build_private_xlsx
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -53,6 +54,18 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _binary(self, status: int, body: bytes, content_type: str, filename: str) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Security-Policy", "default-src 'none'; sandbox")
         self.end_headers()
         self.wfile.write(body)
 
@@ -121,7 +134,7 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.get("action", "")
-            if action not in {"admin-auth", "admin-logout", "dashboard-copy", "card-descriptions"}:
+            if action not in {"admin-auth", "admin-logout", "dashboard-copy", "card-descriptions", "private-export"}:
                 self._json(400, {"ok": False, "error": "Ação inválida."})
                 return
 
@@ -129,7 +142,7 @@ class handler(BaseHTTPRequestHandler):
                 self._json(200, {"ok": True}, {"Set-Cookie": self._clear_session_cookie()})
                 return
 
-            max_body = 4_096 if action == "admin-auth" else 96_000
+            max_body = 4_096 if action in {"admin-auth", "private-export"} else 96_000
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > max_body:
                 self._json(400, {"ok": False, "error": "Corpo da requisição inválido."})
@@ -143,6 +156,23 @@ class handler(BaseHTTPRequestHandler):
                     200,
                     {"ok": True, "authorized": True, "expires_in": SESSION_TTL_SECONDS},
                     {"Set-Cookie": self._session_cookie(token)},
+                )
+                return
+
+            if action == "private-export":
+                # Exige a senha novamente em cada exportação. O token gerado é descartado
+                # e nenhuma credencial é persistida no navegador por esta rota.
+                create_admin_session(payload.get("password", ""), client_ip)
+                try:
+                    body, filename = build_private_xlsx()
+                except RuntimeError:
+                    self._json(503, {"ok": False, "error": "Base privada temporariamente indisponível no servidor."})
+                    return
+                self._binary(
+                    200,
+                    body,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    filename,
                 )
                 return
 
@@ -167,7 +197,7 @@ class handler(BaseHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError):
             self._json(400, {"ok": False, "error": "JSON inválido."})
         except Exception:
-            self._json(500, {"ok": False, "error": "Falha interna ao gravar a configuração."})
+            self._json(500, {"ok": False, "error": "Falha interna ao processar a solicitação."})
 
     def log_message(self, format, *args):
         return

@@ -13,6 +13,34 @@ def _workbook_bytes(workbook: Workbook) -> bytes:
 
 
 class PrivateImportTests(unittest.TestCase):
+    def test_complete_base_maps_authorized_fields_and_ignores_tax_ids(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "BASE_COMPLETA"
+        sheet.append([
+            "Número/Ano", "Requerente - Nome Razão", "Observação Abertura", "Último Trâmite - Observação",
+            "ProtocoloID_Sistema", "EscopoSistema", "Responsável - Nome", "Usuário Atual - Nome",
+            "Situação", "Subassunto - Descrição", "Centro de Custo Atual - Descrição",
+            "Requerente - CPF/CNPJ", "Responsável - CPF/CNPJ",
+        ])
+        sheet.append([
+            "43781/2026", "Pessoa Requerente", "Pedido inicial", "Último trâmite",
+            "2026-43781", "INCLUIDO_2025_MAIS", "RT Teste", "Servidor Teste",
+            "Aberto", "ALVARÁ", "Engenharia", "111.111.111-11", "222.222.222-22",
+        ])
+
+        source, records = parse_private_xlsx(_workbook_bytes(workbook))
+        self.assertEqual(source, "BASE_COMPLETA")
+        record = records["2026-43781"]
+        self.assertEqual(record["NomeRequerente"], "Pessoa Requerente")
+        self.assertEqual(record["ResponsavelTecnico"], "RT Teste")
+        self.assertEqual(record["ResponsavelInterno"], "Servidor Teste")
+        self.assertEqual(record["ObservacaoAbertura"], "Pedido inicial")
+        self.assertEqual(record["ObservacaoUltimoTramite"], "Último trâmite")
+        self.assertEqual(record["SetorAtualFonte"], "Engenharia")
+        self.assertNotIn("Requerente - CPF/CNPJ", record)
+        self.assertNotIn("Responsável - CPF/CNPJ", record)
+
     def test_raw_base_maps_authorized_fields_and_ignores_tax_ids(self):
         workbook = Workbook()
         sheet = workbook.active
@@ -31,6 +59,7 @@ class PrivateImportTests(unittest.TestCase):
         record = records["2026-43781"]
         self.assertEqual(record["NomeRequerente"], "Pessoa Requerente")
         self.assertEqual(record["ResponsavelTecnico"], "RT Teste")
+        self.assertEqual(record["ResponsavelInterno"], "Servidor Teste")
         self.assertEqual(record["ObservacaoAbertura"], "Pedido inicial")
         self.assertEqual(record["ObservacaoUltimoTramite"], "Último trâmite")
         self.assertEqual(record["UsuarioAtualNome"], "Servidor Teste")

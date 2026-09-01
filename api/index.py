@@ -13,6 +13,7 @@ from backend.final_entry import dashboard, health, query_from_params
 from backend.analytics import analytics_response, export_public_csv, query_from_params as analytics_query_from_params
 from backend.indicator_views import indicator_view_response
 from backend.private_export import build_private_xlsx
+from backend.private_data import load_private_rows
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -102,6 +103,13 @@ class handler(BaseHTTPRequestHandler):
             if action == "health":
                 self._json(200, health())
                 return
+            if action == "private-data-status":
+                try:
+                    rows = load_private_rows()
+                    self._json(200, {"ok": True, "configured": True, "rows": len(rows)})
+                except RuntimeError:
+                    self._json(503, {"ok": False, "configured": False, "rows": 0})
+                return
             if action == "admin-session":
                 self._json(200, {"ok": True, "authorized": validate_admin_session(self._admin_token())})
                 return
@@ -160,8 +168,6 @@ class handler(BaseHTTPRequestHandler):
                 return
 
             if action == "private-export":
-                # Exige a senha novamente em cada exportação. O token gerado é descartado
-                # e nenhuma credencial é persistida no navegador por esta rota.
                 create_admin_session(payload.get("password", ""), client_ip)
                 try:
                     body, filename = build_private_xlsx()

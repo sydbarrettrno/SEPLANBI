@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 ENV_PATH = "SEPLANBI_PRIVATE_DATA_PATH"
+BLOB_PATH = "private/base_private_v3.xz"
 BUNDLED_PATH = ROOT / "private" / "base_private.json.gz"
 BUNDLED_PARTS_DIR = ROOT / "private"
 BUNDLED_PART_GLOB = "base_private.xz.b64.part*"
@@ -47,6 +48,28 @@ def configured_path() -> Path | None:
     return None
 
 
+def _read_blob_payload() -> bytes | None:
+    if not os.getenv("BLOB_READ_WRITE_TOKEN"):
+        return None
+    try:
+        from vercel.blob import BlobClient
+        from vercel.blob.errors import BlobNotFoundError
+        with BlobClient() as client:
+            result = client.get(BLOB_PATH, access="private", timeout=8, use_cache=False)
+    except BlobNotFoundError:
+        return None
+    except Exception as exc:
+        raise RuntimeError("Armazenamento privado temporariamente indisponível.") from exc
+    if result is None or result.status_code == 404:
+        return None
+    if result.status_code != 200:
+        raise RuntimeError("Armazenamento privado recusou a leitura.")
+    try:
+        return lzma.decompress(bytes(result.content))
+    except Exception as exc:
+        raise RuntimeError("Artefato privado armazenado está inválido.") from exc
+
+
 def _read_payload_bytes() -> bytes:
     path = configured_path()
     if path is not None:
@@ -60,14 +83,19 @@ def _read_payload_bytes() -> bytes:
         except Exception as exc:
             raise RuntimeError("Artefato privado inválido.") from exc
 
-    # Para deploys manuais, a base privada pode ser enviada em partes Base64 de um
-    # único XZ. As partes entram apenas no includeFiles da função Python; não são
-    # copiadas para dist/ e a pasta /private é bloqueada pelo .gitignore.
+    # O Blob privado é o armazenamento persistente preferencial em produção.
+    # O conteúdo nunca é exposto por rota pública; somente o backend autorizado o lê.
+    blob_payload = _read_blob_payload()
+    if blob_payload is not None:
+        return blob_payload
+
+    # Compatibilidade para deploys manuais: partes Base64 de um XZ podem ser incluídas
+    # somente no bundle serverless. A pasta /private permanece fora do Git e de dist/.
     parts = sorted(BUNDLED_PARTS_DIR.glob(BUNDLED_PART_GLOB)) if BUNDLED_PARTS_DIR.is_dir() else []
     if not parts:
         raise RuntimeError(
-            f"Camada privada não configurada; defina {ENV_PATH} no backend autorizado "
-            "ou inclua o artefato privado somente no pacote serverless."
+            f"Camada privada não configurada; defina {ENV_PATH}, carregue {BLOB_PATH} "
+            "no Blob privado ou inclua o artefato somente no pacote serverless."
         )
     try:
         encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)

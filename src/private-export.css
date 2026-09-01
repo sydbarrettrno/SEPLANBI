@@ -29,6 +29,8 @@
   position: relative;
   display: grid;
   width: min(430px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   gap: 12px;
   padding: 26px;
   border: 1px solid #d8e1ea;
@@ -36,6 +38,7 @@
   background: #fff;
   box-shadow: 0 26px 70px rgba(8,29,50,.28);
 }
+.private-export-modal.needs-private-base { width: min(520px, 100%); }
 .private-export-modal > small { color: #1871d5; font-size: 9px; font-weight: 900; letter-spacing: .12em; }
 .private-export-modal h2 { margin: 0; color: #17304d; font-size: 24px; letter-spacing: -.02em; }
 .private-export-modal p { margin: 0 0 4px; color: #68758a; font-size: 12px; line-height: 1.5; }
@@ -56,6 +59,25 @@
 .private-export-close { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; border: 0; color: #718096; background: transparent; font-size: 22px; }
 .private-export-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 9px; margin-top: 3px; }
 .private-export-error { padding: 9px 10px; color: #9c3340; border: 1px solid #f0cbd0; border-radius: 8px; background: #fff1f3; font-size: 11px; font-weight: 700; }
+.private-export-success { padding: 10px 11px; color: #245e42; border: 1px solid #b9dccb; border-radius: 8px; background: #edf9f3; font-size: 11px; font-weight: 700; line-height: 1.45; }
+.private-export-recovery {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid #cbdceb;
+  border-radius: 11px;
+  background: #f5f9fd;
+}
+.private-export-recovery > strong { color: #24435f; font-size: 12px; }
+.private-export-recovery > p { color: #5e7185; font-size: 11px; }
+.private-export-recovery .private-export-privacy { color: #48677e; font-weight: 700; }
+.private-export-file input[type="file"] {
+  min-height: 44px;
+  padding: 8px;
+  font-size: 11px;
+  background: #fff;
+}
+.private-export-file-name { color: #597086 !important; font-size: 10px !important; font-weight: 700; letter-spacing: 0 !important; overflow-wrap: anywhere; }
 
 .topbar-brand > div > span {
   font-size: 11px;
@@ -104,4 +126,5 @@
   .private-export-trigger { font-size: 0; width: 38px; padding: 0; justify-content: center; }
   .private-export-trigger > span { font-size: 18px; }
   .topbar-brand > div > span { white-space: normal; }
+  .private-export-actions { grid-template-columns: 1fr; }
 }

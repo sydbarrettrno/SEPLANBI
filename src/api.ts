@@ -123,3 +123,46 @@ export async function saveDashboardCopy(copy: DashboardCopy): Promise<DashboardC
   });
   return readJson<DashboardCopyPayload>(response);
 }
+
+function filenameFromDisposition(disposition: string | null): string {
+  if (!disposition) return "SEPLAN_BASE_COMPLETA.xlsx";
+  const marker = 'filename="';
+  const start = disposition.indexOf(marker);
+  if (start < 0) return "SEPLAN_BASE_COMPLETA.xlsx";
+  const rest = disposition.slice(start + marker.length);
+  const end = rest.indexOf('"');
+  return end >= 0 ? rest.slice(0, end) : "SEPLAN_BASE_COMPLETA.xlsx";
+}
+
+export async function exportPrivateWorkbook(password: string): Promise<string> {
+  const response = await fetch("/api?action=private-export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    let message = `A API respondeu com o código ${response.status}.`;
+    try {
+      const payload = await response.json() as { error?: string };
+      if (payload.error) message = payload.error;
+    } catch {
+      // resposta não JSON: mantém a mensagem padrão
+    }
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
+  const filename = filenameFromDisposition(response.headers.get("Content-Disposition"));
+  const url = URL.createObjectURL(blob);
+  try {
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+  return filename;
+}

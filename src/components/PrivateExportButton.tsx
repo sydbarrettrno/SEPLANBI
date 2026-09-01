@@ -7,6 +7,28 @@ interface PrivateExportButtonProps {
   className?: string;
 }
 
+interface PrivateBaseInstallResult {
+  ok: boolean;
+  source_kind: string;
+  public_rows: number;
+  private_rows: number;
+  matched_rows: number;
+  missing_private_rows: number;
+  coverage_percent: number;
+}
+
+function filenameFromDisposition(disposition: string, fallback: string) {
+  const lower = disposition.toLowerCase();
+  const marker = "filename=";
+  const index = lower.indexOf(marker);
+  if (index < 0) return fallback;
+  let value = disposition.slice(index + marker.length).split(";", 1)[0]?.trim() || "";
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1);
+  }
+  return value || fallback;
+}
+
 export function PrivateExportButton({
   sourceDate,
   label = "Exportar base completa",
@@ -15,19 +37,28 @@ export function PrivateExportButton({
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [needsPrivateBase, setNeedsPrivateBase] = useState(false);
+  const [privateFile, setPrivateFile] = useState<File | null>(null);
   const [error, setError] = useState("");
+  const [installSuccess, setInstallSuccess] = useState("");
+  const busy = exporting || installing;
 
   const close = () => {
-    if (exporting) return;
+    if (busy) return;
     setOpen(false);
     setPassword("");
     setError("");
+    setInstallSuccess("");
+    setNeedsPrivateBase(false);
+    setPrivateFile(null);
   };
 
   const exportPrivateBase = async () => {
-    if (!password.trim() || exporting) return;
+    if (!password.trim() || busy || needsPrivateBase) return;
     setExporting(true);
     setError("");
+    setInstallSuccess("");
     try {
       const response = await fetch("/api?action=private-export", {
         method: "POST",
@@ -45,13 +76,21 @@ export function PrivateExportButton({
         } catch {
           // Mantém a mensagem genérica quando a resposta não for JSON.
         }
+        if (response.status === 503 && message.includes("Base privada")) {
+          setNeedsPrivateBase(true);
+          setError(message);
+          return;
+        }
+        setPassword("");
         throw new Error(message);
       }
 
       const blob = await response.blob();
       const disposition = response.headers.get("Content-Disposition") || "";
-      const match = disposition.match(/filename="?([^";]+)"?/i);
-      const filename = match?.[1] || `SEPLAN_BASE_COMPLETA_${sourceDate || "atual"}.xlsx`;
+      const filename = filenameFromDisposition(
+        disposition,
+        `SEPLAN_BASE_COMPLETA_${sourceDate || "atual"}.xlsx`,
+      );
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
@@ -63,10 +102,50 @@ export function PrivateExportButton({
       setPassword("");
       setOpen(false);
     } catch (reason) {
-      setPassword("");
       setError(reason instanceof Error ? reason.message : "Falha ao exportar a base completa.");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const installPrivateBase = async () => {
+    if (!privateFile || !password.trim() || busy) return;
+    const lowerName = privateFile.name.toLowerCase();
+    if (!lowerName.endsWith(".xlsx") && !lowerName.endsWith(".xlsm")) {
+      setError("Selecione uma planilha .xlsx ou .xlsm.");
+      return;
+    }
+
+    setInstalling(true);
+    setError("");
+    setInstallSuccess("");
+    try {
+      const response = await fetch("/api?action=private-base-upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": privateFile.type || "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "X-SEPLAN-Admin-Password": password,
+          "X-SEPLAN-Source-Name": encodeURIComponent(privateFile.name),
+          Accept: "application/json",
+        },
+        body: privateFile,
+      });
+      const payload = await response.json() as PrivateBaseInstallResult & { error?: string };
+      if (!response.ok) {
+        throw new Error(payload.error || `Falha ao instalar a base privada (${response.status}).`);
+      }
+
+      setNeedsPrivateBase(false);
+      setPrivateFile(null);
+      setPassword("");
+      setInstallSuccess(
+        `Base privada instalada: ${payload.matched_rows.toLocaleString("pt-BR")} de ${payload.public_rows.toLocaleString("pt-BR")} protocolos (${payload.coverage_percent.toLocaleString("pt-BR")}%).` +
+        (payload.missing_private_rows ? ` ${payload.missing_private_rows.toLocaleString("pt-BR")} protocolo(s) da versão atual ficaram sem complemento privado.` : " Cobertura completa."),
+      );
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Falha ao instalar a base privada.");
+    } finally {
+      setInstalling(false);
     }
   };
 
@@ -88,12 +167,12 @@ export function PrivateExportButton({
           role="presentation"
           onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}
         >
-          <section className="private-export-modal" role="dialog" aria-modal="true" aria-labelledby="private-export-title">
+          <section className={`private-export-modal ${needsPrivateBase ? "needs-private-base" : ""}`} role="dialog" aria-modal="true" aria-labelledby="private-export-title">
             <button type="button" className="private-export-close" onClick={close} aria-label="Fechar">×</button>
             <span className="private-export-icon" aria-hidden="true">⇩</span>
             <small>ACESSO RESTRITO</small>
             <h2 id="private-export-title">Exportar base completa</h2>
-            <p>O XLSX contém a base atual com nomes, responsáveis, observações de abertura e do último trâmite, além dos campos operacionais. A senha é validada somente no servidor.</p>
+            <p>O XLSX contém a base atual com nomes, responsáveis, observações de abertura e do último trâmite, além das abas de cálculo dos indicadores. A senha é validada somente no servidor.</p>
             <label>
               <span>Senha administrativa</span>
               <input
@@ -102,15 +181,39 @@ export function PrivateExportButton({
                 autoFocus
                 autoComplete="current-password"
                 placeholder="Informe a senha"
-                disabled={exporting}
+                disabled={busy}
                 onChange={(event) => setPassword(event.target.value)}
-                onKeyDown={(event) => { if (event.key === "Enter") void exportPrivateBase(); }}
+                onKeyDown={(event) => { if (event.key === "Enter" && !needsPrivateBase) void exportPrivateBase(); }}
               />
             </label>
+
             {error ? <div className="private-export-error">{error}</div> : null}
+            {installSuccess ? <div className="private-export-success">{installSuccess}<br />Informe a senha novamente para gerar o XLSX.</div> : null}
+
+            {needsPrivateBase ? (
+              <div className="private-export-recovery">
+                <strong>Inicializar armazenamento privado</strong>
+                <p>O servidor ainda não possui a camada privada. Selecione a planilha fonte mais recente. São aceitas a base com aba <b>BASE23-26</b> ou a <b>BASE_INDICADORES</b> com aba 01_RECEBIDOS.</p>
+                <p className="private-export-privacy">Somente os campos privados autorizados são extraídos. CPF/CNPJ não é armazenado.</p>
+                <label className="private-export-file">
+                  <span>Planilha fonte</span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12"
+                    disabled={busy}
+                    onChange={(event) => setPrivateFile(event.target.files?.[0] || null)}
+                  />
+                </label>
+                {privateFile ? <small className="private-export-file-name">{privateFile.name} · {(privateFile.size / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} MB</small> : null}
+                <button type="button" className="primary-button" onClick={() => void installPrivateBase()} disabled={busy || !privateFile || !password.trim()}>
+                  {installing ? "Validando e armazenando…" : "Instalar base privada"}
+                </button>
+              </div>
+            ) : null}
+
             <div className="private-export-actions">
-              <button type="button" className="ghost-button" onClick={close} disabled={exporting}>Cancelar</button>
-              <button type="button" className="primary-button" onClick={() => void exportPrivateBase()} disabled={exporting || !password.trim()}>
+              <button type="button" className="ghost-button" onClick={close} disabled={busy}>Cancelar</button>
+              <button type="button" className="primary-button" onClick={() => void exportPrivateBase()} disabled={busy || !password.trim() || needsPrivateBase}>
                 {exporting ? "Gerando arquivo…" : "Exportar XLSX completo"}
               </button>
             </div>

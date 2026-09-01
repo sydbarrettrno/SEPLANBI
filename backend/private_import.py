@@ -79,18 +79,70 @@ def _parse_raw_base(sheet) -> dict[str, dict[str, str]]:
 
         requester = _clean(source.get("Requerente"))
         technical = _clean(source.get("NomeRT"))
+        internal = _clean(source.get("UsuarioAtual"))
         record = _blank_record(protocol_id)
         record.update({
             "NomeRequerente": requester,
             "ResponsavelTecnico": technical,
+            "ResponsavelInterno": internal,
             "ObservacaoAbertura": _clean(source.get("ObsAbertura")),
             "ObservacaoUltimoTramite": _clean(source.get("UltTramiteOBS")),
             "SubassuntoOriginal": _clean(source.get("Categoria")),
-            "UsuarioAtualNome": _clean(source.get("UsuarioAtual")),
+            "UsuarioAtualNome": internal,
             "SituacaoOriginal": _clean(source.get("Situação")),
             "SetorAtualFonte": _clean(source.get("CCAtual")),
             "PessoaResponsavelExterna": technical or requester,
-            "TipoPessoaResponsavel": "Responsável Técnico" if technical else ("Requerente" if requester else ""),
+            "TipoPessoaResponsavel": "Responsável/RT" if technical else ("Requerente" if requester else ""),
+        })
+        records[protocol_id] = record
+    return records
+
+
+def _parse_complete_base(sheet) -> dict[str, dict[str, str]]:
+    """Extrai somente a camada privada autorizada da BASE_COMPLETA.
+
+    A planilha completa contém CPF/CNPJ, mas esses campos não são copiados para o
+    artefato privado do sistema. Somente protocolos canônicos do escopo 2025+ são
+    considerados, usando ProtocoloID_Sistema quando disponível.
+    """
+    records: dict[str, dict[str, str]] = {}
+    required = {
+        "Número/Ano",
+        "Requerente - Nome Razão",
+        "Observação Abertura",
+        "Último Trâmite - Observação",
+        "ProtocoloID_Sistema",
+    }
+    for source in _sheet_records(sheet, required):
+        protocol_id = _protocol_id(source.get("ProtocoloID_Sistema")) or _protocol_id(source.get("Número/Ano"))
+        if not protocol_id:
+            continue
+        year = int(protocol_id.split("-", 1)[0])
+        if year < 2025:
+            continue
+
+        scope = _clean(source.get("EscopoSistema"))
+        if scope and scope != "INCLUIDO_2025_MAIS":
+            continue
+        if protocol_id in records:
+            raise ValueError("A planilha possui protocolos duplicados no escopo do sistema.")
+
+        requester = _clean(source.get("Requerente - Nome Razão"))
+        technical = _clean(source.get("Responsável - Nome"))
+        internal = _clean(source.get("Usuário Atual - Nome"))
+        record = _blank_record(protocol_id)
+        record.update({
+            "NomeRequerente": requester,
+            "ResponsavelTecnico": technical,
+            "ResponsavelInterno": internal,
+            "ObservacaoAbertura": _clean(source.get("Observação Abertura")),
+            "ObservacaoUltimoTramite": _clean(source.get("Último Trâmite - Observação")),
+            "SubassuntoOriginal": _clean(source.get("Subassunto - Descrição")),
+            "UsuarioAtualNome": internal,
+            "SituacaoOriginal": _clean(source.get("Situação")),
+            "SetorAtualFonte": _clean(source.get("Centro de Custo Atual - Descrição")),
+            "PessoaResponsavelExterna": technical or requester,
+            "TipoPessoaResponsavel": "Responsável/RT" if technical else ("Requerente" if requester else ""),
         })
         records[protocol_id] = record
     return records
@@ -138,7 +190,10 @@ def parse_private_xlsx(body: bytes) -> tuple[str, dict[str, dict[str, str]]]:
         raise ValueError("O arquivo não é uma planilha XLSX/XLSM válida.") from exc
 
     try:
-        if "BASE23-26" in workbook.sheetnames:
+        if "BASE_COMPLETA" in workbook.sheetnames:
+            source_kind = "BASE_COMPLETA"
+            records = _parse_complete_base(workbook["BASE_COMPLETA"])
+        elif "BASE23-26" in workbook.sheetnames:
             source_kind = "BASE23-26"
             records = _parse_raw_base(workbook["BASE23-26"])
         elif "01_RECEBIDOS" in workbook.sheetnames:
@@ -146,7 +201,7 @@ def parse_private_xlsx(body: bytes) -> tuple[str, dict[str, dict[str, str]]]:
             records = _parse_indicator_base(workbook)
         else:
             raise ValueError(
-                "Planilha incompatível. Use a base bruta com a aba BASE23-26 ou a BASE_INDICADORES com a aba 01_RECEBIDOS."
+                "Planilha incompatível. Use a BASE_COMPLETA, a base bruta com a aba BASE23-26 ou a BASE_INDICADORES com a aba 01_RECEBIDOS."
             )
     finally:
         workbook.close()

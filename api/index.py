@@ -37,6 +37,16 @@ ANALYTICS_INDICATORS = {
     "stock",
     "estoque",
 }
+PUBLIC_ANALYTICS_META = {"indicator", "total", "grouped_sum", "grouping_reconciled"}
+PUBLIC_ANALYTICS_RECORD_FIELDS = {
+    "protocol",
+    "opened",
+    "last_movement",
+    "category",
+    "status",
+    "days_without_movement",
+    "sector",
+}
 
 
 def _flatten(query_string: str) -> dict[str, str]:
@@ -49,6 +59,31 @@ def _analytics_query(params: dict[str, str]):
     if indicator and indicator not in ANALYTICS_INDICATORS:
         raise ValueError("Indicador analítico inválido.")
     return analytics_query_from_params(params)
+
+
+def _public_analytics_payload(payload: dict) -> dict:
+    """Reduz o contrato público aos campos consumidos pela interface."""
+    result = dict(payload)
+    meta = result.get("meta")
+    if isinstance(meta, dict):
+        result["meta"] = {key: meta[key] for key in PUBLIC_ANALYTICS_META if key in meta}
+    result["permissions"] = {
+        "public_detail": True,
+        "private_detail": False,
+        "public_export": False,
+        "private_export": False,
+    }
+    records = result.get("records")
+    if isinstance(records, dict) and isinstance(records.get("items"), list):
+        result["records"] = {
+            **records,
+            "items": [
+                {key: value for key, value in item.items() if key in PUBLIC_ANALYTICS_RECORD_FIELDS}
+                for item in records["items"]
+                if isinstance(item, dict)
+            ],
+        }
+    return result
 
 
 class handler(BaseHTTPRequestHandler):
@@ -150,7 +185,7 @@ class handler(BaseHTTPRequestHandler):
                 self._json(200, load_descriptions())
                 return
             if action == "analytics":
-                self._json(200, analytics_response(_analytics_query(params)))
+                self._json(200, _public_analytics_payload(analytics_response(_analytics_query(params))))
                 return
             if action == "analytics-export":
                 if not self._require_admin():

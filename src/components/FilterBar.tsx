@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { DashboardFilters, DashboardData } from "../types";
 import { activeDashboardFilters } from "../analytics";
 
@@ -7,6 +7,10 @@ interface FilterBarProps {
   options?: DashboardData["options"];
   onApply: (filters: DashboardFilters) => void;
   loading: boolean;
+}
+
+function selectedValues(value: string): string[] {
+  return value.split("|").map((item) => item.trim()).filter(Boolean);
 }
 
 export function FilterBar({ filters, options, onApply, loading }: FilterBarProps) {
@@ -36,6 +40,18 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
 
   const update = (field: keyof DashboardFilters, value: string) => {
     setDraft((current) => ({ ...current, [field]: value, offset: 0 }));
+  };
+
+  const categories = useMemo(() => selectedValues(draft.category), [draft.category]);
+  const categorySet = useMemo(() => new Set(categories), [categories]);
+
+  const toggleCategory = (category: string) => {
+    setDraft((current) => {
+      const selected = new Set(selectedValues(current.category));
+      if (selected.has(category)) selected.delete(category);
+      else selected.add(category);
+      return { ...current, category: Array.from(selected).join("|"), offset: 0 };
+    });
   };
 
   const reset = () => {
@@ -115,7 +131,26 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
               <label><span>Status</span><select value={draft.status} onChange={(e) => update("status", e.target.value)}><option value="">Todos</option>{options?.statuses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Setor</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Responsabilidade</span><select value={draft.owner} onChange={(e) => update("owner", e.target.value)}><option value="">Todas</option>{options?.owners.map((value) => <option key={value}>{value}</option>)}</select></label>
-              <label><span>Categoria</span><select value={draft.category} onChange={(e) => update("category", e.target.value)}><option value="">Todas</option>{options?.categories.map((value) => <option key={value}>{value}</option>)}</select></label>
+
+              <fieldset className="category-multiselect">
+                <legend>Categoria</legend>
+                <div className="category-multiselect-summary">
+                  <span>{categories.length ? `${categories.length} categoria${categories.length > 1 ? "s" : ""} selecionada${categories.length > 1 ? "s" : ""}` : "Todas as categorias"}</span>
+                  {categories.length ? <button type="button" onClick={() => update("category", "")}>Limpar</button> : null}
+                </div>
+                <div className="category-options" role="group" aria-label="Selecionar categorias">
+                  {options?.categories.map((value) => {
+                    const checked = categorySet.has(value);
+                    return (
+                      <label key={value} className={checked ? "category-option selected" : "category-option"}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleCategory(value)} />
+                        <span>{value}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+
               <label className="search-field"><span>Localizar protocolo</span><input type="search" placeholder="Ex.: 42289/2026" value={draft.q} onChange={(e) => update("q", e.target.value)} /></label>
               <div className="filter-actions">
                 <button type="button" className="ghost-button" onClick={reset}>Limpar filtros</button>

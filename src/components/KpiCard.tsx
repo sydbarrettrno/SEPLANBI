@@ -1,3 +1,8 @@
+export interface KpiSeriesPoint {
+  label: string;
+  value: number | null;
+}
+
 interface KpiCardProps {
   eyebrow: string;
   value: string;
@@ -6,10 +11,47 @@ interface KpiCardProps {
   tone: "blue" | "green" | "orange" | "purple" | "red";
   trend?: string;
   icon?: string;
+  series?: KpiSeriesPoint[];
   onClick?: () => void;
 }
 
-export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon, onClick }: KpiCardProps) {
+function Sparkline({ series }: { series: KpiSeriesPoint[] }) {
+  const values = series.filter((point): point is KpiSeriesPoint & { value: number } =>
+    typeof point.value === "number" && Number.isFinite(point.value),
+  );
+  if (values.length < 2) return <div className="kpi-sparkline kpi-sparkline-empty" aria-hidden="true" />;
+
+  const width = 220;
+  const height = 44;
+  const pad = 3;
+  const min = Math.min(...values.map((point) => point.value));
+  const max = Math.max(...values.map((point) => point.value));
+  const range = Math.max(1, max - min);
+  const x = (index: number) => pad + (index / (values.length - 1)) * (width - pad * 2);
+  const y = (value: number) => pad + (1 - (value - min) / range) * (height - pad * 2);
+  const points = values.map((point, index) => `${x(index)},${y(point.value)}`).join(" ");
+  const firstX = x(0);
+  const lastX = x(values.length - 1);
+  const area = `M ${firstX} ${height - pad} L ${values
+    .map((point, index) => `${x(index)} ${y(point.value)}`)
+    .join(" L ")} L ${lastX} ${height - pad} Z`;
+
+  return (
+    <div className="kpi-sparkline" aria-label="Evolução do indicador no período">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img">
+        <path className="kpi-spark-area" d={area} />
+        <polyline className="kpi-spark-line" points={points} />
+        {values.map((point, index) => (
+          <circle key={`${point.label}-${index}`} className="kpi-spark-point" cx={x(index)} cy={y(point.value)} r="2.3">
+            <title>{`${point.label}: ${point.value.toLocaleString("pt-BR")}`}</title>
+          </circle>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon, series = [], onClick }: KpiCardProps) {
   return (
     <button className={`kpi-card tone-${tone}`} onClick={onClick} type="button">
       <span className="kpi-accent" />
@@ -19,6 +61,7 @@ export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon
       </div>
       <strong>{value}</strong>
       <p>{description}</p>
+      <Sparkline series={series} />
       <footer>
         <span>{detail}</span>
         <i aria-hidden="true">→</i>

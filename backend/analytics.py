@@ -204,7 +204,7 @@ def query_from_dashboard(query: core.Query, indicator: str) -> AnalyticsQuery:
         start=query.start,
         end=query.end,
         macroprocesses=(query.macro,) if query.macro else (),
-        categories=(query.category,) if query.category else (),
+        categories=_split_values(query.category),
         statuses=(query.status,) if query.status else (),
         sectors=(query.sector,) if query.sector else (),
         responsibilities=responsibilities,

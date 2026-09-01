@@ -56,6 +56,15 @@ class CoreTests(unittest.TestCase):
         self.assertGreater(d["meta"]["scope_rows"], 0)
         self.assertTrue(all(x["category"] == "Habite-se" for x in d["records"]["items"]))
 
+    def test_multiple_category_filter(self):
+        base = dashboard(query_from_params({}))
+        categories = base["options"]["categories"][:2]
+        self.assertEqual(len(categories), 2)
+        d = dashboard(query_from_params({"category": "|".join(categories), "limit": "500"}))
+        self.assertGreater(d["meta"]["scope_rows"], 0)
+        self.assertTrue(d["records"]["items"])
+        self.assertTrue(all(item["category"] in categories for item in d["records"]["items"]))
+
     def test_pii_not_in_dataset_schema(self):
         forbidden = {"ResponsavelInterno", "NomeRequerente", "ResponsavelTecnico", "PessoaResponsavelExterna", "TipoPessoaResponsavel", "ObservacaoUltimoTramite", "RequerenteNomeRazao", "RequerenteCPFCNPJ", "ObservacaoAbertura", "UltimoTramiteObservacao", "ResponsavelGargalo", "Inscricao"}
         self.assertFalse(forbidden.intersection(load_rows()[0].keys()))

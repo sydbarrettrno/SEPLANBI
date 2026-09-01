@@ -7,7 +7,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from backend import analytics, core
+from backend import core
 from backend.final_entry import dashboard, load_rows, query_from_params
 from backend.indicator_views import indicator_view_response
 from backend.private_data import load_private_rows
@@ -114,12 +114,14 @@ def _write_indicator_sheet(workbook: Workbook, kpi: int, payload: dict[str, Any]
     _style_header(sheet)
     sheet.freeze_panes = "A2"
 
+    coverage = payload.get("coverage")
+    limitation = coverage.get("limitation") if isinstance(coverage, dict) else None
     _append_key_values(sheet, "IDENTIFICAÇÃO", {
         "Indicador": kpi,
         "Nome": name,
         "Status": payload.get("status"),
         "Regra": payload.get("rule"),
-        "Motivo/limitação": payload.get("reason") or payload.get("coverage", {}).get("limitation") if isinstance(payload.get("coverage"), dict) else payload.get("reason"),
+        "Motivo/limitação": payload.get("reason") or limitation,
     })
 
     metrics = payload.get("metrics")
@@ -266,8 +268,11 @@ def build_private_xlsx() -> tuple[bytes, str]:
 
     meta = core.metadata()
     default_period = meta.get("default_period", {}) if isinstance(meta.get("default_period"), dict) else {}
-    period_from = str(default_period.get("from") or f"{str(meta.get('source_updated_at') or '')[:4]}-01-01")
-    period_to = str(default_period.get("to") or meta.get("source_updated_at") or "")[:10]
+    source_date = str(meta.get("source_updated_at") or "")[:10]
+    period_from = str(default_period.get("from") or (f"{source_date[:4]}-01-01" if source_date else "2026-01-01"))
+    period_to = str(default_period.get("to") or source_date)
+    if not period_to:
+        raise RuntimeError("Data de referência da base indisponível para cálculo dos indicadores.")
 
     _write_overview_sheet(workbook, period_from, period_to)
     for kpi in range(4, 12):
@@ -291,6 +296,6 @@ def build_private_xlsx() -> tuple[bytes, str]:
 
     output = BytesIO()
     workbook.save(output)
-    source_date = str(meta.get("source_updated_at") or "atual").replace("-", "")
-    filename = f"SEPLAN_BASE_COMPLETA_PRIVADA_{source_date}.xlsx"
+    filename_date = source_date.replace("-", "") or "atual"
+    filename = f"SEPLAN_BASE_COMPLETA_PRIVADA_{filename_date}.xlsx"
     return output.getvalue(), filename

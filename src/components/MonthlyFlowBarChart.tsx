@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { formatNumber, monthLabel } from "../format";
 import type { FlowPoint } from "../types";
 
@@ -10,34 +11,74 @@ const HEIGHT = 350;
 const PAD = { top: 48, right: 22, bottom: 70, left: 50 };
 
 export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
-  const maxValue = Math.max(1, ...data.flatMap((item) => [item.received, item.concluded]));
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  let accumulated = 0;
+  const enriched = data.map((item) => {
+    accumulated += item.received - item.concluded;
+    return { ...item, accumulated };
+  });
+
+  const minValue = Math.min(0, ...enriched.map((item) => item.accumulated));
+  const maxValue = Math.max(
+    1,
+    ...enriched.flatMap((item) => [item.received, item.concluded, item.accumulated]),
+  );
+  const domain = Math.max(1, maxValue - minValue);
   const plotWidth = WIDTH - PAD.left - PAD.right;
   const plotHeight = HEIGHT - PAD.top - PAD.bottom;
-  const groupWidth = plotWidth / Math.max(1, data.length);
+  const groupWidth = plotWidth / Math.max(1, enriched.length);
   const barWidth = Math.min(30, groupWidth * 0.3);
   const gap = Math.max(5, groupWidth * 0.06);
-  const y = (value: number) => PAD.top + plotHeight - (value / maxValue) * plotHeight;
-  const barHeight = (value: number) => (value / maxValue) * plotHeight;
+  const y = (value: number) => PAD.top + ((maxValue - value) / domain) * plotHeight;
+  const baselineY = y(0);
+  const barHeight = (value: number) => Math.max(0, baselineY - y(value));
+  const cumulativePoints = enriched.map((item, index) => ({
+    x: PAD.left + groupWidth * index + groupWidth / 2,
+    y: y(item.accumulated),
+  }));
+  const cumulativePath = cumulativePoints.length
+    ? `M ${cumulativePoints.map((point) => `${point.x} ${point.y}`).join(" L ")}`
+    : "";
+  const hovered = hoveredIndex == null ? null : enriched[hoveredIndex];
+  const hoveredCenter = hoveredIndex == null
+    ? null
+    : PAD.left + groupWidth * hoveredIndex + groupWidth / 2;
 
   return (
-    <div className="flow-chart-wrap monthly-bars-wrap audited-flow-wrap">
+    <div className="flow-chart-wrap monthly-bars-wrap audited-flow-wrap" onMouseLeave={() => setHoveredIndex(null)}>
       <div className="chart-legend audited-flow-legend" aria-label="Legenda do gráfico">
         <span><i className="legend-received" />Entradas</span>
         <span><i className="legend-same-month" />Saídas · abertas no mês</span>
         <span><i className="legend-backlog" />Saídas · passivo anterior</span>
+        <span><i className="legend-accumulated" />Saldo acumulado</span>
       </div>
-      <svg className="flow-chart monthly-bar-chart" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Entradas mensais e saídas separadas entre protocolos abertos no próprio mês e passivo anterior">
+      {hovered && hoveredCenter != null ? (
+        <div
+          className="flow-hover-tooltip"
+          style={{ left: `${(hoveredCenter / WIDTH) * 100}%` }}
+          role="status"
+        >
+          <strong>{monthLabel(hovered.month)}</strong>
+          <span><b>Entradas</b><em>{formatNumber(hovered.received)}</em></span>
+          <span><b>Saídas</b><em>{formatNumber(hovered.concluded)}</em></span>
+          <span><b>Saídas · abertas no mês</b><em>{formatNumber(hovered.same_month_outputs ?? hovered.concluded)}</em></span>
+          <span><b>Saídas · passivo anterior</b><em>{formatNumber(hovered.backlog_outputs ?? 0)}</em></span>
+          <span className="tooltip-accumulated"><b>Saldo acumulado</b><em>{hovered.accumulated > 0 ? "+" : ""}{formatNumber(hovered.accumulated)}</em></span>
+        </div>
+      ) : null}
+      <svg className="flow-chart monthly-bar-chart" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Entradas mensais, saídas decompostas e saldo acumulado">
         {Array.from({ length: 5 }, (_, index) => {
           const lineY = PAD.top + (index / 4) * plotHeight;
-          const value = Math.round(maxValue * (1 - index / 4));
+          const value = Math.round(maxValue - (index / 4) * domain);
           return (
-            <g key={value}>
+            <g key={`${index}-${value}`}>
               <line x1={PAD.left} x2={WIDTH - PAD.right} y1={lineY} y2={lineY} className="grid-line" />
               <text x={PAD.left - 12} y={lineY + 4} textAnchor="end" className="axis-label">{formatNumber(value)}</text>
             </g>
           );
         })}
-        {data.map((item, index) => {
+
+        {enriched.map((item, index) => {
           const center = PAD.left + groupWidth * index + groupWidth / 2;
           const receivedX = center - gap / 2 - barWidth;
           const concludedX = center + gap / 2;
@@ -47,9 +88,9 @@ export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
           const backlog = item.backlog_outputs ?? 0;
           const sameMonthHeight = barHeight(sameMonth);
           const backlogHeight = barHeight(backlog);
-          const sameMonthY = PAD.top + plotHeight - sameMonthHeight;
+          const sameMonthY = baselineY - sameMonthHeight;
           return (
-            <g key={item.month} className="monthly-bar-group">
+            <g key={item.month} className={`monthly-bar-group ${hoveredIndex === index ? "is-hovered" : ""}`}>
               <rect x={receivedX} y={receivedY} width={barWidth} height={barHeight(item.received)} rx="5" className="monthly-bar received-bar" />
               <rect x={concludedX} y={sameMonthY} width={barWidth} height={sameMonthHeight} rx="0" className="monthly-bar same-month-output-bar" />
               {backlog > 0 ? (
@@ -70,12 +111,33 @@ export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
               <text x={center} y={HEIGHT - 14} textAnchor="middle" className={`flow-balance-label ${item.received - item.concluded < 0 ? "absorbing" : "pressure"}`}>
                 {item.received - item.concluded > 0 ? "+" : ""}{formatNumber(item.received - item.concluded)}
               </text>
-              <title>{`${monthLabel(item.month)}: ${formatNumber(item.received)} entradas; ${formatNumber(item.concluded)} saídas = ${formatNumber(sameMonth)} abertas e concluídas no mês + ${formatNumber(backlog)} do passivo anterior.`}</title>
+              <rect
+                x={center - groupWidth / 2}
+                y={PAD.top}
+                width={groupWidth}
+                height={plotHeight + 56}
+                className="flow-hover-zone"
+                onMouseEnter={() => setHoveredIndex(index)}
+              >
+                <title>{`${monthLabel(item.month)}: ${formatNumber(item.received)} entradas; ${formatNumber(item.concluded)} saídas; saldo acumulado ${formatNumber(item.accumulated)}.`}</title>
+              </rect>
             </g>
           );
         })}
+
+        {cumulativePath ? <path d={cumulativePath} className="accumulated-line" /> : null}
+        {cumulativePoints.map((point, index) => (
+          <circle
+            key={`acc-${enriched[index]?.month ?? index}`}
+            cx={point.x}
+            cy={point.y}
+            r="4"
+            className={`accumulated-point ${hoveredIndex === index ? "is-hovered" : ""}`}
+            onMouseEnter={() => setHoveredIndex(index)}
+          />
+        ))}
       </svg>
-      <p className="flow-audit-note"><strong>Como ler:</strong> a saída pertence ao mês em que o processo foi concluído. A barra de saídas separa o que entrou e saiu no próprio mês do passivo aberto anteriormente.</p>
+      <p className="flow-audit-note"><strong>Como ler:</strong> a saída pertence ao mês em que o processo foi concluído. A barra de saídas separa o que entrou e saiu no próprio mês do passivo aberto anteriormente. A linha mostra o saldo acumulado de entradas menos saídas dentro do período selecionado.</p>
     </div>
   );
 }

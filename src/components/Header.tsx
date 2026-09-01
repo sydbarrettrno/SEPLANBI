@@ -1,6 +1,5 @@
 import { formatDate } from "../format";
 import logoMunicipio from "../../assets/logo-municipio-itapoa.png";
-import { PrivateExportButton } from "./PrivateExportButton";
 
 interface HeaderProps {
   sourceDate?: string;
@@ -25,7 +24,6 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
           <small>BASE ATUALIZADA</small>
           <strong>{formatDate(sourceDate)} · {scopeRows?.toLocaleString("pt-BR") ?? "—"} protocolos</strong>
         </div>
-        <PrivateExportButton sourceDate={sourceDate} />
         <span className="live-pill"><i /> Dados validados</span>
       </div>
     </header>

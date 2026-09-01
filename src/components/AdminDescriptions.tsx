@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { exportPrivateWorkbook } from "../api";
 import { useDashboardContent } from "../content/DashboardContentContext";
 import { flattenDashboardCopy, setDashboardCopyValue, type EditableCopyField } from "../content/dashboardCopy";
 import "../admin-content.css";
@@ -90,6 +91,10 @@ export function AdminDescriptions() {
   const [previewValue, setPreviewValue] = useState("");
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportPassword, setExportPassword] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportFeedback, setExportFeedback] = useState<{ tone: "success" | "error"; text: string } | null>(null);
 
   const fields = useMemo(() => flattenDashboardCopy(copy), [copy]);
   const defaultFields = useMemo(() => flattenDashboardCopy(defaults), [defaults]);
@@ -153,6 +158,33 @@ export function AdminDescriptions() {
     }
   };
 
+  const closeExport = () => {
+    if (exporting) return;
+    setExportOpen(false);
+    setExportPassword("");
+  };
+
+  const submitExport = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!exportPassword) {
+      setExportFeedback({ tone: "error", text: "Informe a senha para autorizar a exportação." });
+      return;
+    }
+    setExporting(true);
+    setExportFeedback(null);
+    try {
+      const filename = await exportPrivateWorkbook(exportPassword);
+      setExportPassword("");
+      setExportOpen(false);
+      setExportFeedback({ tone: "success", text: `Arquivo gerado: ${filename}` });
+    } catch (reason) {
+      setExportPassword("");
+      setExportFeedback({ tone: "error", text: reason instanceof Error ? reason.message : "Não foi possível gerar a exportação." });
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <section className="admin-page">
       <div className="page-hero simple-hero">
@@ -163,6 +195,19 @@ export function AdminDescriptions() {
         </div>
         <span className={persistent ? "live-pill" : "prototype-pill"}>{persistent ? "Persistência ativa" : "Armazenamento pendente"}</span>
       </div>
+
+      <section className="panel admin-export-card" aria-labelledby="admin-export-title">
+        <div className="admin-export-icon" aria-hidden="true">▣</div>
+        <div className="admin-export-copy">
+          <span className="eyebrow">ARQUIVO ADMINISTRATIVO</span>
+          <h2 id="admin-export-title">Exportar base completa</h2>
+          <p>Gera a última versão da base disponível no sistema em XLSX, incluindo dados privados autorizados, resumo do dashboard e abas com a memória de cálculo dos indicadores.</p>
+          {exportFeedback ? <p className={`admin-feedback ${exportFeedback.tone}`} role="status">{exportFeedback.text}</p> : null}
+        </div>
+        <button className="primary-button admin-export-button" type="button" onClick={() => { setExportOpen(true); setExportFeedback(null); }}>
+          Exportar XLSX
+        </button>
+      </section>
 
       <div className="admin-grid">
         <form className="panel admin-form admin-editor-shell" onSubmit={submit}>
@@ -247,10 +292,38 @@ export function AdminDescriptions() {
             <li>nenhum identificador interno é exibido nesta tela;</li>
             <li>dados e regras de negócio não são editáveis aqui;</li>
             <li>a autorização é validada no servidor;</li>
+            <li>a exportação exige nova confirmação de senha;</li>
             <li>a sessão expira automaticamente.</li>
           </ul>
         </aside>
       </div>
+
+      {exportOpen ? (
+        <div className="admin-export-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeExport(); }}>
+          <form className="admin-export-dialog" onSubmit={submitExport} role="dialog" aria-modal="true" aria-labelledby="admin-export-dialog-title">
+            <button type="button" className="admin-export-close" aria-label="Fechar" onClick={closeExport}>×</button>
+            <span className="eyebrow">CONFIRMAÇÃO OBRIGATÓRIA</span>
+            <h2 id="admin-export-dialog-title">Autorizar exportação</h2>
+            <p>Este arquivo contém a base completa e informações de uso interno. A senha é validada novamente no servidor antes da geração.</p>
+            <label>
+              <span>Senha</span>
+              <input
+                autoFocus
+                type="password"
+                autoComplete="current-password"
+                value={exportPassword}
+                onChange={(event) => setExportPassword(event.target.value)}
+                placeholder="Informe a senha"
+              />
+            </label>
+            {exportFeedback?.tone === "error" ? <p className="admin-feedback error" role="alert">{exportFeedback.text}</p> : null}
+            <div className="admin-export-dialog-actions">
+              <button type="button" className="ghost-button" onClick={closeExport} disabled={exporting}>Cancelar</button>
+              <button type="submit" className="primary-button" disabled={exporting}>{exporting ? "Gerando arquivo…" : "Confirmar e exportar"}</button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </section>
   );
 }

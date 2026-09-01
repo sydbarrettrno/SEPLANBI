@@ -13,28 +13,8 @@ interface DashboardContentState {
 
 const DashboardContentContext = createContext<DashboardContentState | null>(null);
 
-function applyPortfolioTerminology(source: DashboardCopy): DashboardCopy {
-  const cloned = cloneDashboardCopy(source);
-  const walk = (value: unknown): unknown => {
-    if (typeof value === "string") {
-      return value
-        .replace(/ESTOQUE/g, "CARTEIRA DE ATENDIMENTO")
-        .replace(/Estoque/g, "Carteira de Atendimento")
-        .replace(/estoque/g, "carteira de atendimento");
-    }
-    if (Array.isArray(value)) return value.map(walk);
-    if (value && typeof value === "object") {
-      return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, walk(item)]));
-    }
-    return value;
-  };
-  return walk(cloned) as DashboardCopy;
-}
-
-const DEFAULTS_WITH_TERMINOLOGY = applyPortfolioTerminology(DEFAULT_DASHBOARD_COPY);
-
 export function DashboardContentProvider({ children }: { children: ReactNode }) {
-  const [copy, setCopy] = useState<DashboardCopy>(() => cloneDashboardCopy(DEFAULTS_WITH_TERMINOLOGY));
+  const [copy, setCopy] = useState<DashboardCopy>(() => cloneDashboardCopy(DEFAULT_DASHBOARD_COPY));
   const [persistent, setPersistent] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,12 +23,12 @@ export function DashboardContentProvider({ children }: { children: ReactNode }) 
     const controller = new AbortController();
     fetchDashboardCopy(controller.signal)
       .then((result) => {
-        setCopy(applyPortfolioTerminology(result.copy));
+        setCopy(cloneDashboardCopy(result.copy));
         setPersistent(result.persistent);
         setUpdatedAt(result.updated_at);
       })
       .catch(() => {
-        setCopy(cloneDashboardCopy(DEFAULTS_WITH_TERMINOLOGY));
+        setCopy(cloneDashboardCopy(DEFAULT_DASHBOARD_COPY));
         setPersistent(false);
       })
       .finally(() => {
@@ -59,14 +39,13 @@ export function DashboardContentProvider({ children }: { children: ReactNode }) 
 
   const value = useMemo<DashboardContentState>(() => ({
     copy,
-    defaults: DEFAULTS_WITH_TERMINOLOGY,
+    defaults: DEFAULT_DASHBOARD_COPY,
     persistent,
     updatedAt,
     loading,
     save: async (next) => {
-      const normalized = applyPortfolioTerminology(next);
-      const result = await saveDashboardCopy(normalized);
-      setCopy(applyPortfolioTerminology(result.copy));
+      const result = await saveDashboardCopy(next);
+      setCopy(cloneDashboardCopy(result.copy));
       setPersistent(result.persistent);
       setUpdatedAt(result.updated_at);
     },

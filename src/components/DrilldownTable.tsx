@@ -5,19 +5,17 @@ interface DrilldownTableProps {
   records: DashboardData["records"];
   onPage: (offset: number) => void;
   onProtocol: (protocol: string) => void;
-  exportHref?: string | null;
   title?: string;
 }
 
-export function DrilldownTable({ records, onPage, onProtocol, exportHref, title = "Protocolos do recorte" }: DrilldownTableProps) {
+export function DrilldownTable({ records, onPage, onProtocol, title = "Protocolos do recorte" }: DrilldownTableProps) {
   const start = records.total ? records.offset + 1 : 0;
   const end = Math.min(records.total, records.offset + records.items.length);
   return (
     <section className="panel table-panel">
       <div className="panel-heading table-heading">
-        <div><span className="eyebrow">DRILL-DOWN AUDITÁVEL</span><h2>{title}</h2><p>{formatNumber(records.total)} registros · exibindo {start}–{end}</p></div>
+        <div><span className="eyebrow">DRILL-DOWN</span><h2>{title}</h2><p>{formatNumber(records.total)} registros · exibindo {start}–{end}</p></div>
         <div className="pager">
-          {exportHref ? <a className="ghost-button" href={exportHref}>Exportar CSV público</a> : null}
           <button disabled={records.offset <= 0} onClick={() => onPage(Math.max(0, records.offset - records.limit))}>← Anterior</button>
           <button disabled={records.offset + records.items.length >= records.total} onClick={() => onPage(records.offset + records.limit)}>Próxima →</button>
         </div>

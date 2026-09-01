@@ -1,6 +1,14 @@
+import { useId } from "react";
+
 export interface KpiSeriesPoint {
   label: string;
   value: number | null;
+}
+
+export interface KpiTooltipContent {
+  what: string;
+  interpret: string;
+  period: string;
 }
 
 interface KpiCardProps {
@@ -12,6 +20,7 @@ interface KpiCardProps {
   trend?: string;
   icon?: string;
   series?: KpiSeriesPoint[];
+  tooltip?: KpiTooltipContent;
   onClick?: () => void;
 }
 
@@ -51,13 +60,23 @@ function Sparkline({ series }: { series: KpiSeriesPoint[] }) {
   );
 }
 
-export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon, series = [], onClick }: KpiCardProps) {
+export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon, series = [], tooltip, onClick }: KpiCardProps) {
+  const tooltipId = useId();
   return (
-    <button className={`kpi-card tone-${tone}`} onClick={onClick} type="button" aria-label={`${eyebrow}: ${value}. ${description}`}>
+    <button
+      className={`kpi-card tone-${tone}`}
+      onClick={onClick}
+      type="button"
+      aria-label={`${eyebrow}: ${value}. ${description}`}
+      aria-describedby={tooltip ? tooltipId : undefined}
+    >
       <span className="kpi-accent" />
       <div className="kpi-topline">
         <span className="kpi-label">{icon ? <i aria-hidden="true">{icon}</i> : null}{eyebrow}</span>
-        {trend ? <small>{trend}</small> : null}
+        <span className="kpi-topline-side">
+          {trend ? <small>{trend}</small> : null}
+          {tooltip ? <i className="kpi-help" aria-hidden="true">?</i> : null}
+        </span>
       </div>
       <strong>{value}</strong>
       <p>{description}</p>
@@ -66,7 +85,13 @@ export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon
         <span>{detail}</span>
         <i aria-hidden="true">→</i>
       </footer>
-      <span className="kpi-help-tooltip" role="tooltip">{description}</span>
+      {tooltip ? (
+        <span className="kpi-help-tooltip" role="tooltip" id={tooltipId}>
+          <span><b>O que é</b>{tooltip.what}</span>
+          <span><b>Como interpretar</b>{tooltip.interpret}</span>
+          <span><b>Período analisado</b>{tooltip.period}</span>
+        </span>
+      ) : null}
     </button>
   );
 }

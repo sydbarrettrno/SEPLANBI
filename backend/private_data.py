@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import base64
 import gzip
 import json
+import lzma
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -10,6 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ENV_PATH = "SEPLANBI_PRIVATE_DATA_PATH"
 BUNDLED_PATH = ROOT / "private" / "base_private.json.gz"
+BUNDLED_PARTS_DIR = ROOT / "private"
+BUNDLED_PART_GLOB = "base_private.xz.b64.part*"
 
 PRIVATE_FIELDS_V2 = {
     "ProtocoloID",
@@ -38,27 +42,47 @@ def configured_path() -> Path | None:
         except ValueError:
             return path
         raise RuntimeError("A camada privada configurada por ambiente deve permanecer fora do repositório SEPLANBI.")
-
-    # Em produção, o deploy pode incluir um artefato privado somente dentro do bundle
-    # serverless. A pasta /private permanece ignorada pelo Git e nunca vai para dist/.
     if BUNDLED_PATH.is_file():
         return BUNDLED_PATH
     return None
 
 
-@lru_cache(maxsize=1)
-def load_private_rows() -> dict[str, dict[str, str]]:
+def _read_payload_bytes() -> bytes:
     path = configured_path()
-    if path is None:
+    if path is not None:
+        if not path.is_file():
+            raise RuntimeError("Artefato privado configurado não foi localizado.")
+        try:
+            raw = path.read_bytes()
+            if path.suffix == ".xz":
+                return lzma.decompress(raw)
+            return gzip.decompress(raw)
+        except Exception as exc:
+            raise RuntimeError("Artefato privado inválido.") from exc
+
+    # Para deploys manuais, a base privada pode ser enviada em partes Base64 de um
+    # único XZ. As partes entram apenas no includeFiles da função Python; não são
+    # copiadas para dist/ e a pasta /private é bloqueada pelo .gitignore.
+    parts = sorted(BUNDLED_PARTS_DIR.glob(BUNDLED_PART_GLOB)) if BUNDLED_PARTS_DIR.is_dir() else []
+    if not parts:
         raise RuntimeError(
             f"Camada privada não configurada; defina {ENV_PATH} no backend autorizado "
             "ou inclua o artefato privado somente no pacote serverless."
         )
-    if not path.is_file():
-        raise RuntimeError("Artefato privado configurado não foi localizado.")
     try:
-        payload = json.loads(gzip.decompress(path.read_bytes()).decode("utf-8"))
+        encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
+        return lzma.decompress(base64.b64decode(encoded, validate=True))
     except Exception as exc:
+        raise RuntimeError("Partes do artefato privado são inválidas.") from exc
+
+
+@lru_cache(maxsize=1)
+def load_private_rows() -> dict[str, dict[str, str]]:
+    try:
+        payload = json.loads(_read_payload_bytes().decode("utf-8"))
+    except Exception as exc:
+        if isinstance(exc, RuntimeError):
+            raise
         raise RuntimeError("Artefato privado inválido.") from exc
 
     version = int(payload.get("v") or 0)

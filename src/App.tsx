@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { fetchDashboard } from "./api";
+import { fetchDashboard, fetchExtendedIndicator } from "./api";
 import { AdminDescriptions } from "./components/AdminDescriptions";
 import { BarList } from "./components/BarList";
 import { BiPanel } from "./components/BiPanel";
@@ -56,6 +56,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [turnaroundTrend, setTurnaroundTrend] = useState<Array<{ label: string; value: number | null }>>([]);
 
   useEffect(() => {
     const allowed: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators", "admin"];
@@ -95,6 +96,43 @@ export default function App({ adminAuthorized = false }: AppProps) {
     return () => controller.abort();
   }, [filters, reloadKey]);
 
+  useEffect(() => {
+    if (!filters.from || !filters.to) {
+      setTurnaroundTrend([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    setTurnaroundTrend([]);
+    fetchExtendedIndicator({
+      kpi: 4,
+      from: filters.from,
+      to: filters.to,
+      year: filters.year || undefined,
+      month: filters.month || undefined,
+      macro: filters.macro || undefined,
+      category: filters.category || undefined,
+      status: filters.status || undefined,
+      sector: filters.sector || undefined,
+      q: filters.q || undefined,
+      limit: 1,
+      offset: 0,
+    }, controller.signal)
+      .then((result) => {
+        const monthly = result.comparison?.monthly ?? [];
+        const fallbackYear = filters.year || filters.from.slice(0, 4);
+        setTurnaroundTrend(monthly.map((item) => ({
+          label: monthLabel(`${fallbackYear}-${String(item.month).padStart(2, "0")}`),
+          value: typeof item.current === "number" ? item.current : null,
+        })));
+      })
+      .catch((reason: unknown) => {
+        if (reason instanceof DOMException && reason.name === "AbortError") return;
+        setTurnaroundTrend([]);
+      });
+    return () => controller.abort();
+  }, [filters.from, filters.to, filters.year, filters.month, filters.macro, filters.category, filters.status, filters.sector, filters.q]);
+
   const seasonality = useMemo(() => {
     const flow = data?.charts.flow ?? [];
     if (!flow.length) return null;
@@ -103,6 +141,31 @@ export default function App({ adminAuthorized = false }: AppProps) {
     const peakOut = flow.reduce((best, item) => item.concluded > best.concluded ? item : best);
     return { peakIn, valleyIn, peakOut };
   }, [data]);
+
+  const kpiTrends = useMemo(() => {
+    if (!data) return null;
+    const flow = data.charts.flow;
+    const received = flow.map((item) => ({ label: monthLabel(item.month), value: item.received }));
+    const concluded = flow.map((item) => ({ label: monthLabel(item.month), value: item.concluded }));
+    const balance = flow.map((item) => ({ label: monthLabel(item.month), value: item.received - item.concluded }));
+
+    const isCurrentCut = data.meta.period.to === data.meta.source_updated_at.slice(0, 10);
+    const canReconstructStock = isCurrentCut && !filters.status && !filters.owner && !filters.sector;
+    const stock = canReconstructStock
+      ? (() => {
+          let running = data.metrics.stock;
+          const points = new Array<{ label: string; value: number }>(flow.length);
+          for (let index = flow.length - 1; index >= 0; index -= 1) {
+            const item = flow[index]!;
+            points[index] = { label: monthLabel(item.month), value: running };
+            running -= item.received - item.concluded;
+          }
+          return points;
+        })()
+      : [];
+
+    return { received, concluded, balance, stock };
+  }, [data, filters.status, filters.owner, filters.sector]);
 
   const openDetail = (detail: DetailId, recordset: Recordset) => {
     setSelectedDetail(detail);
@@ -203,6 +266,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
                     detail={`${data.meta.period.from} → ${data.meta.period.to}`}
                     tone="blue"
                     trend={comparisonLabel(comparison?.received_change_percent, "Entradas")}
+                    series={kpiTrends?.received}
                     onClick={() => navigate("received")}
                   />
                   <KpiCard
@@ -213,6 +277,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
                     detail="Coorte do mês + passivo anterior absorvido"
                     tone="green"
                     trend={comparisonLabel(comparison?.cohort_concluded_change_percent, "Coorte concluída")}
+                    series={kpiTrends?.concluded}
                     onClick={() => navigate("outputs")}
                   />
                   <KpiCard
@@ -222,6 +287,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
                     description="Recebidos − saídas operacionais no período."
                     detail={`${formatNumber(metrics.received)} − ${formatNumber(metrics.concluded)}`}
                     tone={metrics.period_balance > 0 ? "orange" : "green"}
+                    series={kpiTrends?.balance}
                     onClick={() => openDetail("balance", "all")}
                   />
                   <KpiCard
@@ -231,6 +297,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
                     description="Protocolos em status não terminal na data de corte."
                     detail={`${formatNumber(metrics.internal_queue)} internos · ${formatNumber(metrics.external_wait)} externos · ${formatNumber(metrics.paralyzed)} paralisados`}
                     tone="orange"
+                    series={kpiTrends?.stock}
                     onClick={() => navigate("stock")}
                   />
                   <KpiCard
@@ -240,6 +307,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
                     description="Mediana de DataFim − DataAbertura nas saídas elegíveis."
                     detail={`n=${formatNumber(metrics.turnaround.eligible)} · média ${formatDays(metrics.turnaround.mean_days)} · P90 ${formatDays(metrics.turnaround.p90_days)}`}
                     tone="purple"
+                    series={turnaroundTrend}
                     onClick={() => window.location.hash = "#/kpi04"}
                   />
                 </section>

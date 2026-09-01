@@ -27,11 +27,28 @@ from backend.admin_store import (
 
 
 ADMIN_COOKIE = "seplan_admin_session"
+ANALYTICS_INDICATORS = {
+    "received",
+    "recebidos",
+    "outputs",
+    "saidas",
+    "saídas",
+    "concluded",
+    "stock",
+    "estoque",
+}
 
 
 def _flatten(query_string: str) -> dict[str, str]:
     parsed = parse_qs(query_string, keep_blank_values=False)
     return {key: values[-1] for key, values in parsed.items() if values}
+
+
+def _analytics_query(params: dict[str, str]):
+    indicator = str(params.get("indicator", "")).strip().casefold()
+    if indicator and indicator not in ANALYTICS_INDICATORS:
+        raise ValueError("Indicador analítico inválido.")
+    return analytics_query_from_params(params)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -51,10 +68,12 @@ class handler(BaseHTTPRequestHandler):
         body = body_text.encode("utf-8-sig")
         self.send_response(status)
         self.send_header("Content-Type", "text/csv; charset=utf-8")
-        self.send_header("Content-Disposition", 'attachment; filename="seplanbi-drilldown-publico.csv"')
+        self.send_header("Content-Disposition", 'attachment; filename="seplanbi-drilldown.csv"')
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+        self.send_header("Pragma", "no-cache")
         self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Content-Security-Policy", "default-src 'none'; sandbox")
         self.end_headers()
         self.wfile.write(body)
 
@@ -86,6 +105,15 @@ class handler(BaseHTTPRequestHandler):
         morsel = cookie.get(ADMIN_COOKIE)
         return morsel.value if morsel else None
 
+    def _admin_authorized(self) -> bool:
+        return validate_admin_session(self._admin_token())
+
+    def _require_admin(self) -> bool:
+        if self._admin_authorized():
+            return True
+        self._json(403, {"ok": False, "error": "Acesso não autorizado."})
+        return False
+
     def _session_cookie(self, token: str) -> str:
         return (
             f"{ADMIN_COOKIE}={token}; Path=/; HttpOnly; Secure; SameSite=Strict; "
@@ -104,6 +132,8 @@ class handler(BaseHTTPRequestHandler):
                 self._json(200, health())
                 return
             if action == "private-data-status":
+                if not self._require_admin():
+                    return
                 try:
                     rows = load_private_rows()
                     self._json(200, {"ok": True, "configured": True, "rows": len(rows)})
@@ -111,7 +141,7 @@ class handler(BaseHTTPRequestHandler):
                     self._json(503, {"ok": False, "configured": False, "rows": 0})
                 return
             if action == "admin-session":
-                self._json(200, {"ok": True, "authorized": validate_admin_session(self._admin_token())})
+                self._json(200, {"ok": True, "authorized": self._admin_authorized()})
                 return
             if action == "dashboard-copy":
                 self._json(200, load_copy())
@@ -120,10 +150,12 @@ class handler(BaseHTTPRequestHandler):
                 self._json(200, load_descriptions())
                 return
             if action == "analytics":
-                self._json(200, analytics_response(analytics_query_from_params(params)))
+                self._json(200, analytics_response(_analytics_query(params)))
                 return
             if action == "analytics-export":
-                self._csv(200, export_public_csv(analytics_query_from_params(params)))
+                if not self._require_admin():
+                    return
+                self._csv(200, export_public_csv(_analytics_query(params)))
                 return
             if action == "indicator-bi":
                 self._json(200, indicator_view_response(params))
@@ -134,8 +166,10 @@ class handler(BaseHTTPRequestHandler):
             self._json(200, dashboard(query_from_params(params)))
         except AdminStoreError as exc:
             self._json(exc.status, {"ok": False, "error": exc.public_message})
-        except Exception as exc:
-            self._json(500, {"ok": False, "error": str(exc)})
+        except (ValueError, json.JSONDecodeError):
+            self._json(400, {"ok": False, "error": "Parâmetros inválidos."})
+        except Exception:
+            self._json(500, {"ok": False, "error": "Falha interna ao processar a solicitação."})
 
     def do_POST(self):
         try:
@@ -167,8 +201,10 @@ class handler(BaseHTTPRequestHandler):
                 )
                 return
 
+            if not self._require_admin():
+                return
+
             if action == "private-export":
-                create_admin_session(payload.get("password", ""), client_ip)
                 try:
                     body, filename = build_private_xlsx()
                 except RuntimeError:
@@ -186,14 +222,14 @@ class handler(BaseHTTPRequestHandler):
             if action == "dashboard-copy":
                 result = save_copy(
                     payload.get("copy"),
-                    payload.get("password", ""),
+                    "",
                     client_ip,
                     session_token=session_token,
                 )
             else:
                 result = save_descriptions(
                     payload.get("descriptions"),
-                    payload.get("password", ""),
+                    "",
                     client_ip,
                     session_token=session_token,
                 )
@@ -201,7 +237,7 @@ class handler(BaseHTTPRequestHandler):
         except AdminStoreError as exc:
             self._json(exc.status, {"ok": False, "error": exc.public_message})
         except (ValueError, json.JSONDecodeError):
-            self._json(400, {"ok": False, "error": "JSON inválido."})
+            self._json(400, {"ok": False, "error": "JSON ou parâmetros inválidos."})
         except Exception:
             self._json(500, {"ok": False, "error": "Falha interna ao processar a solicitação."})
 

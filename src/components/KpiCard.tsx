@@ -53,7 +53,7 @@ function Sparkline({ series }: { series: KpiSeriesPoint[] }) {
 
 export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon, series = [], onClick }: KpiCardProps) {
   return (
-    <button className={`kpi-card tone-${tone}`} onClick={onClick} type="button">
+    <button className={`kpi-card tone-${tone}`} onClick={onClick} type="button" aria-label={`${eyebrow}: ${value}. ${description}`}>
       <span className="kpi-accent" />
       <div className="kpi-topline">
         <span className="kpi-label">{icon ? <i aria-hidden="true">{icon}</i> : null}{eyebrow}</span>
@@ -66,6 +66,7 @@ export function KpiCard({ eyebrow, value, description, detail, tone, trend, icon
         <span>{detail}</span>
         <i aria-hidden="true">→</i>
       </footer>
+      <span className="kpi-help-tooltip" role="tooltip">{description}</span>
     </button>
   );
 }

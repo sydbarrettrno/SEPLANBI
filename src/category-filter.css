@@ -1,0 +1,92 @@
+.category-multiselect {
+  grid-column: 1 / -1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.category-multiselect > legend {
+  margin-bottom: 6px;
+  color: #68758a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.category-multiselect-summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 11px;
+  color: #34435b;
+  border: 1px solid #d6dee8;
+  border-radius: 8px 8px 0 0;
+  background: #fbfcfe;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.category-multiselect-summary button {
+  padding: 4px 0;
+  color: #1767bc;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.category-options {
+  display: grid;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid #d6dee8;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  background: white;
+}
+
+.filter-bar .category-option {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  grid-column: auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 7px 10px;
+  border-bottom: 1px solid #edf1f5;
+  cursor: pointer;
+}
+
+.filter-bar .category-option:last-child {
+  border-bottom: 0;
+}
+
+.filter-bar .category-option:hover,
+.filter-bar .category-option.selected {
+  background: #f3f8fe;
+}
+
+.filter-bar .category-option input[type="checkbox"] {
+  width: 16px;
+  min-height: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: #1871d5;
+  box-shadow: none;
+}
+
+.filter-bar .category-option > span {
+  overflow: hidden;
+  color: #405169;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+}

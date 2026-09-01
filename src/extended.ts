@@ -24,6 +24,23 @@ export interface ExtendedRecord {
   DataReferencia?: string;
 }
 
+export interface ExtendedComparisonMonthlyPoint {
+  month: number;
+  current: number | null;
+  previous: number | null;
+  current_eligible: number;
+  previous_eligible: number;
+}
+
+export interface ExtendedComparison {
+  current?: Record<string, unknown>;
+  previous?: Record<string, unknown>;
+  median_change_days?: number | null;
+  median_change_percent?: number | null;
+  monthly?: ExtendedComparisonMonthlyPoint[];
+  rule?: string;
+}
+
 export interface ExtendedResponse {
   ok: boolean;
   contract: string;
@@ -42,6 +59,7 @@ export interface ExtendedResponse {
   metrics?: Record<string, unknown> | null;
   context?: Record<string, unknown>;
   coverage?: Record<string, unknown>;
+  comparison?: ExtendedComparison | null;
   monthly?: Array<Record<string, unknown>>;
   categories?: ExtendedNamedValue[];
   sectors?: ExtendedNamedValue[];

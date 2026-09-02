@@ -67,7 +67,7 @@ def _analytics_query(params: dict[str, str]):
     return analytics_query_from_params(params)
 
 
-def _public_analytics_payload(payload: dict) -> dict:
+def _public_analytics_payload(payload: dict, *, can_export: bool = False) -> dict:
     """Reduz o contrato público aos campos consumidos pela interface."""
     result = dict(payload)
     meta = result.get("meta")
@@ -76,7 +76,7 @@ def _public_analytics_payload(payload: dict) -> dict:
     result["permissions"] = {
         "public_detail": True,
         "private_detail": False,
-        "public_export": False,
+        "public_export": can_export,
         "private_export": False,
     }
     records = result.get("records")
@@ -195,7 +195,10 @@ class handler(BaseHTTPRequestHandler):
                 self._json(200, load_copy())
                 return
             if action == "analytics":
-                self._json(200, _public_analytics_payload(analytics_response(_analytics_query(params))))
+                self._json(200, _public_analytics_payload(
+                    analytics_response(_analytics_query(params)),
+                    can_export=self._admin_authorized(),
+                ))
                 return
             if action == "analytics-export":
                 if not self._require_admin():

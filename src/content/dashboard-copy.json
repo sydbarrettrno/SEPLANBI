@@ -36,10 +36,10 @@
   "received": {
     "eyebrow": "PAINEL 1 · DEMANDA",
     "title": "Processos recebidos",
-    "description": "Compare períodos equivalentes e investigue mês, macroprocesso, categoria e protocolo.",
+    "description": "Compare períodos equivalentes e investigue mês, família de processos, categoria e protocolo.",
     "metrics": { "current": "Recebidos no período", "previous": "Mesmo período", "previousDetail": "Comparação homóloga", "absolute": "Variação absoluta", "absoluteDetail": "Período atual menos anterior", "percent": "Variação percentual", "percentDetail": "Períodos equivalentes" },
-    "monthly": { "eyebrow": "GRÁFICO PRINCIPAL", "title": "Recebidos por mês", "description": "Clique no mês; os gráficos de macroprocesso, categoria e a tabela serão recalculados." },
-    "macro": { "eyebrow": "NÍVEL 2", "title": "Macroprocessos", "description": "Barras ordenadas no recorte ativo." },
+    "monthly": { "eyebrow": "GRÁFICO PRINCIPAL", "title": "Recebidos por mês", "description": "Clique no mês; os gráficos de família, categoria e a tabela serão recalculados." },
+    "macro": { "eyebrow": "NÍVEL 2", "title": "Famílias de Processos", "description": "Barras ordenadas no recorte ativo." },
     "category": { "eyebrow": "NÍVEL 3", "title": "Recebidos por categoria", "description": "Expanda a lista sem ocultar o restante do universo." },
     "reading": { "eyebrow": "LEITURA EM 5 SEGUNDOS", "titleSuffix": "protocolos no cruzamento", "reconciled": "fechada", "divergent": "divergente" }
   },

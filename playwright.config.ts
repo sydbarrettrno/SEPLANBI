@@ -10,7 +10,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   reporter: [["list"]],
   use: {
-    baseURL: "http://127.0.0.1:8000",
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8000",
     browserName: "chromium",
     channel: "chrome",
     viewport: { width: 1440, height: 1000 },

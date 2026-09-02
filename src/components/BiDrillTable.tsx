@@ -13,7 +13,7 @@ interface BiDrillTableProps {
   onSort: (field: string) => void;
   onProtocol: (protocol: string) => void;
   exportHref?: string;
-  privateDetail?: boolean;
+  exportAllowed?: boolean;
 }
 
 const COLUMNS = [
@@ -26,7 +26,7 @@ const COLUMNS = [
   ["last_movement", "Último trâmite"],
 ] as const;
 
-export function BiDrillTable({ total, items, offset, limit, sortBy, sortDir, onPage, onSort, onProtocol }: BiDrillTableProps) {
+export function BiDrillTable({ total, items, offset, limit, sortBy, sortDir, onPage, onSort, onProtocol, exportHref, exportAllowed }: BiDrillTableProps) {
   const start = total ? offset + 1 : 0;
   const end = Math.min(total, offset + items.length);
   return (
@@ -38,6 +38,7 @@ export function BiDrillTable({ total, items, offset, limit, sortBy, sortDir, onP
           <p>Exibindo {start}–{end}. Refine os filtros para investigar o conjunto desejado.</p>
         </div>
         <div className="pager">
+          {exportHref && exportAllowed ? <a className="ghost-button" href={exportHref} download>Exportar recorte</a> : null}
           <button disabled={offset <= 0} onClick={() => onPage(Math.max(0, offset - limit))}>← Anterior</button>
           <button disabled={offset + items.length >= total} onClick={() => onPage(offset + limit)}>Próxima →</button>
         </div>

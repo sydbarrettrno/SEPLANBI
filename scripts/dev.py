@@ -14,7 +14,8 @@ sys.path.insert(0, str(ROOT))
 
 from backend.final_entry import dashboard, health, query_from_params  # noqa: E402
 from backend.analytics import analytics_response, export_public_csv, query_from_params as analytics_query_from_params  # noqa: E402
-from backend.admin_store import AdminStoreError, load_descriptions, save_descriptions  # noqa: E402
+from backend.indicator_views import indicator_view_response  # noqa: E402
+from backend.admin_store import AdminStoreError, load_copy, load_descriptions, save_descriptions  # noqa: E402
 
 
 def _flatten(query_string: str) -> dict[str, str]:
@@ -59,6 +60,10 @@ class DevHandler(SimpleHTTPRequestHandler):
                 action = params.pop("action", "dashboard")
                 if action == "health":
                     payload = health()
+                elif action == "admin-session":
+                    payload = {"ok": True, "authorized": False}
+                elif action == "dashboard-copy":
+                    payload = load_copy()
                 elif action == "card-descriptions":
                     payload = load_descriptions()
                 elif action == "analytics":
@@ -66,6 +71,8 @@ class DevHandler(SimpleHTTPRequestHandler):
                 elif action == "analytics-export":
                     self._send_csv(200, export_public_csv(analytics_query_from_params(params)))
                     return
+                elif action == "indicator-bi":
+                    payload = indicator_view_response(params)
                 elif action == "dashboard":
                     payload = dashboard(query_from_params(params))
                 else:

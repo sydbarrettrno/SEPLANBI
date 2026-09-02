@@ -59,7 +59,7 @@ test("recebidos: período homólogo, cross-filter e drill-down exato", async ({ 
   await month.click();
   await waitForCount(page, monthValue);
 
-  const macro = page.locator("article:has(h2:text-is('Macroprocessos')) [data-visual-key]").first();
+  const macro = page.locator("article:has(h2:text-is('Famílias de Processos')) [data-visual-key]").first();
   const macroValue = Number(await macro.getAttribute("data-visual-value"));
   await macro.click();
   await waitForCount(page, macroValue);
@@ -68,7 +68,7 @@ test("recebidos: período homólogo, cross-filter e drill-down exato", async ({ 
   const categoryValue = Number(await category.getAttribute("data-visual-value"));
   await category.click();
   await waitForCount(page, categoryValue);
-  await expect(page.locator(".drill-breadcrumb")).toContainText("Macroprocesso");
+  await expect(page.locator(".drill-breadcrumb")).toContainText("Família de Processos");
   await expect(page.locator(".drill-breadcrumb")).toContainText("Categoria");
 
   await page.getByRole("button", { name: "Drill-up" }).click();
@@ -118,7 +118,7 @@ test("estoque: responsabilidade, idade, categoria e status chegam aos protocolos
   await expect(page.getByText("31", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("71,6%", { exact: true }).first()).toBeVisible();
 
-  const responsibility = page.locator(".stacked-track [data-visual-key='Fila Interna SEPLAN']");
+  const responsibility = page.locator(".composition-legend [data-visual-key='Fila Interna SEPLAN']");
   await responsibility.click();
   await waitForCount(page, 1545);
 
@@ -164,14 +164,14 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await openFilters(page);
   await page.screenshot({ path: join(SCREENSHOTS, "filtros-drawer-desktop.png"), fullPage: true });
   await page.getByLabel("Mês").selectOption("1");
-  await page.getByLabel("Macroprocesso").selectOption({ index: 1 });
+  await page.getByLabel("Família de Processos").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect.poll(() => recordCount(page)).toBeLessThan(2899);
   await expect(page.locator(".filter-launcher")).toContainText("2 ativos");
 
   await openFilters(page);
   await expect(page.locator(".active-filter-strip")).toContainText("Mês: 1");
-  await expect(page.locator(".active-filter-strip")).toContainText("Macroprocesso:");
+  await expect(page.locator(".active-filter-strip")).toContainText("Família de Processos:");
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2899);
 
@@ -188,12 +188,12 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await waitForCount(page, 2159);
   await openFilters(page);
   await page.getByLabel("Status").selectOption("Em Análise");
-  await page.getByLabel("Setor").selectOption({ index: 1 });
-  await page.getByLabel("Responsabilidade").selectOption("Interno");
+  await page.getByLabel("Setor de tramitação").selectOption({ index: 1 });
+  await page.locator(".filter-bar label", { hasText: "Responsabilidade" }).locator("select").selectOption("Interno");
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await openFilters(page);
   await expect(page.locator(".active-filter-strip")).toContainText("Status: Em Análise");
-  await expect(page.locator(".active-filter-strip")).toContainText("Setor:");
+  await expect(page.locator(".active-filter-strip")).toContainText("Setor de tramitação:");
   await expect(page.locator(".active-filter-strip")).toContainText("Responsabilidade: Interno");
   await expect.poll(() => recordCount(page)).toBeLessThan(2159);
   await page.getByRole("button", { name: "Limpar filtros" }).click();
@@ -214,9 +214,9 @@ test("filtro lateral, escala dos gráficos e cores semânticas ficam legíveis",
   expect(valueFont).toBeGreaterThanOrEqual(12);
 
   await openPanel(page, "stock");
-  const internalColor = await page.locator(".stacked-track [data-visual-key='Fila Interna SEPLAN']").evaluate((element) => getComputedStyle(element).backgroundColor);
-  const externalColor = await page.locator(".stacked-track [data-visual-key='Aguardando Responsável Externo']").evaluate((element) => getComputedStyle(element).backgroundColor);
-  const paralyzedColor = await page.locator(".stacked-track [data-visual-key='Paralisado']").evaluate((element) => getComputedStyle(element).backgroundColor);
+  const internalColor = await page.locator(".composition-legend [data-visual-key='Fila Interna SEPLAN'] i").evaluate((element) => getComputedStyle(element).backgroundColor);
+  const externalColor = await page.locator(".composition-legend [data-visual-key='Aguardando Responsável Externo'] i").evaluate((element) => getComputedStyle(element).backgroundColor);
+  const paralyzedColor = await page.locator(".composition-legend [data-visual-key='Paralisado'] i").evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(new Set([internalColor, externalColor, paralyzedColor]).size).toBe(3);
 
   const youngestColor = await page.locator("[data-visual-key='0–30 dias'] > i em").evaluate((element) => getComputedStyle(element).backgroundColor);
@@ -232,4 +232,21 @@ test("os três painéis são responsivos no viewport menor", async ({ page }) =>
     expect(Math.max(viewport.body, viewport.html)).toBeLessThanOrEqual(viewport.viewport);
     await page.screenshot({ path: join(SCREENSHOTS, `${indicator}-mobile.png`), fullPage: true });
   }
+});
+
+test("projetos públicos: carteira independente, filtros e detalhamento reconciliam", async ({ page }) => {
+  const failures = watchRuntime(page);
+  await page.goto("/#/projects", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Projetos Públicos", level: 1 })).toBeVisible();
+  await expect(page.getByText("20", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Fonte: Controle de Projetos SEPLAN")).toBeVisible();
+  await page.getByLabel("Status").selectOption("Paralisado");
+  await expect(page.getByText("2 projetos visíveis.")).toBeVisible();
+  await expect(page.locator(".extended-detail tbody tr")).toHaveCount(2);
+  await page.locator(".project-link").first().click();
+  await expect(page.locator(".project-detail")).toBeVisible();
+  await expect(page.locator(".project-detail")).toContainText("Evidência atual da fonte");
+  await page.getByRole("button", { name: "Limpar", exact: true }).click();
+  await expect(page.getByText("20 projetos visíveis.")).toBeVisible();
+  expect(failures).toEqual([]);
 });

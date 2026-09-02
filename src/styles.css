@@ -586,6 +586,7 @@ td { padding: 14px 15px; font-size: 12px; }
 .bi-page { min-width: 0; }
 .bi-hero { align-items: center; }
 .bi-page-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.portfolio-source { display: block; margin-top: 8px; color: #78869a; font-size: 11px; line-height: 1.45; }
 .bi-metric-grid { display: grid; gap: 12px; margin-bottom: 15px; }
 .bi-metric-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .bi-metric-grid.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
@@ -675,6 +676,7 @@ td { padding: 14px 15px; font-size: 12px; }
 .balance-evolution strong { text-align: right; font-size: 14px; }
 
 .stacked-composition { display: grid; gap: 24px; padding: 34px 2px 12px; }
+.stacked-composition-chart { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: 28px; padding-top: 16px; }
 .stacked-track { display: flex; min-height: 88px; overflow: hidden; border-radius: 13px; background: #edf1f5; box-shadow: inset 0 0 0 1px rgba(17,43,75,.07); }
 .stacked-track .segment { display: grid; min-width: 25px; place-items: center; color: white; border: 0; opacity: .94; transition: 160ms ease; }
 .stacked-track .segment:hover, .stacked-track .segment.selected { opacity: 1; filter: brightness(1.08); box-shadow: inset 0 0 0 3px rgba(255,255,255,.55); }
@@ -724,6 +726,7 @@ td { padding: 14px 15px; font-size: 12px; }
   .coverage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bi-metric-grid.four, .bi-metric-grid.five { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bi-layout-secondary { grid-template-columns: 1fr; }
+  .stacked-composition-chart { grid-template-columns: 1fr; }
   .month-columns, .flow-columns { overflow-x: auto; grid-template-columns: repeat(8, minmax(62px, 1fr)); padding-bottom: 8px; }
   .projects-filter-bar { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
 }

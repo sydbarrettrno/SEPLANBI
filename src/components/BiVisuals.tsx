@@ -203,7 +203,7 @@ export function StackedComposition({ items, selected, onSelect }: CompositionPro
   const depthLayers = [20, 16, 12, 8, 4];
 
   return (
-    <div className="stacked-composition" style={{ gridTemplateColumns: "minmax(330px, .9fr) minmax(280px, 1.1fr)", alignItems: "center", gap: 28, paddingTop: 16 }}>
+    <div className="stacked-composition stacked-composition-chart">
       <div style={{ minWidth: 0 }}>
         <svg viewBox="0 0 360 220" role="img" aria-label={`Responsabilidade operacional de ${formatNumber(total)} protocolos`} style={{ width: "100%", minHeight: 250, overflow: "visible" }}>
           <ellipse cx={cx} cy={cy + 22} rx={rx + 7} ry={ry + 7} fill="rgba(17,43,75,.10)" />
@@ -251,6 +251,8 @@ export function StackedComposition({ items, selected, onSelect }: CompositionPro
           <button
             type="button"
             key={item.key}
+            data-visual-key={item.key}
+            data-visual-value={item.value}
             onClick={() => onSelect(item)}
             style={{ display: "grid", gridTemplateColumns: "14px 1fr auto", alignItems: "center", gap: 10, width: "100%", padding: "11px 12px", border: selected === item.key ? "1px solid #8eb9df" : "1px solid #e0e7ef", borderRadius: 10, background: selected === item.key ? "#f2f8ff" : "#fff", color: "#46566d", textAlign: "left" }}
             title={`${item.label}: ${formatNumber(item.value)} protocolos (${formatPercent(percent)})`}

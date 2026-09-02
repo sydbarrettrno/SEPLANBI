@@ -213,7 +213,7 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
             </>
           ) : null}
 
-          {detail ? <BiDrillTable total={detail.total} items={detail.items} offset={detail.offset} limit={detail.limit} sortBy={sortBy} sortDir={sortDir} onPage={setOffset} onSort={(field) => { setOffset(0); if (sortBy === field) setSortDir((value) => value === "asc" ? "desc" : "asc"); else { setSortBy(field); setSortDir("asc"); } }} onProtocol={(protocol) => apply({ q: protocol })} exportHref={exportHref} privateDetail={data.detail.permissions.private_detail} /> : null}
+          {detail ? <BiDrillTable total={detail.total} items={detail.items} offset={detail.offset} limit={detail.limit} sortBy={sortBy} sortDir={sortDir} onPage={setOffset} onSort={(field) => { setOffset(0); if (sortBy === field) setSortDir((value) => value === "asc" ? "desc" : "asc"); else { setSortBy(field); setSortDir("asc"); } }} onProtocol={(protocol) => apply({ q: protocol })} exportHref={exportHref} exportAllowed={data.detail.permissions.public_export} /> : null}
         </>
       ) : null}
       {loading && data ? <div className="refresh-strip" aria-label="Recalculando painel"><i /></div> : null}

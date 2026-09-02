@@ -25,12 +25,18 @@ class PrivateExportTests(unittest.TestCase):
             "ObservacaoUltimoTramite": "Trâmite de teste",
         })
         payload = {"v": 3, "fields": sorted(PRIVATE_FIELDS_V3), "records": [record]}
-        with tempfile.NamedTemporaryFile(suffix=".json.gz") as tmp:
+        # No Windows, NamedTemporaryFile mantém um bloqueio exclusivo enquanto o
+        # contexto está aberto. O carregador precisa reabrir o artefato pelo
+        # caminho, portanto fechamos o descritor antes da leitura.
+        with tempfile.NamedTemporaryFile(suffix=".json.gz", delete=False) as tmp:
             tmp.write(gzip.compress(json.dumps(payload, ensure_ascii=False).encode("utf-8")))
-            tmp.flush()
+            temporary_path = tmp.name
+        try:
             load_private_rows.cache_clear()
-            with patch.dict(os.environ, {"SEPLANBI_PRIVATE_DATA_PATH": tmp.name}, clear=False):
+            with patch.dict(os.environ, {"SEPLANBI_PRIVATE_DATA_PATH": temporary_path}, clear=False):
                 rows = load_private_rows()
+        finally:
+            os.unlink(temporary_path)
         self.assertEqual(rows["2026-1"]["NomeRequerente"], "Pessoa Teste")
         self.assertEqual(rows["2026-1"]["ObservacaoAbertura"], "Solicitação de teste")
 

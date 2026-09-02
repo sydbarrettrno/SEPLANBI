@@ -559,18 +559,37 @@ def drilldown_private(query: AnalyticsQuery, authorization: PrivateAuthorization
     from backend.private_data import load_private_rows
 
     private_by_id = load_private_rows()
-    public_page = drilldown_public(query)
-    items = []
-    for public in public_page["items"]:
+
+    # O universo público pode receber um incremento sanitizado antes da camada
+    # privada correspondente. A área autorizada nunca pode combinar detalhes
+    # pessoais com um protocolo sem par validado, nem ficar indisponível por um
+    # único registro ainda pendente de reconciliação. Por isso a paginação é
+    # calculada após a interseção, com a divergência explicitamente informada.
+    public_total = len(indicator_rows(query))
+    public_all = drilldown_public(replace(query, offset=0, limit=max(1, public_total)))
+    reconciled: list[dict[str, Any]] = []
+    unreconciled = 0
+    for public in public_all["items"]:
         private = private_by_id.get(_clean(public.get("protocol_id")))
         if private is None:
-            raise RuntimeError("Camada privada não reconciliada com o dataset canônico.")
-        items.append({**public, **{field: private.get(field, "") for field in PRIVATE_DETAIL_FIELDS}})
+            unreconciled += 1
+            continue
+        reconciled.append({**public, **{field: private.get(field, "") for field in PRIVATE_DETAIL_FIELDS}})
+
+    page = reconciled[query.offset : query.offset + query.limit]
     return {
-        **public_page,
-        "items": items,
+        "total": len(reconciled),
+        "offset": query.offset,
+        "limit": query.limit,
+        "sort_by": query.sort_by,
+        "sort_dir": query.sort_dir,
+        "items": page,
         "fields": [*PUBLIC_DETAIL_FIELDS, *PRIVATE_DETAIL_FIELDS],
         "export_allowed": authorization.can_export_pii,
+        "reconciliation": {
+            "status": "partial" if unreconciled else "complete",
+            "excluded_public_records": unreconciled,
+        },
     }
 
 

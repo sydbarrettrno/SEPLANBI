@@ -66,7 +66,7 @@ function DetailTable({ records, eyebrow, title }: { records: ExtendedResponse["r
   if (!records) return null;
   if (records.items.some((item) => Boolean(item.Projeto))) {
     const selected = records.items.find((item) => String(item.ID) === selectedProjectId);
-    return <article className="panel table-panel extended-detail"><div className="table-toolbar"><div><span className="eyebrow">CARTEIRA FILTRADA</span><h2>Projetos Públicos</h2><p>{formatNumber(records.total)} projetos visíveis. Selecione uma linha para ver o detalhamento.</p></div></div><div className="table-wrap"><table><thead><tr><th>Projeto / Demanda</th><th>Secretaria / Interface</th><th>Grupo</th><th>Fase</th><th>Status</th><th>Atividade atual</th><th>Dependência / Bloqueio</th><th>Referência</th><th>Confiança</th></tr></thead><tbody>{records.items.map((item, index) => <tr key={item.ID ?? index} className={String(item.ID) === selectedProjectId ? "selected-project-row" : ""} onClick={() => setSelectedProjectId(String(item.ID))}><td><button type="button" className="project-link" onClick={() => setSelectedProjectId(String(item.ID))}>{item.Projeto}</button></td><td>{item.Interface}</td><td>{item.Grupo}</td><td>{item.FaseAtual}</td><td><span className="table-badge">{item.StatusAtual}</span></td><td>{item.current_activity ?? "—"}</td><td>{item.blocker ?? "—"}</td><td>{formatDate(item.DataReferencia)}</td><td>{item.Confianca}</td></tr>)}</tbody></table></div>{selected ? <section className="project-detail" aria-live="polite"><div><span className="eyebrow">DETALHAMENTO DO PROJETO</span><h3>{selected.Projeto}</h3></div><button type="button" className="ghost-button" onClick={() => setSelectedProjectId("")}>Fechar</button><dl><dt>Secretaria / Interface</dt><dd>{selected.Interface}</dd><dt>Grupo</dt><dd>{selected.Grupo}</dd><dt>Fase atual</dt><dd>{selected.FaseAtual}</dd><dt>Status atual</dt><dd>{selected.StatusAtual}</dd><dt>Atividade atual</dt><dd>{selected.current_activity || "—"}</dd><dt>Dependência / Bloqueio</dt><dd>{selected.blocker || "—"}</dd><dt>Evidência atual da fonte</dt><dd>{selected.evidence || "—"}</dd><dt>Fonte</dt><dd>{selected.source_detail || "—"}</dd><dt>Data de referência</dt><dd>{formatDate(selected.DataReferencia)}</dd><dt>Confiança</dt><dd>{selected.Confianca || "—"}</dd><dt>Observação de auditoria</dt><dd>{selected.audit_note || "—"}</dd></dl></section> : null}</article>;
+    return <article className="panel table-panel extended-detail"><div className="table-toolbar"><div><span className="eyebrow">CARTEIRA FILTRADA</span><h2>Projetos Públicos</h2><p>{formatNumber(records.total)} projetos visíveis. Selecione uma linha para ver o detalhamento.</p></div></div><div className="table-wrap"><table><thead><tr><th>Projeto / Demanda</th><th>Secretaria / Interface</th><th>Grupo</th><th>Fase</th><th>Status</th><th>Atividade atual</th><th>Dependência / Bloqueio</th><th>Referência</th><th>Confiança</th></tr></thead><tbody>{records.items.map((item, index) => <tr key={item.ID ?? index} className={String(item.ID) === selectedProjectId ? "selected-project-row" : ""} onClick={() => setSelectedProjectId(String(item.ID))}><td><button type="button" className="project-link" onClick={() => setSelectedProjectId(String(item.ID))}>{item.Projeto}</button></td><td>{item.Interface}{item.GabineteInterface ? ` · ${item.GabineteInterface}` : ""}</td><td>{item.Grupo}</td><td>{item.FaseAtual}</td><td><span className="table-badge">{item.StatusAtual}</span></td><td>{item.AtividadeAtual ?? "—"}</td><td>{item.DependenciaBloqueio ?? "—"}</td><td>{formatDate(item.DataReferencia)}</td><td>{item.Confianca}</td></tr>)}</tbody></table></div>{selected ? <section className="project-detail" aria-live="polite"><div><span className="eyebrow">DETALHAMENTO DO PROJETO</span><h3>{selected.Projeto}</h3></div><button type="button" className="ghost-button" onClick={() => setSelectedProjectId("")}>Fechar</button><dl><dt>Secretaria / Interface</dt><dd>{selected.Interface}</dd>{selected.GabineteInterface ? <><dt>Interface do Gabinete</dt><dd>{selected.GabineteInterface}</dd></> : null}<dt>Grupo</dt><dd>{selected.Grupo}</dd><dt>Fase atual</dt><dd>{selected.FaseAtual}</dd><dt>Status atual</dt><dd>{selected.StatusAtual}</dd><dt>Atividade atual</dt><dd>{selected.AtividadeAtual || "—"}</dd><dt>Dependência / Bloqueio</dt><dd>{selected.DependenciaBloqueio || "—"}</dd><dt>Evidência atual da fonte</dt><dd>{selected.EvidenciaAtual || "—"}</dd><dt>Fonte</dt><dd>{selected.FonteDetalhamento || "—"}</dd><dt>Data de referência</dt><dd>{formatDate(selected.DataReferencia)}</dd><dt>Confiança</dt><dd>{selected.Confianca || "—"}</dd><dt>Observação de auditoria</dt><dd>{selected.ObservacaoAuditoria || "—"}</dd></dl></section> : null}</article>;
   }
   return (
     <article className="panel table-panel extended-detail">
@@ -111,6 +111,7 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
   const [projectPhase, setProjectPhase] = useState("");
   const [projectStatus, setProjectStatus] = useState("");
   const [projectInterface, setProjectInterface] = useState("");
+  const [projectGabineteInterface, setProjectGabineteInterface] = useState("");
   const [projectGroup, setProjectGroup] = useState("");
   const [projectConfidence, setProjectConfidence] = useState("");
   const [rowDimension, setRowDimension] = useState("category");
@@ -132,13 +133,14 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
     projectPhase,
     projectStatus,
     projectInterface,
+    projectGabineteInterface,
     projectGroup,
     projectConfidence,
     rowDimension,
     columnDimension,
     q: filters.q,
     limit: 100,
-  }), [columnDimension, filters, inactivityBand, kpi, projectConfidence, projectGroup, projectInterface, projectPhase, projectStatus, rowDimension]);
+  }), [columnDimension, filters, inactivityBand, kpi, projectConfidence, projectGabineteInterface, projectGroup, projectInterface, projectPhase, projectStatus, rowDimension]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -162,7 +164,7 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
     setInactivityBand("");
     setProjectPhase("");
     setProjectStatus("");
-    setProjectInterface(""); setProjectGroup(""); setProjectConfidence("");
+    setProjectInterface(""); setProjectGabineteInterface(""); setProjectGroup(""); setProjectConfidence("");
   };
 
   const matrixCell = (row: string, column: string) => {
@@ -194,7 +196,7 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
       const neutralized = /^[=+\-@]/.test(text) ? `'${text}` : text;
       return `"${neutralized.replace(/"/g, '""')}"`;
     };
-    const content = [headers, ...rows.map((row) => [row.Projeto, row.Interface, row.Grupo, row.FaseAtual, row.StatusAtual, row.current_activity, row.blocker, row.DataReferencia, row.Confianca])].map((row) => row.map(safe).join(";")).join("\r\n");
+    const content = [headers, ...rows.map((row) => [row.Projeto, row.Interface, row.Grupo, row.FaseAtual, row.StatusAtual, row.AtividadeAtual, row.DependenciaBloqueio, row.DataReferencia, row.Confianca])].map((row) => row.map(safe).join(";")).join("\r\n");
     const url = URL.createObjectURL(new Blob(["\ufeff", content], { type: "text/csv;charset=utf-8" }));
     const anchor = document.createElement("a");
     anchor.href = url;

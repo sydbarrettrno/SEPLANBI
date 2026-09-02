@@ -25,12 +25,13 @@ export interface ExtendedRecord {
   Projeto?: string;
   Grupo?: string;
   Interface?: string;
+  GabineteInterface?: string;
   Confianca?: string;
-  current_activity?: string;
-  blocker?: string;
-  evidence?: string;
-  source_detail?: string;
-  audit_note?: string;
+  AtividadeAtual?: string;
+  DependenciaBloqueio?: string;
+  EvidenciaAtual?: string;
+  FonteDetalhamento?: string;
+  ObservacaoAuditoria?: string;
 }
 
 export interface ExtendedComparisonMonthlyPoint {
@@ -75,6 +76,7 @@ export interface ExtendedResponse {
   statuses?: ExtendedNamedValue[];
   phases?: ExtendedNamedValue[];
   interfaces?: ExtendedNamedValue[];
+  gabinete_interfaces?: ExtendedNamedValue[];
   groups?: ExtendedNamedValue[];
   confidences?: ExtendedNamedValue[];
   bands?: ExtendedNamedValue[];
@@ -112,6 +114,7 @@ export interface ExtendedRequest {
   projectPhase?: string;
   projectStatus?: string;
   projectInterface?: string;
+  projectGabineteInterface?: string;
   projectGroup?: string;
   projectConfidence?: string;
   rowDimension?: string;
@@ -138,6 +141,7 @@ export function extendedSearchParams(request: ExtendedRequest) {
     project_phase: request.projectPhase,
     project_status: request.projectStatus,
     project_interface: request.projectInterface,
+    project_gabinete_interface: request.projectGabineteInterface,
     project_group: request.projectGroup,
     project_confidence: request.projectConfidence,
     row_dimension: request.rowDimension,

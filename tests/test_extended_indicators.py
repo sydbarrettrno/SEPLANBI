@@ -72,6 +72,22 @@ class ExtendedIndicatorTests(unittest.TestCase):
                 "Saúde / SMS": 2,
             },
         )
+        self.assertEqual(
+            {item["name"]: item["value"] for item in data["gabinete_interfaces"]},
+            {"Câmara de Vereadores": 2, "Polícia Civil": 2},
+        )
+
+    def test_kpi10_gabinete_drilldown_reconciles_to_two_interfaces(self):
+        data = extended_indicator_response({"kpi": "10", "project_interface": "Gabinete"})
+        self.assertEqual(data["metrics"]["selected"], 4)
+        self.assertEqual(data["records"]["total"], 4)
+        self.assertEqual(
+            {item["name"]: item["value"] for item in data["gabinete_interfaces"]},
+            {"Câmara de Vereadores": 2, "Polícia Civil": 2},
+        )
+        police = extended_indicator_response({"kpi": "10", "project_interface": "Gabinete", "project_gabinete_interface": "Polícia Civil"})
+        self.assertEqual(police["metrics"]["selected"], 2)
+        self.assertEqual(police["records"]["total"], 2)
 
     def test_kpi10_filters_reconcile_cards_charts_and_table(self):
         data = extended_indicator_response({"kpi": "10", "project_status": "Paralisado"})
@@ -97,6 +113,11 @@ class ExtendedIndicatorTests(unittest.TestCase):
             "TipoPessoaResponsavel",
             "ObservacaoUltimoTramite",
             "ResponsavelInterno",
+            "interface_raw",
+            "source_universe",
+            "source_detail",
+            "audit_note",
+            "current_activity",
         }
         for kpi in range(4, 12):
             serialized = json.dumps(extended_indicator_response({"kpi": str(kpi)}), ensure_ascii=False)

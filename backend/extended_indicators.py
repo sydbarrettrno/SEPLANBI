@@ -328,17 +328,26 @@ def _projects_indicator(params: dict[str, str]) -> dict[str, Any]:
     phase = _clean(params.get("project_phase"))
     status = _clean(params.get("project_status"))
     interface = _clean(params.get("project_interface"))
+    gabinete_interface = _clean(params.get("project_gabinete_interface"))
     group = _clean(params.get("project_group"))
     confidence = _clean(params.get("project_confidence"))
     search = _clean(params.get("q")).casefold()
+    # Contrato público mínimo: mantém exatamente a tabela e o detalhamento
+    # autorizados da carteira. Chaves técnicas/originais da importação não são
+    # enviadas ao navegador quando não são necessárias para a leitura gerencial.
     normalized = [{
-        **item,
         "ID": item.get("id", item.get("ID", "")),
         "Projeto": item.get("project", item.get("ID", "")),
         "Grupo": item.get("group", ""),
         "Interface": item.get("interface", ""),
+        "GabineteInterface": item.get("gabinete_interface", ""),
         "FaseAtual": item.get("phase", item.get("FaseAtual", "")),
         "StatusAtual": item.get("status", item.get("StatusAtual", "")),
+        "AtividadeAtual": item.get("current_activity", ""),
+        "DependenciaBloqueio": item.get("blocker", ""),
+        "EvidenciaAtual": item.get("evidence", ""),
+        "FonteDetalhamento": item.get("source_detail", ""),
+        "ObservacaoAuditoria": item.get("audit_note", ""),
         "DataReferencia": item.get("reference_date", item.get("DataReferencia", "")),
         "Confianca": item.get("confidence", ""),
     } for item in projects]
@@ -348,6 +357,8 @@ def _projects_indicator(params: dict[str, str]) -> dict[str, Any]:
         if status and item["StatusAtual"] != status:
             return False
         if interface and item["Interface"] != interface:
+            return False
+        if gabinete_interface and item["GabineteInterface"] != gabinete_interface:
             return False
         if group and item["Grupo"] != group:
             return False
@@ -370,6 +381,7 @@ def _projects_indicator(params: dict[str, str]) -> dict[str, Any]:
         "phases": _group(selected, lambda item: item["FaseAtual"]),
         "statuses": _group(selected, lambda item: item["StatusAtual"]),
         "interfaces": _group(selected, lambda item: item["Interface"]),
+        "gabinete_interfaces": _group([item for item in selected if item["Interface"] == "Gabinete"], lambda item: item["GabineteInterface"] or "Não informado"),
         "groups": _group(selected, lambda item: item["Grupo"]),
         "confidences": _group(selected, lambda item: item["Confianca"]),
         "records": _paginate(selected, params),

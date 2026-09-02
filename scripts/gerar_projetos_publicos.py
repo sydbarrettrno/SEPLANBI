@@ -50,6 +50,13 @@ GABINETE_INTERFACE = {
     "GABINETE / POLÍCIA CIVIL": "Polícia Civil",
 }
 
+# A fonte traz o projeto 64 como "GABINETE". A própria carteira aprovada
+# identifica-o como interface da Polícia Civil; a normalização é declarada
+# aqui para manter a origem preservada e o agrupamento auditável.
+GABINETE_PROJECT_INTERFACE = {
+    "64": "Polícia Civil",
+}
+
 
 def clean(value: object) -> str:
     return "" if value is None else str(value).strip()
@@ -73,7 +80,7 @@ def main() -> None:
         elif isinstance(reference, date):
             item["reference_date"] = reference.isoformat()
         item["interface"] = INTERFACES.get(key, raw)
-        item["gabinete_interface"] = GABINETE_INTERFACE.get(key, "")
+        item["gabinete_interface"] = GABINETE_PROJECT_INTERFACE.get(item["id"], GABINETE_INTERFACE.get(key, ""))
         rows.append(item)
 
     if len(rows) != 20:

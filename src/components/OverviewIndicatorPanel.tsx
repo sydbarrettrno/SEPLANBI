@@ -139,7 +139,7 @@ export function OverviewIndicatorPanel({ data, filters }: Props) {
           formula="Carteira própria agrupada pela fase atual"
           detail={projects.reference_date ? `Referência: ${projects.reference_date}` : "Base específica de projetos públicos"}
           tone="blue"
-          href="#/kpi10"
+          href="#/projects"
         />
         <CompactIndicator
           code="11"

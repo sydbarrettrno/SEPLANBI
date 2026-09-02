@@ -24,7 +24,7 @@ const SECTION_LABELS: Record<string, string> = {
   kpi07: "07 · Diligências",
   kpi08: "08 · Fiscalizações",
   kpi09: "09 · Denúncias",
-  kpi10: "10 · Projetos públicos",
+  kpi10: "Projetos públicos",
   kpi11: "11 · Pendências",
   common: "Textos comuns",
   admin: "Administração",

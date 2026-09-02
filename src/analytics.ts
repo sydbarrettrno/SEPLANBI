@@ -136,13 +136,13 @@ export function activeDashboardFilters(filters: DashboardFilters): ActiveFilterC
     chips.push({ key: "period", label: "Período", value: `${filters.from || "início"} a ${filters.to || "corte"}` });
   }
   for (const [key, label, value] of [
-    ["macro", "Macroprocesso", filters.macro],
+    ["macro", "Família de Processos", filters.macro],
     ["year", "Ano", filters.year],
     ["month", "Mês", filters.month],
     ["category", "Categoria", filters.category],
     ["status", "Status", filters.status],
     ["owner", "Responsabilidade", filters.owner],
-    ["sector", "Setor", filters.sector],
+    ["sector", "Setor Responsável", filters.sector],
     ["outputType", "Tipo de saída", filters.outputType],
     ["ageBand", "Idade", filters.ageBand],
     ["q", "Pesquisa", filters.q],

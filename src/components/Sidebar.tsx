@@ -15,7 +15,7 @@ const NAV_ICONS: Record<string, string> = {
   outputs: "✓",
   stock: "▤",
   kpi04: "◷",
-  kpi10: "◆",
+  projects: "◆",
   processes: "▤",
   indicators: "◫",
   admin: "⚙",
@@ -27,7 +27,7 @@ const NAV_ICON_STYLES: Record<string, { color: string; background: string; boxSh
   outputs: { color: "#62d7a5", background: "rgba(41, 165, 113, .17)", boxShadow: "inset 0 0 0 1px rgba(98, 215, 165, .08)" },
   stock: { color: "#ffb35f", background: "rgba(224, 125, 30, .17)", boxShadow: "inset 0 0 0 1px rgba(255, 179, 95, .08)" },
   kpi04: { color: "#b7a7ff", background: "rgba(118, 96, 201, .20)", boxShadow: "inset 0 0 0 1px rgba(183, 167, 255, .09)" },
-  kpi10: { color: "#62c8ff", background: "rgba(37, 152, 205, .18)", boxShadow: "inset 0 0 0 1px rgba(98, 200, 255, .08)" },
+  projects: { color: "#62c8ff", background: "rgba(37, 152, 205, .18)", boxShadow: "inset 0 0 0 1px rgba(98, 200, 255, .08)" },
   processes: { color: "#a7bad0", background: "rgba(126, 151, 178, .16)", boxShadow: "inset 0 0 0 1px rgba(167, 186, 208, .08)" },
   indicators: { color: "#7cc5ff", background: "rgba(52, 137, 207, .16)", boxShadow: "inset 0 0 0 1px rgba(124, 197, 255, .08)" },
   admin: { color: "#8be0bd", background: "rgba(43, 151, 111, .18)", boxShadow: "inset 0 0 0 1px rgba(139, 224, 189, .08)" },
@@ -44,7 +44,7 @@ const BASE_SECTIONS: NavSection[] = [
   { label: "Visão geral", items: ["overview"] },
   { label: "Fluxo", items: ["received", "outputs", "stock"] },
   { label: "Análise", items: ["kpi04", "indicators", "processes"] },
-  { label: "Gestão", items: ["kpi10"] },
+  { label: "Gestão", items: ["projects"] },
 ];
 
 export function Sidebar({ page, onNavigate, open, onClose, adminAuthorized = false }: SidebarProps) {
@@ -53,7 +53,7 @@ export function Sidebar({ page, onNavigate, open, onClose, adminAuthorized = fal
   const items: Record<string, { label: string; caption: string }> = {
     ...baseItems,
     kpi04: { label: copy.kpi04.title, caption: "Tempo de tramitação" },
-    kpi10: { label: copy.kpi10.title, caption: "Projetos por etapa" },
+    projects: { label: "Projetos Públicos", caption: "Carteira gerencial" },
   };
   const sections = adminAuthorized
     ? [...BASE_SECTIONS, { label: "Sistema", items: ["admin"] as PageId[] }]

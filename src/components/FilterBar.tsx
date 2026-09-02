@@ -219,9 +219,9 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
               <label className="filter-half"><span>Até</span><input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} /></label>
               <label className="filter-half"><span>Ano</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label className="filter-half"><span>Mês</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
-              <label><span>Macroprocesso</span><select value={draft.macro} onChange={(e) => update("macro", e.target.value)}><option value="">Todos</option>{options?.macroprocesses.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <label><span>Família de Processos</span><select value={draft.macro} onChange={(e) => update("macro", e.target.value)}><option value="">Todas</option>{options?.macroprocesses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Status</span><select value={draft.status} onChange={(e) => update("status", e.target.value)}><option value="">Todos</option>{options?.statuses.map((value) => <option key={value}>{value}</option>)}</select></label>
-              <label><span>Setor</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <label><span>Setor Responsável</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Responsabilidade</span><select value={draft.owner} onChange={(e) => update("owner", e.target.value)}><option value="">Todas</option>{options?.owners.map((value) => <option key={value}>{value}</option>)}</select></label>
 
               <fieldset className="category-multiselect">

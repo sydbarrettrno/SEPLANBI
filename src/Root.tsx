@@ -18,7 +18,6 @@ const KPI_BY_ROUTE: Record<string, ExtendedKpi> = {
   kpi07: 7,
   kpi08: 8,
   kpi09: 9,
-  kpi10: 10,
   kpi11: 11,
 };
 
@@ -75,7 +74,7 @@ function RootRoutes() {
   };
 
   const openAdmin = () => navigate("admin");
-  const kpi = useMemo(() => KPI_BY_ROUTE[route], [route]);
+  const kpi = useMemo(() => route === "projects" ? 10 : KPI_BY_ROUTE[route], [route]);
   const updateExtendedFilters = (next: DashboardFilters) => setFilters({ ...next, recordset: "all", offset: 0 });
 
   return (

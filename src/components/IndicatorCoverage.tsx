@@ -13,7 +13,6 @@ const KPI_PAGE: Record<string, PageId> = {
   KPI07: "kpi07",
   KPI08: "kpi08",
   KPI09: "kpi09",
-  KPI10: "kpi10",
   KPI11: "kpi11",
 };
 

@@ -33,8 +33,15 @@ function asCount(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
 }
 
+function displayPeriod(raw: string) {
+  const [from, to] = raw.split(" — ").map((value) => value.trim());
+  if (!from || !to || from === "Início" || to === "Data de corte") return raw;
+  return `${formatDate(from)} a ${formatDate(to)}`;
+}
+
 export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
   const [universe, setUniverse] = useState<UniverseSummary | null>(null);
+  const [periodLabel, setPeriodLabel] = useState("Período selecionado");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -72,6 +79,19 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    const syncPeriod = () => {
+      const node = document.querySelector<HTMLElement>(".filter-toolbar > div > strong");
+      const raw = node?.textContent?.trim();
+      if (raw) setPeriodLabel(displayPeriod(raw));
+    };
+
+    syncPeriod();
+    const observer = new MutationObserver(syncPeriod);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, []);
+
   const structuralScopeActive = universe && scopeRows != null && scopeRows !== universe.total;
 
   return (
@@ -86,11 +106,13 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
         </div>
       </div>
       <div className="topbar-meta">
-        <div className="universe-meta">
-          <small>BASE ATUALIZADA</small>
+        <div className="universe-meta compact-source-meta">
           <details className="universe-details">
             <summary>
-              {formatDate(sourceDate)} · {universe ? formatNumber(universe.total) : "—"} protocolos
+              <span className="source-meta-copy">
+                <strong>Fonte: Sistema IPM - {formatDate(sourceDate)}</strong>
+                <small>{universe ? formatNumber(universe.total) : "—"} protocolos · Período {periodLabel}</small>
+              </span>
               <span className="universe-info-icon" aria-hidden="true">i</span>
             </summary>
             <div className="universe-popover">
@@ -126,7 +148,6 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
             </div>
           </details>
         </div>
-        <span className="live-pill"><i /> Dados validados</span>
       </div>
     </header>
   );

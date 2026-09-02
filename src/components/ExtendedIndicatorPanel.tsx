@@ -63,6 +63,7 @@ function rowsToVisuals(rows: unknown[] | undefined, valueKey = "value"): VisualI
 
 function DetailTable({ records, eyebrow, title }: { records: ExtendedResponse["records"]; eyebrow: string; title: string }) {
   if (!records) return null;
+  if (records.items.some((item) => Boolean(item.Projeto))) return <article className="panel table-panel extended-detail"><div className="table-toolbar"><div><span className="eyebrow">CARTEIRA FILTRADA</span><h2>Projetos Públicos</h2><p>{formatNumber(records.total)} projetos visíveis.</p></div></div><div className="table-wrap"><table><thead><tr><th>Projeto / Demanda</th><th>Secretaria / Interface</th><th>Grupo</th><th>Fase</th><th>Status</th><th>Atividade atual</th><th>Dependência / Bloqueio</th><th>Referência</th><th>Confiança</th></tr></thead><tbody>{records.items.map((item, index) => <tr key={item.ID ?? index}><td>{item.Projeto}</td><td>{item.Interface}</td><td>{item.Grupo}</td><td>{item.FaseAtual}</td><td><span className="table-badge">{item.StatusAtual}</span></td><td>{item.current_activity ?? "—"}</td><td>{item.blocker ?? "—"}</td><td>{item.DataReferencia}</td><td>{item.Confianca}</td></tr>)}</tbody></table></div></article>;
   return (
     <article className="panel table-panel extended-detail">
       <div className="table-toolbar"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p data-record-count={records.total}>{formatNumber(records.total)} registros no cruzamento ativo.</p></div></div>
@@ -105,6 +106,9 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
   const [inactivityBand, setInactivityBand] = useState("");
   const [projectPhase, setProjectPhase] = useState("");
   const [projectStatus, setProjectStatus] = useState("");
+  const [projectInterface, setProjectInterface] = useState("");
+  const [projectGroup, setProjectGroup] = useState("");
+  const [projectConfidence, setProjectConfidence] = useState("");
   const [rowDimension, setRowDimension] = useState("category");
   const [columnDimension, setColumnDimension] = useState("status");
 
@@ -123,11 +127,14 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
     inactivityBand,
     projectPhase,
     projectStatus,
+    projectInterface,
+    projectGroup,
+    projectConfidence,
     rowDimension,
     columnDimension,
     q: filters.q,
     limit: 100,
-  }), [columnDimension, filters, inactivityBand, kpi, projectPhase, projectStatus, rowDimension]);
+  }), [columnDimension, filters, inactivityBand, kpi, projectConfidence, projectGroup, projectInterface, projectPhase, projectStatus, rowDimension]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -151,6 +158,7 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
     setInactivityBand("");
     setProjectPhase("");
     setProjectStatus("");
+    setProjectInterface(""); setProjectGroup(""); setProjectConfidence("");
   };
 
   const matrixCell = (row: string, column: string) => {
@@ -197,7 +205,7 @@ export function ExtendedIndicatorPanel({ kpi, filters, onFilters }: Props) {
 
       {data && kpi === 9 && metrics ? <><section className="bi-metric-grid five"><MetricTile label="Recebidas" value={formatNumber(asNumber(read(metrics, "received")))} /><MetricTile label="Respondidas / saídas" value={formatNumber(asNumber(read(metrics, "responded")))} tone="green" /><MetricTile label="Estoque atual" value={formatNumber(asNumber(read(metrics, "current_stock")))} tone="orange" /><MetricTile label="% respondido" value={formatPercent(asNumber(read(metrics, "response_rate_percent")))} /><MetricTile label="Mediana de resposta" value={formatDays(asNumber(read(asObject(read(metrics, "response_time")), "median_days")))} tone="purple" /></section><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.kpi09.statusEyebrow}</span><h2>{copy.kpi09.statusTitle}</h2></div></div><InteractiveBars items={rowsToVisuals(data.statuses)} selected={filters.status} onSelect={(item) => toggle("status", item.key)} tone="orange" /></article><DetailTable records={data.records} {...detailProps} /></> : null}
 
-      {data && kpi === 10 && metrics ? <><section className="bi-metric-grid three"><MetricTile label="Projetos" value={formatNumber(asNumber(read(metrics, "projects")))} tone="blue" /><MetricTile label="Selecionados" value={formatNumber(asNumber(read(metrics, "selected")))} /><MetricTile label="Data de referência" value={String(read(metrics, "reference_date") ?? "—")} tone="slate" /></section><section className="bi-layout-main"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.kpi10.phaseEyebrow}</span><h2>{copy.kpi10.phaseTitle}</h2></div></div><InteractiveBars items={rowsToVisuals(data.phases)} selected={projectPhase} onSelect={(item) => setProjectPhase(projectPhase === item.key ? "" : item.key)} tone="blue" initialLimit={20} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.kpi10.statusEyebrow}</span><h2>{copy.kpi10.statusTitle}</h2></div></div><InteractiveBars items={rowsToVisuals(data.statuses)} selected={projectStatus} onSelect={(item) => setProjectStatus(projectStatus === item.key ? "" : item.key)} tone="teal" initialLimit={20} /></article></section><DetailTable records={data.records} {...detailProps} /></> : null}
+      {data && kpi === 10 && metrics ? <><section className="bi-metric-grid three"><MetricTile label="Quantidade de Projetos" value={formatNumber(asNumber(read(metrics, "projects")))} tone="blue" /><MetricTile label="Projetos visíveis" value={formatNumber(asNumber(read(metrics, "selected")))} /><MetricTile label="Data de referência" value={String(read(metrics, "reference_date") ?? "—")} tone="slate" /></section><section className="bi-layout-main"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.kpi10.phaseEyebrow}</span><h2>{copy.kpi10.phaseTitle}</h2></div></div><InteractiveBars items={rowsToVisuals(data.phases)} selected={projectPhase} onSelect={(item) => setProjectPhase(projectPhase === item.key ? "" : item.key)} tone="blue" initialLimit={20} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.kpi10.statusEyebrow}</span><h2>{copy.kpi10.statusTitle}</h2></div></div><InteractiveBars items={rowsToVisuals(data.statuses)} selected={projectStatus} onSelect={(item) => setProjectStatus(projectStatus === item.key ? "" : item.key)} tone="teal" initialLimit={20} /></article></section><section className="bi-layout-main"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">INTERFACE</span><h2>Projetos por Secretaria / Interface</h2></div></div><InteractiveBars items={rowsToVisuals(data.interfaces)} selected={projectInterface} onSelect={(item) => setProjectInterface(projectInterface === item.key ? "" : item.key)} tone="blue" initialLimit={12} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">GRUPO</span><h2>Composição da carteira</h2></div></div><InteractiveBars items={rowsToVisuals(data.groups)} selected={projectGroup} onSelect={(item) => setProjectGroup(projectGroup === item.key ? "" : item.key)} tone="teal" initialLimit={12} /></article></section><DetailTable records={data.records} {...detailProps} /></> : null}
 
       {data && kpi === 11 && metrics ? <><section className="bi-metric-grid four"><MetricTile label="Pendências" value={formatNumber(asNumber(read(metrics, "stock")))} tone="orange" /><MetricTile label="Internas SEPLAN" value={formatNumber(asNumber(read(metrics, "internal")))} /><MetricTile label="Responsável externo" value={formatNumber(asNumber(read(metrics, "external")))} /><MetricTile label="Paralisadas" value={formatNumber(asNumber(read(metrics, "paralyzed")))} tone="red" /></section><section className="bi-layout-main"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.kpi11.responsibilityEyebrow}</span><h2>{copy.kpi11.responsibilityTitle}</h2></div></div><InteractiveBars items={rowsToVisuals(data.responsibilities)} selected={filters.owner ? OWNER_TO_RESPONSIBILITY[filters.owner] : ""} onSelect={(item) => toggle("owner", RESPONSIBILITY_TO_OWNER[item.key] ?? item.key)} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.kpi11.sectorEyebrow}</span><h2>{copy.kpi11.sectorTitle}</h2></div></div><InteractiveBars items={rowsToVisuals(data.sectors)} selected={filters.sector} onSelect={(item) => toggle("sector", item.key)} tone="teal" initialLimit={12} /></article></section><article className="panel"><div className="panel-heading matrix-heading"><div><span className="eyebrow">{copy.kpi11.matrixEyebrow}</span><h2>{copy.kpi11.matrixTitle}</h2></div><div className="matrix-controls"><select value={rowDimension} onChange={(event) => setRowDimension(event.target.value)}><option value="category">Categoria</option><option value="macroprocess">Macroprocesso</option><option value="sector">Setor</option><option value="responsibility">Responsabilidade</option><option value="status">Status</option></select><span>×</span><select value={columnDimension} onChange={(event) => setColumnDimension(event.target.value)}><option value="status">Status</option><option value="age_band">Faixa de idade</option><option value="responsibility">Responsabilidade</option><option value="category">Categoria</option><option value="sector">Setor</option></select></div></div>{data.matrix ? <Matrix data={data.matrix} onCell={matrixCell} /> : null}</article><DetailTable records={data.records} {...detailProps} /></> : null}
     </section>

@@ -297,6 +297,24 @@ def load_rows() -> list[dict[str, Any]]:
 
 @lru_cache(maxsize=1)
 def load_public_projects() -> list[dict[str, Any]]:
+    detail_path = DATA_DIR / "public_projects.json"
+    if detail_path.exists():
+        try:
+            projects = json.loads(detail_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Dataset inválido: carteira detalhada de projetos públicos indisponível.") from exc
+        required = {"id", "project", "group", "interface", "phase", "status", "reference_date", "confidence"}
+        if not isinstance(projects, list) or len(projects) != 20 or any(not isinstance(item, dict) or not required.issubset(item) for item in projects):
+            raise RuntimeError("Dataset inválido: carteira detalhada de projetos públicos divergente.")
+        if len({str(item["id"]) for item in projects}) != len(projects):
+            raise RuntimeError("Dataset inválido: projeto público duplicado.")
+        return [{
+            **item,
+            "ID": str(item["id"]),
+            "FaseAtual": str(item["phase"]),
+            "StatusAtual": str(item["status"]),
+            "DataReferencia": str(item["reference_date"]),
+        } for item in projects]
     payload = _load_payload()
     dictionaries = payload.get("d", {})
     columns = payload.get("pp", {})

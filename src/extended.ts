@@ -22,6 +22,15 @@ export interface ExtendedRecord {
   FaseAtual?: string;
   StatusAtual?: string;
   DataReferencia?: string;
+  Projeto?: string;
+  Grupo?: string;
+  Interface?: string;
+  Confianca?: string;
+  current_activity?: string;
+  blocker?: string;
+  evidence?: string;
+  source_detail?: string;
+  audit_note?: string;
 }
 
 export interface ExtendedComparisonMonthlyPoint {
@@ -65,6 +74,9 @@ export interface ExtendedResponse {
   sectors?: ExtendedNamedValue[];
   statuses?: ExtendedNamedValue[];
   phases?: ExtendedNamedValue[];
+  interfaces?: ExtendedNamedValue[];
+  groups?: ExtendedNamedValue[];
+  confidences?: ExtendedNamedValue[];
   bands?: ExtendedNamedValue[];
   distribution?: ExtendedNamedValue[];
   responsibilities?: ExtendedNamedValue[];
@@ -99,6 +111,9 @@ export interface ExtendedRequest {
   inactivityBand?: string;
   projectPhase?: string;
   projectStatus?: string;
+  projectInterface?: string;
+  projectGroup?: string;
+  projectConfidence?: string;
   rowDimension?: string;
   columnDimension?: string;
   q?: string;
@@ -122,6 +137,9 @@ export function extendedSearchParams(request: ExtendedRequest) {
     inactivity_band: request.inactivityBand,
     project_phase: request.projectPhase,
     project_status: request.projectStatus,
+    project_interface: request.projectInterface,
+    project_group: request.projectGroup,
+    project_confidence: request.projectConfidence,
     row_dimension: request.rowDimension,
     column_dimension: request.columnDimension,
     q: request.q,

@@ -323,16 +323,33 @@ def _projects_indicator(params: dict[str, str]) -> dict[str, Any]:
     projects = core.load_public_projects()
     phase = _clean(params.get("project_phase"))
     status = _clean(params.get("project_status"))
-    selected = [item for item in projects if (not phase or item["FaseAtual"] == phase) and (not status or item["StatusAtual"] == status)]
-    selected = sorted(selected, key=lambda item: item["ID"])
-    refs = sorted({item["DataReferencia"] for item in projects})
+    interface = _clean(params.get("project_interface"))
+    group = _clean(params.get("project_group"))
+    confidence = _clean(params.get("project_confidence"))
+    normalized = [{
+        **item,
+        "ID": item.get("id", item.get("ID", "")),
+        "Projeto": item.get("project", item.get("ID", "")),
+        "Grupo": item.get("group", ""),
+        "Interface": item.get("interface", ""),
+        "FaseAtual": item.get("phase", item.get("FaseAtual", "")),
+        "StatusAtual": item.get("status", item.get("StatusAtual", "")),
+        "DataReferencia": item.get("reference_date", item.get("DataReferencia", "")),
+        "Confianca": item.get("confidence", ""),
+    } for item in projects]
+    selected = [item for item in normalized if (not phase or item["FaseAtual"] == phase) and (not status or item["StatusAtual"] == status) and (not interface or item["Interface"] == interface) and (not group or item["Grupo"] == group) and (not confidence or item["Confianca"] == confidence)]
+    selected = sorted(selected, key=lambda item: str(item["ID"]))
+    refs = sorted({item["DataReferencia"] for item in normalized})
     return {
         "status": "DISPONÍVEL",
         "kpi": 10,
         "name": "Projetos públicos por etapa",
         "metrics": {"projects": len(projects), "selected": len(selected), "reference_date": refs[0] if len(refs) == 1 else None},
-        "phases": _group(projects, lambda item: item["FaseAtual"]),
-        "statuses": _group(projects, lambda item: item["StatusAtual"]),
+        "phases": _group(normalized, lambda item: item["FaseAtual"]),
+        "statuses": _group(normalized, lambda item: item["StatusAtual"]),
+        "interfaces": _group(normalized, lambda item: item["Interface"]),
+        "groups": _group(normalized, lambda item: item["Grupo"]),
+        "confidences": _group(normalized, lambda item: item["Confianca"]),
         "records": _paginate(selected, params),
         "rule": "Carteira específica de 20 projetos; protocolos IPM não são usados como proxy de projeto único.",
     }

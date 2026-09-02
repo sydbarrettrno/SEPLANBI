@@ -8,6 +8,7 @@ import "./executive-reference-v2.css";
 import "./ux-security-v1.css";
 import "./category-filter.css";
 import "./universe-reconciliation.css";
+import "./semantic-dashboard-v1.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -48,8 +48,8 @@ export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
     <div className="flow-chart-wrap monthly-bars-wrap audited-flow-wrap" onMouseLeave={() => setHoveredIndex(null)}>
       <div className="chart-legend audited-flow-legend" aria-label="Legenda do gráfico">
         <span><i className="legend-received" />Entradas</span>
-        <span><i className="legend-same-month" />Saídas · abertas no mês</span>
-        <span><i className="legend-backlog" />Saídas · passivo anterior</span>
+        <span><i className="legend-same-month" />Saídas no mês</span>
+        <span><i className="legend-backlog" />Passivo</span>
         <span><i className="legend-accumulated" />Saldo acumulado</span>
       </div>
       {hovered && hoveredCenter != null ? (
@@ -61,8 +61,8 @@ export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
           <strong>{monthLabel(hovered.month)}</strong>
           <span><b>Entradas</b><em>{formatNumber(hovered.received)}</em></span>
           <span><b>Saídas</b><em>{formatNumber(hovered.concluded)}</em></span>
-          <span><b>Saídas · abertas no mês</b><em>{formatNumber(hovered.same_month_outputs ?? hovered.concluded)}</em></span>
-          <span><b>Saídas · passivo anterior</b><em>{formatNumber(hovered.backlog_outputs ?? 0)}</em></span>
+          <span><b>Saídas no mês</b><em>{formatNumber(hovered.same_month_outputs ?? hovered.concluded)}</em></span>
+          <span><b>Passivo</b><em>{formatNumber(hovered.backlog_outputs ?? 0)}</em></span>
           <span className="tooltip-accumulated"><b>Saldo acumulado</b><em>{hovered.accumulated > 0 ? "+" : ""}{formatNumber(hovered.accumulated)}</em></span>
         </div>
       ) : null}
@@ -137,7 +137,6 @@ export function MonthlyFlowBarChart({ data }: MonthlyFlowBarChartProps) {
           />
         ))}
       </svg>
-      <p className="flow-audit-note"><strong>Como ler:</strong> a saída pertence ao mês em que o processo foi concluído. A barra de saídas separa o que entrou e saiu no próprio mês do passivo aberto anteriormente. A linha mostra o saldo acumulado de entradas menos saídas dentro do período selecionado.</p>
     </div>
   );
 }

@@ -58,6 +58,29 @@ class ExtendedIndicatorTests(unittest.TestCase):
         self.assertEqual(data["metrics"]["reference_date"], "2026-08-27")
         self.assertEqual(sum(item["value"] for item in data["phases"]), 20)
         self.assertEqual(data["records"]["total"], 20)
+        self.assertEqual(
+            {item["name"]: item["value"] for item in data["interfaces"]},
+            {
+                "Gabinete": 4,
+                "Secretaria de Desenvolvimento": 1,
+                "Secretaria de Ordem Pública": 1,
+                "Secretaria de Pesca e Agricultura": 1,
+                "Secretaria de Cultura": 2,
+                "Secretaria de Esporte e Lazer": 3,
+                "Secretaria do Meio Ambiente": 2,
+                "Secretaria de Planejamento Urbano": 4,
+                "Saúde / SMS": 2,
+            },
+        )
+
+    def test_kpi10_filters_reconcile_cards_charts_and_table(self):
+        data = extended_indicator_response({"kpi": "10", "project_status": "Paralisado"})
+        self.assertEqual(data["metrics"]["projects"], 20)
+        self.assertEqual(data["metrics"]["selected"], 2)
+        self.assertEqual(data["records"]["total"], 2)
+        self.assertEqual(sum(item["value"] for item in data["phases"]), 2)
+        self.assertEqual(sum(item["value"] for item in data["statuses"]), 2)
+        self.assertTrue(all(row["StatusAtual"] == "Paralisado" for row in data["records"]["items"]))
 
     def test_kpi11_matrix_and_stock_reconcile(self):
         data = extended_indicator_response({"kpi": "11", "row_dimension": "category", "column_dimension": "status", "limit": "500"})

@@ -63,6 +63,10 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
   const categorySet = useMemo(() => new Set(categories), [categories]);
   const presets = useMemo(() => allFilterPresets(customPresets), [customPresets]);
   const activePreset = useMemo(() => findPresetByCategoryValue(draft.category), [draft.category, customPresets]);
+  const scopedCategories = useMemo(
+    () => activePreset ? availableCategories.filter((category) => activePreset.categories.includes(category)) : availableCategories,
+    [activePreset, availableCategories],
+  );
 
   useEffect(() => {
     setSelectedPresetId(activePreset?.id ?? "");
@@ -114,6 +118,14 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     setCustomPresets(next);
     saveCustomFilterPresets(next);
     setSelectedPresetId("");
+  };
+
+  const updateCustomPreset = () => {
+    const selected = customPresets.find((item) => item.id === selectedPresetId);
+    if (!selected) return;
+    const next = customPresets.map((item) => item.id === selected.id ? { ...item, categories: [...categories] } : item);
+    setCustomPresets(next);
+    saveCustomFilterPresets(next);
   };
 
   const reset = () => {
@@ -189,14 +201,17 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
 
               <section className="special-filter-panel" aria-label="Filtros especiais">
                 <div className="special-filter-heading">
-                  <div><span>Filtro especial</span><strong>Aplicar conjunto de categorias</strong></div>
+                  <div><span>Setor Responsável</span><strong>Aplicar conjunto de categorias</strong></div>
                   {activePreset ? <b>{activePreset.name}</b> : null}
                 </div>
                 <div className="special-filter-row">
-                  <select value={selectedPresetId} onChange={(event) => applyPreset(event.target.value)} aria-label="Escolher filtro especial">
-                    <option value="">Escolher filtro…</option>
+                  <select value={selectedPresetId} onChange={(event) => applyPreset(event.target.value)} aria-label="Escolher Setor Responsável">
+                    <option value="">Escolher setor…</option>
                     {presets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}{preset.builtin ? " · padrão" : ""}</option>)}
                   </select>
+                  {customPresets.some((preset) => preset.id === selectedPresetId) ? (
+                    <button type="button" className="special-filter-delete" onClick={updateCustomPreset}>Salvar composição</button>
+                  ) : null}
                   {customPresets.some((preset) => preset.id === selectedPresetId) ? (
                     <button type="button" className="special-filter-delete" onClick={deleteCustomPreset}>Excluir</button>
                   ) : null}
@@ -206,13 +221,13 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
                     type="text"
                     maxLength={48}
                     value={presetName}
-                    placeholder="Nome do novo filtro"
-                    aria-label="Nome do novo filtro especial"
+                    placeholder="Nome do Setor Responsável"
+                    aria-label="Nome do novo Setor Responsável"
                     onChange={(event) => setPresetName(event.target.value)}
                   />
-                  <button type="button" onClick={saveCurrentAsPreset} disabled={!presetName.trim() || !categories.length}>Salvar seleção atual</button>
+                  <button type="button" onClick={saveCurrentAsPreset} disabled={!presetName.trim() || !categories.length}>Criar setor</button>
                 </div>
-                <small>Filtros criados aqui ficam salvos neste navegador. O filtro “Processos de Obra” já está disponível como padrão.</small>
+                <small>Os conjuntos ficam salvos neste navegador e são aplicados imediatamente a cards, gráficos, tabelas e exportação. “Setor de tramitação” permanece separado.</small>
               </section>
 
               <label className="filter-half"><span>De</span><input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} /></label>
@@ -221,7 +236,7 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
               <label className="filter-half"><span>Mês</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
               <label><span>Família de Processos</span><select value={draft.macro} onChange={(e) => update("macro", e.target.value)}><option value="">Todas</option>{options?.macroprocesses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Status</span><select value={draft.status} onChange={(e) => update("status", e.target.value)}><option value="">Todos</option>{options?.statuses.map((value) => <option key={value}>{value}</option>)}</select></label>
-              <label><span>Setor Responsável</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <label><span>Setor de tramitação</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Responsabilidade</span><select value={draft.owner} onChange={(e) => update("owner", e.target.value)}><option value="">Todas</option>{options?.owners.map((value) => <option key={value}>{value}</option>)}</select></label>
 
               <fieldset className="category-multiselect">
@@ -235,7 +250,7 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
                   {!allCategoriesSelected ? <button type="button" onClick={() => update("category", "")}>Selecionar todas</button> : null}
                 </div>
                 <div className="category-options" role="group" aria-label="Selecionar categorias">
-                  {options?.categories.map((value) => {
+                  {scopedCategories.map((value) => {
                     const checked = categorySet.has(value);
                     return (
                       <label key={value} className={checked ? "category-option selected" : "category-option"}>

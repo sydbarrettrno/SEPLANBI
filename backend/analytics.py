@@ -49,10 +49,10 @@ DEFAULT_GROUPS = {
 DIMENSION_LABELS = {
     "year": "Ano",
     "month": "Mês",
-    "macroprocess": "Macroprocesso",
+    "macroprocess": "Família de Processos",
     "category": "Categoria",
     "status": "Status",
-    "sector": "Setor",
+    "sector": "Setor de tramitação",
     "responsibility": "Responsabilidade",
     "output_type": "Tipo de saída",
     "age_band": "Idade do estoque",
@@ -478,10 +478,10 @@ def _active_filters(query: AnalyticsQuery) -> list[dict[str, str]]:
     for dimension, label, values in (
         ("year", "Ano", query.years),
         ("month", "Mês", query.months),
-        ("macroprocess", "Macroprocesso", query.macroprocesses),
+        ("macroprocess", "Família de Processos", query.macroprocesses),
         ("category", "Categoria", query.categories),
         ("status", "Status", query.statuses),
-        ("sector", "Setor", query.sectors),
+        ("sector", "Setor de tramitação", query.sectors),
         ("responsibility", "Responsabilidade", query.responsibilities),
         ("output_type", "Tipo de saída", query.output_types),
         ("age_band", "Idade do estoque", query.age_bands),
@@ -521,11 +521,11 @@ def drilldown_public(query: AnalyticsQuery) -> dict[str, Any]:
         "protocol": "NumeroAnoOriginal",
         "opened": "DataAbertura",
         "last_movement": "UltimoTramiteDataHora",
-        "macroprocess": "Macroprocesso",
+        "macroprocess": "Família de Processos",
         "category": "Categoria",
         "status": "StatusOperacional",
         "days_without_movement": "DiasSemMovimento",
-        "sector": "SetorAnalitico",
+        "sector": "Setor de tramitação",
     }
     field = sort_fields.get(query.sort_by, "UltimoTramiteDataHora")
 

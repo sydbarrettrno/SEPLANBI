@@ -7,6 +7,10 @@ import math
 from typing import Any, Iterable
 
 from backend import core
+# Importa a entrada canônica antes das métricas: ela aplica o delta público
+# auditado e evita que a rota de indicadores leia um universo diferente do
+# dashboard/API em execuções isoladas (testes, scripts e servidor).
+from backend import final_entry as _final_entry  # noqa: F401
 from backend import analytics
 
 

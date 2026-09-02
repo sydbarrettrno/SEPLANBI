@@ -142,7 +142,7 @@ export function activeDashboardFilters(filters: DashboardFilters): ActiveFilterC
     ["category", "Categoria", filters.category],
     ["status", "Status", filters.status],
     ["owner", "Responsabilidade", filters.owner],
-    ["sector", "Setor Responsável", filters.sector],
+    ["sector", "Setor de tramitação", filters.sector],
     ["outputType", "Tipo de saída", filters.outputType],
     ["ageBand", "Idade", filters.ageBand],
     ["q", "Pesquisa", filters.q],
@@ -151,7 +151,7 @@ export function activeDashboardFilters(filters: DashboardFilters): ActiveFilterC
       if (key === "category") {
         const preset = findPresetByCategoryValue(value);
         if (preset) {
-          chips.push({ key: "specialFilter", label: "Filtro especial", value: preset.name });
+          chips.push({ key: "responsibleSector", label: "Setor Responsável", value: preset.name });
           continue;
         }
       }

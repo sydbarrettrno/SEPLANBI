@@ -22,7 +22,7 @@ const COLUMNS = [
   ["category", "Categoria"],
   ["status", "Status"],
   ["days_without_movement", "Dias"],
-  ["sector", "Setor"],
+  ["sector", "Setor de tramitação"],
   ["last_movement", "Último trâmite"],
 ] as const;
 

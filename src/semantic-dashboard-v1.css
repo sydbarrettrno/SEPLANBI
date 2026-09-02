@@ -1,11 +1,15 @@
 /*
  * Semântica visual do dashboard.
- * Vermelho = entrada de demanda/pressão.
- * Verde = entrega/conclusão/redução de pressão.
+ * Vermelho = entrada de demanda/pressão nos KPIs.
+ * Verde = entrega/conclusão/redução de pressão nos KPIs.
  * Azul = carteira/estoque e leitura neutra.
  * Laranja = saldo positivo, atenção e crescimento de estoque.
  * Roxo = tempo/duração.
  * Cinza = comparação ou responsabilidade externa neutra.
+ *
+ * Nos gráficos de fluxo, a leitura usa uma paleta própria, mais leve:
+ * azul claro = entradas; verde claro = saídas. Isso evita excesso de
+ * cores de alerta dentro da visualização sem alterar a semântica dos cards.
  */
 
 :root {
@@ -15,6 +19,14 @@
   --semantic-pressure: var(--orange);
   --semantic-time: var(--purple);
   --semantic-neutral: var(--slate);
+
+  /* Cores extraídas da referência visual enviada pelo usuário. */
+  --chart-entry-fill: #a6c9ec;
+  --chart-entry-stroke: #4d93d9;
+  --chart-output-fill: #b5e6a2;
+  --chart-output-fill-soft: #d8f1ce;
+  --chart-output-stroke: #4ea72e;
+  --chart-output-stroke-soft: #77b85f;
 }
 
 /* Visão executiva: cada cor descreve o significado do KPI, não a posição do card. */
@@ -39,11 +51,34 @@
   font-size: 11px;
 }
 
-/* Entradas são demanda: vermelho em todos os gráficos onde a série representa recebidos. */
-.legend-received { background: var(--semantic-demand); }
-.received-bar { fill: var(--semantic-demand); }
-.received-line { stroke: var(--semantic-demand); }
-.received-value { fill: #a92f38; }
+/*
+ * Gráfico de fluxo mensal: cores de leitura, não de severidade.
+ * Entrada = azul claro; saída = verde claro, seguindo a referência enviada.
+ */
+.legend-received { background: var(--chart-entry-stroke); }
+.received-bar {
+  fill: var(--chart-entry-fill);
+  stroke: var(--chart-entry-stroke);
+  stroke-width: 1;
+}
+.received-line { stroke: var(--chart-entry-stroke); }
+.received-value { fill: #2f76bd; }
+
+.legend-same-month { background: var(--chart-output-fill); border: 1px solid var(--chart-output-stroke); }
+.legend-backlog { background: var(--chart-output-fill-soft); border: 1px solid var(--chart-output-stroke-soft); }
+.same-month-output-bar {
+  fill: var(--chart-output-fill);
+  stroke: var(--chart-output-stroke);
+  stroke-width: 1;
+}
+.backlog-output-bar {
+  fill: var(--chart-output-fill-soft);
+  stroke: var(--chart-output-stroke-soft);
+  stroke-width: 1;
+}
+.flow-segment-value { fill: #244830; }
+
+/* Sinais executivos fora do gráfico mantêm a semântica de demanda. */
 .overview-support-compact .signal-blue {
   background: var(--semantic-demand);
   box-shadow: 0 0 0 5px var(--red-soft);
@@ -70,24 +105,32 @@
 }
 .bi-metric strong { margin-top: 2px; }
 
-/* Painel Recebidos: demanda em vermelho, comparação histórica em cinza. */
+/* Painel Recebidos: KPI continua vermelho; gráfico mensal usa azul da paleta de leitura. */
 .bi-page[data-panel="received"] .bi-metric-grid .bi-metric:first-child { --metric-color: var(--semantic-demand); }
-.bi-page[data-panel="received"] .bi-legend .current { background: var(--semantic-demand); }
+.bi-page[data-panel="received"] .bi-legend .current { background: var(--chart-entry-stroke); }
 .bi-page[data-panel="received"] .month-bars .current {
-  background: linear-gradient(#df6269, #b9343d);
+  background: linear-gradient(var(--chart-entry-fill), #8bb8e5);
+  box-shadow: inset 0 0 0 1px var(--chart-entry-stroke), 0 5px 10px rgba(17,43,75,.09);
 }
-.bi-page[data-panel="received"] .month-values small:first-child { color: #b9343d; }
+.bi-page[data-panel="received"] .month-values small:first-child { color: #2f76bd; }
 .bi-page[data-panel="received"] .interactive-bars.bars-blue,
 .bi-page[data-panel="received"] .interactive-bars.bars-teal {
   --interactive-color: var(--semantic-demand);
 }
 
-/* Painel Saídas: produção entregue em verde; recebidos permanecem vermelhos no fluxo. */
+/* Painel Saídas: KPIs continuam verdes; gráfico de fluxo usa azul + verde claro. */
 .bi-page[data-panel="outputs"] .bi-metric-grid .bi-metric:first-child { --metric-color: var(--semantic-output); }
 .bi-page[data-panel="outputs"] .interactive-bars.bars-teal { --interactive-color: var(--semantic-output); }
-.bi-legend .received { background: var(--semantic-demand); }
-.flow-bars-pair .received { background: linear-gradient(#df6269, #b9343d); }
-.flow-bars-pair .outputs { background: linear-gradient(#38a77f, #147458); }
+.bi-legend .received { background: var(--chart-entry-stroke); }
+.bi-legend .outputs { background: var(--chart-output-fill); border: 1px solid var(--chart-output-stroke); }
+.flow-bars-pair .received {
+  background: linear-gradient(var(--chart-entry-fill), #8bb8e5);
+  box-shadow: inset 0 0 0 1px var(--chart-entry-stroke), 0 5px 10px rgba(17,43,75,.09);
+}
+.flow-bars-pair .outputs {
+  background: linear-gradient(var(--chart-output-fill), #a3dc8d);
+  box-shadow: inset 0 0 0 1px var(--chart-output-stroke), 0 5px 10px rgba(17,43,75,.09);
+}
 
 /* Carteira é estoque neutro: azul. Riscos continuam usando vermelho/laranja por severidade. */
 .bi-page[data-panel="stock"] .bi-metric-grid .bi-metric:first-child { --metric-color: var(--semantic-stock); }

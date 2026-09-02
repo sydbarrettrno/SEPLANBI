@@ -611,6 +611,22 @@ td { padding: 14px 15px; font-size: 12px; }
 .bi-reading strong { color: #91bddd; font-size: 12px; line-height: 1.5; }
 .bi-empty { display: grid; min-height: 180px; place-items: center; color: #77869a; border: 1px dashed #d5dee8; border-radius: 11px; background: #f9fbfd; font-size: 13px; }
 
+.projects-filter-bar { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)) minmax(210px, 1.45fr) auto; gap: 10px; align-items: end; margin: 0 0 15px; padding: 13px; border: 1px solid var(--line); border-radius: 14px; background: rgba(255,255,255,.88); box-shadow: 0 6px 20px rgba(17,43,75,.04); }
+.projects-filter-bar label { display: grid; gap: 5px; min-width: 0; }
+.projects-filter-bar label > span { color: #68758a; font-size: 9px; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.projects-filter-bar select, .projects-filter-bar input { min-width: 0; min-height: 36px; padding: 0 9px; color: #24334c; border: 1px solid #d6dee8; border-radius: 8px; outline: none; background: #fbfcfe; font-size: 11px; }
+.projects-filter-bar select:focus, .projects-filter-bar input:focus { border-color: #79ade1; box-shadow: 0 0 0 3px rgba(24,113,213,.1); background: white; }
+.projects-filter-actions { display: flex; gap: 7px; }
+.projects-filter-actions button { min-height: 36px; white-space: nowrap; }
+.project-link { padding: 0; color: #135ea9; border: 0; background: transparent; font: inherit; font-weight: 750; text-align: left; text-decoration: underline; text-decoration-color: rgba(19,94,169,.3); text-underline-offset: 3px; }
+.extended-detail tbody tr { cursor: pointer; }
+.extended-detail tbody tr.selected-project-row { background: #eef6ff; }
+.project-detail { display: grid; grid-template-columns: 1fr auto; gap: 16px; margin: 14px; padding: 18px; border: 1px solid #c8dced; border-radius: 12px; background: #f7fbff; }
+.project-detail h3 { margin: 3px 0 0; color: var(--navy); font-size: 18px; }
+.project-detail dl { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(165px, .42fr) 1fr; gap: 8px 18px; margin: 0; }
+.project-detail dt { color: #63728b; font-size: 11px; font-weight: 850; }
+.project-detail dd { margin: 0; color: #2c3d55; font-size: 12px; line-height: 1.42; white-space: pre-wrap; }
+
 .interactive-bars { display: grid; gap: 11px; }
 .interactive-bars > button:not(.expand-bars) { display: grid; gap: 8px; padding: 10px; color: #48576c; text-align: left; border: 1px solid transparent; border-radius: 10px; background: transparent; transition: 150ms ease; }
 .interactive-bars > button:not(.expand-bars):hover, .interactive-bars > button.selected { border-color: color-mix(in srgb, var(--item-color, var(--interactive-color)) 38%, white); background: color-mix(in srgb, var(--item-color, var(--interactive-color)) 8%, white); }
@@ -690,6 +706,7 @@ td { padding: 14px 15px; font-size: 12px; }
   .indicator-detail-grid { grid-template-columns: 1fr; }
   .bi-metric-grid.five { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .bi-layout-main { grid-template-columns: 1fr; }
+  .projects-filter-bar { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
 }
 
 @media (max-width: 960px) {
@@ -708,6 +725,7 @@ td { padding: 14px 15px; font-size: 12px; }
   .bi-metric-grid.four, .bi-metric-grid.five { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .bi-layout-secondary { grid-template-columns: 1fr; }
   .month-columns, .flow-columns { overflow-x: auto; grid-template-columns: repeat(8, minmax(62px, 1fr)); padding-bottom: 8px; }
+  .projects-filter-bar { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
 }
 
 @media (max-width: 720px) {
@@ -742,6 +760,12 @@ td { padding: 14px 15px; font-size: 12px; }
   .bi-page-actions { width: 100%; justify-content: flex-start; }
   .bi-metric-grid.four, .bi-metric-grid.five { grid-template-columns: 1fr 1fr; }
   .bi-metric { min-height: 108px; }
+  .projects-filter-bar { grid-template-columns: 1fr; }
+  .projects-filter-actions { justify-content: stretch; }
+  .projects-filter-actions button { flex: 1; }
+  .project-detail { grid-template-columns: 1fr; }
+  .project-detail dl { grid-template-columns: 1fr; gap: 3px; }
+  .project-detail dt { margin-top: 7px; }
   .composition-legend { grid-template-columns: 1fr; }
   .table-heading { align-items: flex-start; flex-direction: column; }
   .pager { width: 100%; flex-wrap: wrap; }

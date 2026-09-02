@@ -75,6 +75,7 @@ function RootRoutes() {
 
   const openAdmin = () => navigate("admin");
   const kpi = useMemo(() => route === "projects" ? 10 : KPI_BY_ROUTE[route], [route]);
+  const isProjects = route === "projects";
   const updateExtendedFilters = (next: DashboardFilters) => setFilters({ ...next, recordset: "all", offset: 0 });
 
   return (
@@ -94,7 +95,7 @@ function RootRoutes() {
                 <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
                   ☰ Menu
                 </button>
-                <a className="ghost-button" href="#/indicators">← {copy.common.breadcrumbIndicators}</a>
+                <a className="ghost-button" href={isProjects ? "#/overview" : "#/indicators"}>← {isProjects ? copy.common.breadcrumbOverview : copy.common.breadcrumbIndicators}</a>
                 <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
               </nav>
               <ExtendedIndicatorPanel

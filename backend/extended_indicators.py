@@ -326,6 +326,7 @@ def _projects_indicator(params: dict[str, str]) -> dict[str, Any]:
     interface = _clean(params.get("project_interface"))
     group = _clean(params.get("project_group"))
     confidence = _clean(params.get("project_confidence"))
+    search = _clean(params.get("q")).casefold()
     normalized = [{
         **item,
         "ID": item.get("id", item.get("ID", "")),
@@ -337,7 +338,24 @@ def _projects_indicator(params: dict[str, str]) -> dict[str, Any]:
         "DataReferencia": item.get("reference_date", item.get("DataReferencia", "")),
         "Confianca": item.get("confidence", ""),
     } for item in projects]
-    selected = [item for item in normalized if (not phase or item["FaseAtual"] == phase) and (not status or item["StatusAtual"] == status) and (not interface or item["Interface"] == interface) and (not group or item["Grupo"] == group) and (not confidence or item["Confianca"] == confidence)]
+    def matches(item: dict[str, Any]) -> bool:
+        if phase and item["FaseAtual"] != phase:
+            return False
+        if status and item["StatusAtual"] != status:
+            return False
+        if interface and item["Interface"] != interface:
+            return False
+        if group and item["Grupo"] != group:
+            return False
+        if confidence and item["Confianca"] != confidence:
+            return False
+        if search:
+            searchable = " ".join(str(item.get(key, "")) for key in ("Projeto", "Interface", "Grupo", "FaseAtual", "StatusAtual"))
+            if search not in searchable.casefold():
+                return False
+        return True
+
+    selected = [item for item in normalized if matches(item)]
     selected = sorted(selected, key=lambda item: str(item["ID"]))
     refs = sorted({item["DataReferencia"] for item in normalized})
     return {
@@ -345,11 +363,11 @@ def _projects_indicator(params: dict[str, str]) -> dict[str, Any]:
         "kpi": 10,
         "name": "Projetos públicos por etapa",
         "metrics": {"projects": len(projects), "selected": len(selected), "reference_date": refs[0] if len(refs) == 1 else None},
-        "phases": _group(normalized, lambda item: item["FaseAtual"]),
-        "statuses": _group(normalized, lambda item: item["StatusAtual"]),
-        "interfaces": _group(normalized, lambda item: item["Interface"]),
-        "groups": _group(normalized, lambda item: item["Grupo"]),
-        "confidences": _group(normalized, lambda item: item["Confianca"]),
+        "phases": _group(selected, lambda item: item["FaseAtual"]),
+        "statuses": _group(selected, lambda item: item["StatusAtual"]),
+        "interfaces": _group(selected, lambda item: item["Interface"]),
+        "groups": _group(selected, lambda item: item["Grupo"]),
+        "confidences": _group(selected, lambda item: item["Confianca"]),
         "records": _paginate(selected, params),
         "rule": "Carteira específica de 20 projetos; protocolos IPM não são usados como proxy de projeto único.",
     }

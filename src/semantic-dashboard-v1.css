@@ -19,8 +19,6 @@
   --semantic-pressure: var(--orange);
   --semantic-time: var(--purple);
   --semantic-neutral: var(--slate);
-
-  /* Cores extraídas da referência visual enviada pelo usuário. */
   --chart-entry-fill: #a6c9ec;
   --chart-entry-stroke: #4d93d9;
   --chart-output-fill: #b5e6a2;
@@ -29,32 +27,77 @@
   --chart-output-stroke-soft: #77b85f;
 }
 
+/* Visão executiva: mantém apenas o rótulo curto; título e descrição riscados saem da leitura. */
+.overview-hero-clean {
+  min-height: 0;
+  margin: 2px 1px 12px;
+  padding: 2px 0 0;
+}
+.overview-hero-clean h1,
+.overview-hero-clean p {
+  display: none;
+}
+.overview-hero-clean .eyebrow {
+  margin: 0;
+}
+
+/* Metadados superiores: fonte, universo e período em um bloco discreto. */
+.compact-source-meta {
+  min-width: 330px;
+}
+.compact-source-meta .universe-details > summary {
+  gap: 9px;
+  align-items: center;
+}
+.source-meta-copy {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  line-height: 1.2;
+}
+.source-meta-copy strong {
+  color: #2d405a;
+  font-size: 11px;
+  font-weight: 800;
+}
+.source-meta-copy small {
+  color: #718096;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* O período já está no cabeçalho; no toolbar ficam apenas os controles de filtro. */
+.filter-toolbar > div {
+  display: none;
+}
+
 /* Visão executiva: cada cor descreve o significado do KPI, não a posição do card. */
 .executive-kpi-grid .kpi-card:nth-child(1) { --card-color: var(--semantic-demand); }
 .executive-kpi-grid .kpi-card:nth-child(2) { --card-color: var(--semantic-output); }
 .executive-kpi-grid .kpi-card:nth-child(4) { --card-color: var(--semantic-stock); }
 .executive-kpi-grid .kpi-card:nth-child(5) { --card-color: var(--semantic-time); }
 
-/* Compacta levemente os cards mantendo o padrão executivo aprovado. */
+/* Cards executivos: conteúdo riscado é retirado; ficam título, valor, tendência gráfica e ajuda. */
 .executive-kpi-grid .kpi-card {
-  min-height: 196px;
-  padding: 14px 14px 11px;
+  min-height: 156px;
+  padding: 14px 14px 12px;
 }
-.executive-kpi-grid .kpi-card > strong { margin-top: 5px; }
-.executive-kpi-grid .kpi-card > p { min-height: 28px; margin-top: 5px; }
-.executive-kpi-grid .kpi-sparkline { height: 36px; margin-bottom: 4px; }
-
-/* O período já está no controle global de filtros. Usa o rodapé do card para informação útil. */
-.executive-kpi-grid .kpi-card:first-child footer span { font-size: 0; }
-.executive-kpi-grid .kpi-card:first-child footer span::after {
-  content: "Demanda recebida";
-  font-size: 11px;
+.executive-kpi-grid .kpi-card > strong {
+  margin-top: 9px;
+}
+.executive-kpi-grid .kpi-card > p,
+.executive-kpi-grid .kpi-card > footer,
+.executive-kpi-grid .kpi-topline-side > small {
+  display: none;
+}
+.executive-kpi-grid .kpi-sparkline {
+  height: 42px;
+  margin: auto 0 0;
 }
 
-/*
- * Gráfico de fluxo mensal: cores de leitura, não de severidade.
- * Entrada = azul claro; saída = verde claro, seguindo a referência enviada.
- */
+/* Gráfico de fluxo mensal: entrada azul claro; saída verde claro. */
 .legend-received { background: var(--chart-entry-stroke); }
 .received-bar {
   fill: var(--chart-entry-fill);
@@ -63,7 +106,6 @@
 }
 .received-line { stroke: var(--chart-entry-stroke); }
 .received-value { fill: #2f76bd; }
-
 .legend-same-month { background: var(--chart-output-fill); border: 1px solid var(--chart-output-stroke); }
 .legend-backlog { background: var(--chart-output-fill-soft); border: 1px solid var(--chart-output-stroke-soft); }
 .same-month-output-bar {
@@ -77,6 +119,18 @@
   stroke-width: 1;
 }
 .flow-segment-value { fill: #244830; }
+
+/* Texto explicativo riscado do gráfico é removido. */
+.overview-flow-panel .panel-heading p,
+.overview-flow-panel .flow-audit-note {
+  display: none;
+}
+.overview-flow-panel .panel-heading {
+  margin-bottom: 8px;
+}
+.overview-flow-panel .flow-chart-wrap {
+  min-height: 430px;
+}
 
 /* Sinais executivos fora do gráfico mantêm a semântica de demanda. */
 .overview-support-compact .signal-blue {
@@ -138,8 +192,7 @@
   --interactive-color: var(--semantic-stock);
 }
 
-/* Evita repetir o mesmo período em breadcrumb e no primeiro card do painel de recebidos.
-   O período global permanece visível na barra superior de filtros. */
+/* Evita repetir o mesmo período em breadcrumb e no primeiro card do painel de recebidos. */
 .bi-page .drill-breadcrumb span:nth-child(3),
 .process-page .drill-breadcrumb span:nth-child(3) {
   display: none;
@@ -147,6 +200,9 @@
 .bi-page[data-panel="received"] .bi-metric-grid .bi-metric:first-child small { display: none; }
 
 @media (max-width: 820px) {
-  .executive-kpi-grid .kpi-card { min-height: 188px; }
+  .compact-source-meta { min-width: 0; }
+  .source-meta-copy strong { font-size: 10px; }
+  .source-meta-copy small { font-size: 9px; }
+  .executive-kpi-grid .kpi-card { min-height: 150px; }
   .bi-metric { min-height: 104px; }
 }

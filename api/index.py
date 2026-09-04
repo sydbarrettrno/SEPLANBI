@@ -240,8 +240,6 @@ class handler(BaseHTTPRequestHandler):
             content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
 
             if action == "private-base-upload":
-                if not self._require_admin():
-                    return
                 verify_admin_password(self.headers.get("X-SEPLAN-Admin-Password", ""), client_ip)
                 if content_type not in PRIVATE_UPLOAD_TYPES:
                     self._json(415, {"ok": False, "error": "Selecione uma planilha XLSX ou XLSM."})
@@ -283,9 +281,6 @@ class handler(BaseHTTPRequestHandler):
                 )
                 return
 
-            if not self._require_admin():
-                return
-
             if action == "private-export":
                 verify_admin_password(payload.get("password", ""), client_ip)
                 try:
@@ -299,6 +294,9 @@ class handler(BaseHTTPRequestHandler):
                     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     filename,
                 )
+                return
+
+            if not self._require_admin():
                 return
 
             session_token = self._admin_token()

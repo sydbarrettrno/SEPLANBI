@@ -78,7 +78,7 @@ export function PrivateExportButton({
         }
         if (response.status === 503 && message.includes("Base privada")) {
           setNeedsPrivateBase(true);
-          setError(message);
+          setError("A cópia privada da última atualização ainda não está sincronizada no servidor.");
           return;
         }
         setPassword("");
@@ -132,18 +132,19 @@ export function PrivateExportButton({
       });
       const payload = await response.json() as PrivateBaseInstallResult & { error?: string };
       if (!response.ok) {
-        throw new Error(payload.error || `Falha ao instalar a base privada (${response.status}).`);
+        throw new Error(payload.error || `Falha ao sincronizar a última base (${response.status}).`);
       }
 
       setNeedsPrivateBase(false);
       setPrivateFile(null);
       setPassword("");
       setInstallSuccess(
-        `Base privada instalada: ${payload.matched_rows.toLocaleString("pt-BR")} de ${payload.public_rows.toLocaleString("pt-BR")} protocolos (${payload.coverage_percent.toLocaleString("pt-BR")}%).` +
-        (payload.missing_private_rows ? ` ${payload.missing_private_rows.toLocaleString("pt-BR")} protocolo(s) da versão atual ficaram sem complemento privado.` : " Cobertura completa."),
+        `Última base sincronizada: ${payload.private_rows.toLocaleString("pt-BR")} registros privados preservados; ` +
+        `${payload.matched_rows.toLocaleString("pt-BR")} de ${payload.public_rows.toLocaleString("pt-BR")} protocolos da versão publicada conferidos (${payload.coverage_percent.toLocaleString("pt-BR")}%).` +
+        (payload.missing_private_rows ? ` ${payload.missing_private_rows.toLocaleString("pt-BR")} protocolo(s) públicos ficaram sem complemento privado.` : " Cobertura pública completa."),
       );
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Falha ao instalar a base privada.");
+      setError(reason instanceof Error ? reason.message : "Falha ao sincronizar a última base.");
     } finally {
       setInstalling(false);
     }
@@ -155,7 +156,7 @@ export function PrivateExportButton({
         type="button"
         className={className}
         onClick={() => setOpen(true)}
-        title="Exportar XLSX completo com nomes, responsáveis e observações"
+        title="Exportar XLSX completo da última atualização, com nomes, responsáveis e observações"
       >
         <span aria-hidden="true">⇩</span>
         {label}
@@ -172,7 +173,7 @@ export function PrivateExportButton({
             <span className="private-export-icon" aria-hidden="true">⇩</span>
             <small>ACESSO RESTRITO</small>
             <h2 id="private-export-title">Exportar base completa</h2>
-            <p>O XLSX contém a base atual com nomes, responsáveis, observações de abertura e do último trâmite, além das abas de cálculo dos indicadores. A senha é validada somente no servidor.</p>
+            <p>O XLSX corresponde à última atualização publicada e contém nomes, responsáveis, observações de abertura e do último trâmite, além das abas de cálculo dos indicadores. A senha é validada somente no servidor.</p>
             <label>
               <span>Senha administrativa</span>
               <input
@@ -192,11 +193,11 @@ export function PrivateExportButton({
 
             {needsPrivateBase ? (
               <div className="private-export-recovery">
-                <strong>Inicializar armazenamento privado</strong>
-                <p>O servidor ainda não possui a camada privada. Selecione a planilha fonte mais recente. São aceitas a base com aba <b>BASE23-26</b> ou a <b>BASE_INDICADORES</b> com aba 01_RECEBIDOS.</p>
-                <p className="private-export-privacy">Somente os campos privados autorizados são extraídos. CPF/CNPJ não é armazenado.</p>
+                <strong>Sincronização da última atualização pendente</strong>
+                <p>Esta recuperação só aparece quando uma versão antiga foi publicada sem sua cópia privada. Selecione <b>a mesma planilha usada na última atualização</b>. O relatório atual do IPM com aba <b>Report</b> é aceito.</p>
+                <p className="private-export-privacy">Em uso normal isso não será necessário: a rotina de atualização passou a sincronizar automaticamente a mesma fonte. CPF/CNPJ não é armazenado.</p>
                 <label className="private-export-file">
-                  <span>Planilha fonte</span>
+                  <span>Planilha da última atualização</span>
                   <input
                     type="file"
                     accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel.sheet.macroEnabled.12"
@@ -206,7 +207,7 @@ export function PrivateExportButton({
                 </label>
                 {privateFile ? <small className="private-export-file-name">{privateFile.name} · {(privateFile.size / 1024 / 1024).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} MB</small> : null}
                 <button type="button" className="primary-button" onClick={() => void installPrivateBase()} disabled={busy || !privateFile || !password.trim()}>
-                  {installing ? "Validando e armazenando…" : "Instalar base privada"}
+                  {installing ? "Validando e sincronizando…" : "Sincronizar última base"}
                 </button>
               </div>
             ) : null}

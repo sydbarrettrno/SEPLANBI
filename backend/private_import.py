@@ -98,6 +98,53 @@ def _parse_raw_base(sheet) -> dict[str, dict[str, str]]:
     return records
 
 
+def _parse_ipm_report(sheet) -> dict[str, dict[str, str]]:
+    """Extrai a camada privada diretamente do relatório IPM atual (aba Report).
+
+    Esta é a fonte usada na atualização incremental do dashboard. CPF/CNPJ nunca
+    é copiado para o artefato privado; somente os campos previstos no contrato V3.
+    """
+    records: dict[str, dict[str, str]] = {}
+    required = {
+        "Número/Ano",
+        "Requerente - Nome Razão",
+        "Observação Abertura",
+        "Último Trâmite - Observação",
+        "Subassunto - Descrição",
+    }
+    for source in _sheet_records(sheet, required):
+        protocol_id = _protocol_id(source.get("Número/Ano"))
+        if not protocol_id:
+            continue
+        year = int(protocol_id.split("-", 1)[0])
+        if year < 2025:
+            continue
+        if protocol_id in records:
+            raise ValueError("A planilha possui protocolos duplicados no escopo 2025+.")
+
+        requester = _clean(source.get("Requerente - Nome Razão"))
+        technical = _clean(source.get("Responsável - Nome"))
+        internal_name = _clean(source.get("Usuário Atual - Nome"))
+        internal_code = _clean(source.get("Usuário Atual - Código"))
+        internal = internal_name or internal_code
+        record = _blank_record(protocol_id)
+        record.update({
+            "NomeRequerente": requester,
+            "ResponsavelTecnico": technical,
+            "ResponsavelInterno": internal,
+            "ObservacaoAbertura": _clean(source.get("Observação Abertura")),
+            "ObservacaoUltimoTramite": _clean(source.get("Último Trâmite - Observação")),
+            "SubassuntoOriginal": _clean(source.get("Subassunto - Descrição")),
+            "UsuarioAtualNome": internal_name or internal_code,
+            "SituacaoOriginal": _clean(source.get("Situação")),
+            "SetorAtualFonte": _clean(source.get("Centro de Custo Atual - Descrição")),
+            "PessoaResponsavelExterna": technical or requester,
+            "TipoPessoaResponsavel": "Responsável/RT" if technical else ("Requerente" if requester else ""),
+        })
+        records[protocol_id] = record
+    return records
+
+
 def _parse_complete_base(sheet) -> dict[str, dict[str, str]]:
     """Extrai somente a camada privada autorizada da BASE_COMPLETA.
 
@@ -193,6 +240,9 @@ def parse_private_xlsx(body: bytes) -> tuple[str, dict[str, dict[str, str]]]:
         if "BASE_COMPLETA" in workbook.sheetnames:
             source_kind = "BASE_COMPLETA"
             records = _parse_complete_base(workbook["BASE_COMPLETA"])
+        elif "Report" in workbook.sheetnames:
+            source_kind = "IPM_REPORT"
+            records = _parse_ipm_report(workbook["Report"])
         elif "BASE23-26" in workbook.sheetnames:
             source_kind = "BASE23-26"
             records = _parse_raw_base(workbook["BASE23-26"])
@@ -201,7 +251,7 @@ def parse_private_xlsx(body: bytes) -> tuple[str, dict[str, dict[str, str]]]:
             records = _parse_indicator_base(workbook)
         else:
             raise ValueError(
-                "Planilha incompatível. Use a BASE_COMPLETA, a base bruta com a aba BASE23-26 ou a BASE_INDICADORES com a aba 01_RECEBIDOS."
+                "Planilha incompatível. Use o relatório IPM com aba Report, a BASE_COMPLETA, a base com aba BASE23-26 ou a BASE_INDICADORES com aba 01_RECEBIDOS."
             )
     finally:
         workbook.close()
@@ -241,7 +291,10 @@ def install_private_xlsx(body: bytes, source_name: str = "") -> dict[str, Any]:
             f"A planilha não corresponde à base atual: cobertura de {coverage * 100:.1f}% (mínimo {MIN_PUBLIC_COVERAGE * 100:.0f}%)."
         )
 
-    records = [parsed[protocol_id] for protocol_id in sorted(matched_ids)]
+    # Guarda todos os protocolos 2025+ presentes na fonte, inclusive os que ainda
+    # não chegaram ao payload público. Assim a mesma fonte pode ser sincronizada
+    # antes do deploy e continuará válida depois que os novos protocolos entrarem.
+    records = [parsed[protocol_id] for protocol_id in sorted(parsed)]
     installed_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     payload = {
         "v": 3,
@@ -251,9 +304,10 @@ def install_private_xlsx(body: bytes, source_name: str = "") -> dict[str, Any]:
             "installed_at": installed_at,
             "source_kind": source_kind,
             "source_name": _clean(source_name)[:180],
-            "public_rows": len(public_ids),
-            "matched_rows": len(matched_ids),
-            "missing_private_rows": len(public_ids) - len(matched_ids),
+            "public_rows_at_sync": len(public_ids),
+            "source_scope_rows": len(parsed),
+            "matched_rows_at_sync": len(matched_ids),
+            "missing_public_rows_at_sync": len(public_ids) - len(matched_ids),
         },
     }
     _persist_private_payload(payload)

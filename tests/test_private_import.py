@@ -41,6 +41,43 @@ class PrivateImportTests(unittest.TestCase):
         self.assertNotIn("Requerente - CPF/CNPJ", record)
         self.assertNotIn("Responsável - CPF/CNPJ", record)
 
+    def test_current_ipm_report_maps_authorized_fields_and_ignores_tax_ids(self):
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Report"
+        sheet.append([
+            "Número/Ano", "Requerente - Nome Razão", "Abertura - Data", "Observação Abertura",
+            "Último Trâmite - Data/Hora", "Situação", "Subassunto - Descrição",
+            "Requerente - CPF/CNPJ", "Último Trâmite - Observação", "Responsável - Nome",
+            "Responsável - CPF/CNPJ", "Data Encerramento", "Última Atividade",
+            "Centro de Custo Atual - Classificação", "Centro de Custo Atual - Descrição",
+            "Centro de Custo Abertura - Classificação", "Centro de Custo Abertura - Descrição",
+            "Usuário Atual - Código", "Usuário Atual - Nome", "Centro de Custo Requerente - Código",
+            "Centro de Custo Requerente - Classificação", "Centro de Custo Requerente - Descrição",
+            "Det. Situação - Fluxo", "Prazo Atual",
+        ])
+        sheet.append([
+            "43893/2026", "Pessoa Requerente", "2026-08-31", "Pedido inicial",
+            "2026-09-02 08:00:00", "Em andamento", "DIVERSOS",
+            "111.111.111-11", "Último trâmite", "RT Teste",
+            "222.222.222-22", "", "Hoje", "ENG", "Departamento de Engenharia",
+            "ENG", "Departamento de Engenharia", "123", "Servidor Teste", "",
+            "", "", "Em análise", "",
+        ])
+
+        source, records = parse_private_xlsx(_workbook_bytes(workbook))
+        self.assertEqual(source, "IPM_REPORT")
+        record = records["2026-43893"]
+        self.assertEqual(record["NomeRequerente"], "Pessoa Requerente")
+        self.assertEqual(record["ResponsavelTecnico"], "RT Teste")
+        self.assertEqual(record["ResponsavelInterno"], "Servidor Teste")
+        self.assertEqual(record["ObservacaoAbertura"], "Pedido inicial")
+        self.assertEqual(record["ObservacaoUltimoTramite"], "Último trâmite")
+        self.assertEqual(record["SubassuntoOriginal"], "DIVERSOS")
+        self.assertEqual(record["SetorAtualFonte"], "Departamento de Engenharia")
+        self.assertNotIn("Requerente - CPF/CNPJ", record)
+        self.assertNotIn("Responsável - CPF/CNPJ", record)
+
     def test_raw_base_maps_authorized_fields_and_ignores_tax_ids(self):
         workbook = Workbook()
         sheet = workbook.active

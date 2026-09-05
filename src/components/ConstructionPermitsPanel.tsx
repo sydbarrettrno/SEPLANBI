@@ -2,8 +2,8 @@ import { constructionPermitsData, type ConstructionAnnualPoint } from "../constr
 import { formatDate, formatNumber } from "../format";
 
 const WIDTH = 960;
-const HEIGHT = 340;
-const PAD = { top: 22, right: 18, bottom: 48, left: 58 };
+const HEIGHT = 360;
+const PAD = { top: 40, right: 18, bottom: 48, left: 58 };
 
 function compactArea(value: number) {
   if (value >= 1_000_000) return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value / 1_000_000)} mi m²`;
@@ -35,10 +35,14 @@ function CountHistoryChart({ data }: { data: readonly ConstructionAnnualPoint[] 
           const center = PAD.left + group * index + group / 2;
           const totalX = center - bar - 3;
           const newX = center + 3;
+          const totalY = y(item.permits);
+          const newY = y(item.newConstruction);
           return (
             <g key={item.year}>
-              <rect x={totalX} y={y(item.permits)} width={bar} height={PAD.top + plotHeight - y(item.permits)} rx="4" className="construction-bar-total"><title>{`${item.year}: ${formatNumber(item.permits)} alvarás totais`}</title></rect>
-              <rect x={newX} y={y(item.newConstruction)} width={bar} height={PAD.top + plotHeight - y(item.newConstruction)} rx="4" className="construction-bar-new"><title>{`${item.year}: ${formatNumber(item.newConstruction)} de construção nova`}</title></rect>
+              <rect x={totalX} y={totalY} width={bar} height={PAD.top + plotHeight - totalY} rx="4" className="construction-bar-total"><title>{`${item.year}: ${formatNumber(item.permits)} alvarás totais`}</title></rect>
+              <rect x={newX} y={newY} width={bar} height={PAD.top + plotHeight - newY} rx="4" className="construction-bar-new"><title>{`${item.year}: ${formatNumber(item.newConstruction)} de construção nova`}</title></rect>
+              <text x={totalX + bar / 2} y={Math.max(13, totalY - 7)} textAnchor="middle" className="construction-bar-value construction-bar-value-total">{formatNumber(item.permits)}</text>
+              <text x={newX + bar / 2} y={Math.max(13, newY - 7)} textAnchor="middle" className="construction-bar-value construction-bar-value-new">{formatNumber(item.newConstruction)}</text>
               <text x={center} y={HEIGHT - 18} textAnchor="middle" className="construction-year-label">{item.year}</text>
             </g>
           );
@@ -70,6 +74,7 @@ function AreaHistoryChart({ data }: { data: readonly ConstructionAnnualPoint[] }
           return (
             <g key={item.year}>
               <rect x={center - bar / 2} y={barY} width={bar} height={PAD.top + plotHeight - barY} rx="5" className="construction-area-bar"><title>{`${item.year}: ${compactArea(item.authorizedAreaM2)}`}</title></rect>
+              <text x={center} y={Math.max(13, barY - 7)} textAnchor="middle" className="construction-bar-value construction-area-value">{formatNumber(Math.round(item.authorizedAreaM2))}</text>
               <text x={center} y={HEIGHT - 18} textAnchor="middle" className="construction-year-label">{item.year}</text>
             </g>
           );
@@ -101,9 +106,15 @@ function CompositionChart({ data }: { data: readonly ConstructionAnnualPoint[] }
               {COMPOSITION.map((item) => {
                 const value = row[item.key];
                 const share = row.newConstruction ? (value / row.newConstruction) * 100 : 0;
-                return <span key={item.key} className={item.className} style={{ width: `${share}%` }}><title>{`${item.label}: ${formatNumber(value)} (${percent(share)})`}</title></span>;
+                return (
+                  <span key={item.key} className={item.className} style={{ width: `${share}%` }}>
+                    {share >= 9.5 ? <b>{formatNumber(value)}</b> : null}
+                    <title>{`${item.label}: ${formatNumber(value)} (${percent(share)})`}</title>
+                  </span>
+                );
               })}
             </div>
+            <span className="construction-composition-total">{formatNumber(row.newConstruction)}</span>
           </div>
         ))}
       </div>
@@ -116,7 +127,7 @@ export function ConstructionPermitsPanel() {
 
   return (
     <section className="construction-page">
-      <header className="construction-hero">
+      <header className="page-hero construction-hero">
         <div>
           <span className="eyebrow">Planejamento urbano · série histórica</span>
           <h1>Construção Civil</h1>
@@ -130,25 +141,49 @@ export function ConstructionPermitsPanel() {
         </div>
       </header>
 
-      <section className="construction-kpi-grid" aria-label="Indicadores da construção civil">
-        <article><span>Alvarás · 2016–2025</span><strong>{formatNumber(totals.permits)}</strong><small>todos os tipos emitidos</small></article>
-        <article><span>Construção nova</span><strong>{formatNumber(totals.newConstruction)}</strong><small>alvarás no período</small></article>
-        <article><span>Área autorizada</span><strong>{compactArea(totals.authorizedAreaM2)}</strong><small>somente construção nova</small></article>
-        <article><span>Mediana de área</span><strong>{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(totals.medianAreaM2)} m²</strong><small>porte central das obras</small></article>
+      <section className="kpi-grid construction-kpi-grid" aria-label="Indicadores da construção civil">
+        <article className="kpi-card tone-blue construction-kpi-card">
+          <span className="kpi-accent" />
+          <div className="kpi-topline"><span>ALVARÁS · 2016–2025</span></div>
+          <strong>{formatNumber(totals.permits)}</strong>
+          <p>Todos os tipos emitidos no período.</p>
+          <footer><span>Série histórica consolidada</span></footer>
+        </article>
+        <article className="kpi-card tone-blue construction-kpi-card">
+          <span className="kpi-accent" />
+          <div className="kpi-topline"><span>CONSTRUÇÃO NOVA</span></div>
+          <strong>{formatNumber(totals.newConstruction)}</strong>
+          <p>Alvarás classificados como construção nova.</p>
+          <footer><span>Volume autorizado</span></footer>
+        </article>
+        <article className="kpi-card tone-green construction-kpi-card">
+          <span className="kpi-accent" />
+          <div className="kpi-topline"><span>ÁREA AUTORIZADA</span></div>
+          <strong>{compactArea(totals.authorizedAreaM2)}</strong>
+          <p>Somente área vinculada à construção nova.</p>
+          <footer><span>Intensidade física</span></footer>
+        </article>
+        <article className="kpi-card tone-purple construction-kpi-card">
+          <span className="kpi-accent" />
+          <div className="kpi-topline"><span>MEDIANA DE ÁREA</span></div>
+          <strong>{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(totals.medianAreaM2)} m²</strong>
+          <p>Porte central das obras autorizadas.</p>
+          <footer><span>Distribuição das áreas</span></footer>
+        </article>
       </section>
 
-      <article className="construction-panel">
-        <div className="construction-panel-heading"><div><span className="eyebrow">Volume autorizado</span><h2>Evolução dos alvarás emitidos — 2016 a 2025</h2><p>Total anual e parcela correspondente a construção nova.</p></div></div>
+      <article className="panel construction-panel">
+        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Volume autorizado</span><h2>Evolução dos alvarás emitidos — 2016 a 2025</h2><p>Total anual e parcela correspondente a construção nova.</p></div></div>
         <CountHistoryChart data={annual} />
       </article>
 
-      <article className="construction-panel">
-        <div className="construction-panel-heading"><div><span className="eyebrow">Intensidade física</span><h2>Área autorizada para construção nova — 2016 a 2025</h2><p>A metragem evidencia o porte físico da atividade, que não aparece apenas na contagem de documentos.</p></div></div>
+      <article className="panel construction-panel">
+        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Intensidade física</span><h2>Área autorizada para construção nova — 2016 a 2025</h2><p>A metragem evidencia o porte físico da atividade, que não aparece apenas na contagem de documentos.</p></div></div>
         <AreaHistoryChart data={annual} />
       </article>
 
-      <section className="construction-ytd-section">
-        <div className="construction-panel-heading"><div><span className="eyebrow">Comparação equivalente</span><h2>2026 até 03/09 × mesmo período de 2025</h2><p>O ano corrente não é comparado diretamente com anos completos.</p></div><span className="construction-ytd-chip">2026 YTD · {formatNumber(currentYtd.permits)} alvarás</span></div>
+      <section className="panel construction-ytd-section">
+        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Comparação equivalente</span><h2>2026 até 03/09 × mesmo período de 2025</h2><p>O ano corrente não é comparado diretamente com anos completos.</p></div><span className="panel-chip construction-ytd-chip">2026 YTD · {formatNumber(currentYtd.permits)} alvarás</span></div>
         <div className="construction-ytd-grid">
           {ytdComparison.map((item) => (
             <article key={item.label} className={item.label === "Área autorizada" ? "construction-ytd-highlight" : ""}>
@@ -161,14 +196,14 @@ export function ConstructionPermitsPanel() {
         </div>
       </section>
 
-      <article className="construction-panel">
-        <div className="construction-panel-heading"><div><span className="eyebrow">Perfil das autorizações</span><h2>Composição da construção nova por uso</h2><p>Participação anual dentro dos alvarás classificados como construção nova.</p></div></div>
+      <article className="panel construction-panel">
+        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Perfil das autorizações</span><h2>Composição da construção nova por uso</h2><p>Participação anual dentro dos alvarás classificados como construção nova. O total de cada ano aparece à direita.</p></div></div>
         <CompositionChart data={annual} />
       </article>
 
       <section className="construction-reading-note">
-        <div><strong>Como ler</strong><p>Alvará é autorização administrativa e funciona como indicador antecedente da atividade construtiva; não significa obra concluída.</p></div>
-        <div><strong>Limitações da fonte</strong><p>Coeficiente de aproveitamento e outorga onerosa não estão disponíveis nesta extração. “Residencial” sem modalidade explícita não é convertido automaticamente em unifamiliar.</p></div>
+        <div className="management-note"><strong>Como ler</strong><p>Alvará é autorização administrativa e funciona como indicador antecedente da atividade construtiva; não significa obra concluída.</p></div>
+        <div className="management-note"><strong>Limitações da fonte</strong><p>Coeficiente de aproveitamento e outorga onerosa não estão disponíveis nesta extração. “Residencial” sem modalidade explícita não é convertido automaticamente em unifamiliar.</p></div>
       </section>
     </section>
   );

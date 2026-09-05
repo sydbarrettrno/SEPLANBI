@@ -1,0 +1,237 @@
+.construction-composition-panel {
+  padding: 23px 24px 24px;
+}
+
+.construction-composition-interactive {
+  gap: 18px;
+  padding-top: 10px;
+}
+
+.construction-composition-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.construction-composition-legend {
+  gap: 9px 10px;
+}
+
+.construction-composition-legend-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 6px 9px;
+  color: #596a80;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 9px;
+  font-weight: 800;
+  transition: 150ms ease;
+}
+
+.construction-composition-legend-button:hover {
+  color: var(--navy);
+  border-color: #d3deea;
+  background: #f7faff;
+}
+
+.construction-composition-legend-button.active {
+  color: #173d66;
+  border-color: #b9cee3;
+  background: #eef6fd;
+  box-shadow: 0 4px 12px rgba(17,43,75,.06);
+}
+
+.construction-composition-legend-button.muted {
+  opacity: .42;
+}
+
+.construction-composition-legend-button i {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 11px;
+  border-radius: 3px;
+}
+
+.construction-segmentation-hint {
+  color: #8190a4;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.construction-segmentation-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 14px;
+  border: 1px solid #cbdceb;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #f6faff, #fbfdff);
+}
+
+.construction-segmentation-summary > div {
+  display: grid;
+  gap: 2px;
+}
+
+.construction-segmentation-summary small {
+  color: var(--blue);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.construction-segmentation-summary strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.construction-segmentation-summary span {
+  color: #65748a;
+  font-size: 10px;
+}
+
+.construction-segmentation-summary button {
+  min-height: 32px;
+  padding: 0 10px;
+  color: #4f6279;
+  border: 1px solid #d0dce8;
+  border-radius: 8px;
+  background: white;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.construction-segmentation-summary button:hover {
+  color: #164f86;
+  border-color: #aac7e2;
+  background: #f7fbff;
+}
+
+.construction-composition-grid {
+  gap: 12px;
+}
+
+.construction-composition-row {
+  grid-template-columns: 52px minmax(0, 1fr) 86px;
+  gap: 12px;
+  min-height: 42px;
+  padding: 3px 5px;
+  border-radius: 9px;
+  transition: 150ms ease;
+}
+
+.construction-composition-row > strong {
+  font-size: 11px;
+}
+
+.construction-composition-row.row-active {
+  background: #f3f8fd;
+  box-shadow: inset 3px 0 var(--blue);
+}
+
+.construction-composition-row.row-muted {
+  opacity: .68;
+}
+
+.construction-composition-track {
+  height: 38px;
+  border-radius: 9px;
+}
+
+.construction-composition-segment {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  transition: opacity 160ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+
+.construction-composition-segment:first-child {
+  border-radius: 9px 0 0 9px;
+}
+
+.construction-composition-segment:last-child {
+  border-radius: 0 9px 9px 0;
+}
+
+.construction-composition-segment:hover {
+  z-index: 2;
+  filter: brightness(.9) saturate(1.12);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.7);
+}
+
+.construction-composition-segment.segment-active {
+  z-index: 2;
+  filter: saturate(1.18) brightness(.98);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.72);
+}
+
+.construction-composition-segment.segment-muted {
+  opacity: .16;
+  filter: saturate(.55);
+}
+
+.construction-composition-track b {
+  padding: 0 5px;
+  font-size: 10px;
+}
+
+.construction-composition-total {
+  display: grid;
+  justify-items: end;
+  gap: 1px;
+  color: #263a55;
+  font-size: 11px;
+}
+
+.construction-composition-total.segmented {
+  color: var(--blue);
+  font-size: 12px;
+}
+
+.construction-composition-total small {
+  color: #7e8b9d;
+  font-size: 8px;
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  .construction-composition-panel {
+    padding: 18px 16px 20px;
+  }
+
+  .construction-composition-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .construction-segmentation-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .construction-composition-row {
+    grid-template-columns: 42px minmax(620px, 1fr) 76px;
+  }
+
+  .construction-composition-interactive {
+    overflow-x: auto;
+    padding-bottom: 5px;
+  }
+}

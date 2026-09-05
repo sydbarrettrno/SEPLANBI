@@ -1,0 +1,120 @@
+.construction-chart-with-tooltip {
+  position: relative;
+  overflow: visible;
+}
+
+.construction-axis-title {
+  fill: #5f6d80;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .015em;
+}
+
+.construction-hover-zone {
+  fill: transparent;
+  pointer-events: all;
+  cursor: crosshair;
+}
+
+.construction-hover-tooltip,
+.construction-composition-hover {
+  position: absolute;
+  z-index: 8;
+  display: grid;
+  min-width: 215px;
+  gap: 7px;
+  padding: 11px 12px;
+  color: #20344f;
+  border: 1px solid #d9e2ec;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .97);
+  box-shadow: 0 10px 30px rgba(17, 43, 75, .14);
+  pointer-events: none;
+}
+
+.construction-hover-tooltip {
+  top: 34px;
+  transform: translateX(-50%);
+}
+
+.construction-hover-tooltip > strong,
+.construction-composition-hover > strong {
+  color: var(--navy);
+  font-size: 13px;
+}
+
+.construction-hover-tooltip > span,
+.construction-composition-hover > span {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+}
+
+.construction-hover-tooltip i,
+.construction-composition-hover i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.construction-hover-tooltip b,
+.construction-composition-hover b {
+  font-weight: 800;
+}
+
+.construction-hover-tooltip em,
+.construction-composition-hover em {
+  color: #334861;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.construction-legend-area {
+  background: var(--green);
+}
+
+.construction-composition {
+  position: relative;
+}
+
+.construction-composition-hover {
+  top: 52px;
+  right: 2px;
+}
+
+.construction-composition-axis {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 50px 0 50px;
+  color: #78869a;
+  font-size: 9px;
+}
+
+.construction-composition-axis strong {
+  color: #5f6d80;
+  font-weight: 800;
+}
+
+.construction-composition-segment {
+  cursor: crosshair;
+}
+
+@media (max-width: 760px) {
+  .construction-hover-tooltip {
+    min-width: 190px;
+  }
+  .construction-composition-hover {
+    position: static;
+    margin-bottom: 4px;
+  }
+  .construction-composition-axis {
+    min-width: 600px;
+  }
+}

@@ -15,6 +15,12 @@
   flex-wrap: wrap;
 }
 
+.construction-composition-toolbar-main {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
 .construction-composition-legend {
   gap: 9px 10px;
 }
@@ -23,13 +29,13 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 32px;
+  min-height: 36px;
   padding: 6px 9px;
   color: #596a80;
   border: 1px solid transparent;
   border-radius: 8px;
   background: transparent;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 800;
   transition: 150ms ease;
 }
@@ -60,7 +66,7 @@
 
 .construction-segmentation-hint {
   color: #8190a4;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -82,7 +88,7 @@
 
 .construction-segmentation-summary small {
   color: var(--blue);
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: .1em;
   text-transform: uppercase;
@@ -90,12 +96,12 @@
 
 .construction-segmentation-summary strong {
   color: var(--navy);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .construction-segmentation-summary span {
   color: #65748a;
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .construction-segmentation-summary button {
@@ -105,7 +111,7 @@
   border: 1px solid #d0dce8;
   border-radius: 8px;
   background: white;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
 }
 
@@ -129,7 +135,7 @@
 }
 
 .construction-composition-row > strong {
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .construction-composition-row.row-active {
@@ -189,7 +195,7 @@
 
 .construction-composition-track b {
   padding: 0 5px;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .construction-composition-total {
@@ -197,7 +203,7 @@
   justify-items: end;
   gap: 1px;
   color: #263a55;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .construction-composition-total.segmented {
@@ -207,7 +213,7 @@
 
 .construction-composition-total small {
   color: #7e8b9d;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 800;
 }
 
@@ -220,6 +226,9 @@
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .construction-period-switch { align-self: stretch; }
+  .construction-period-switch button { flex: 1; }
 
   .construction-segmentation-summary {
     align-items: flex-start;

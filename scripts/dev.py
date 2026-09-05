@@ -16,6 +16,7 @@ from backend.final_entry import dashboard, health, query_from_params  # noqa: E4
 from backend.analytics import analytics_response, export_public_csv, query_from_params as analytics_query_from_params  # noqa: E402
 from backend.indicator_views import indicator_view_response  # noqa: E402
 from backend.admin_store import AdminStoreError, load_copy, load_descriptions, save_descriptions  # noqa: E402
+from backend.construction_data import construction_data_response, export_construction_csv  # noqa: E402
 
 
 def _flatten(query_string: str) -> dict[str, str]:
@@ -39,12 +40,12 @@ class DevHandler(SimpleHTTPRequestHandler):
         except (BrokenPipeError, ConnectionError):
             return
 
-    def _send_csv(self, status: int, body_text: str):
+    def _send_csv(self, status: int, body_text: str, filename: str = "seplanbi-drilldown-publico.csv"):
         body = body_text.encode("utf-8-sig")
         try:
             self.send_response(status)
             self.send_header("Content-Type", "text/csv; charset=utf-8")
-            self.send_header("Content-Disposition", 'attachment; filename="seplanbi-drilldown-publico.csv"')
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
             self.end_headers()
@@ -73,6 +74,11 @@ class DevHandler(SimpleHTTPRequestHandler):
                     return
                 elif action == "indicator-bi":
                     payload = indicator_view_response(params)
+                elif action == "construction-data":
+                    payload = construction_data_response(params)
+                elif action == "construction-export":
+                    self._send_csv(200, export_construction_csv(params), "alvaras-itapoa-base-analitica.csv")
+                    return
                 elif action == "dashboard":
                     payload = dashboard(query_from_params(params))
                 else:

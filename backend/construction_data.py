@@ -14,6 +14,9 @@ DATA_DIR = ROOT / "data"
 PART_GLOB = "construction_permits_public.xz.b64.part*"
 PART_SIZE = 10_000
 PUBLIC_FIELDS = ("permit", "date", "year", "type", "area", "use", "construction")
+PUBLIC_USE_LABELS = {
+    "Residencial unifamiliar": "Residencial — não especificado",
+}
 
 
 def _text(value) -> str:
@@ -69,13 +72,14 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
     for item in payload.get("rows", []):
         if not isinstance(item, dict):
             continue
+        raw_use = _text(item.get("use"))
         record = {
             "permit": _integer(item.get("permit")),
             "date": _text(item.get("date")),
             "year": _integer(item.get("year")),
             "type": _text(item.get("type")),
             "area": round(_number(item.get("area")), 2),
-            "use": _text(item.get("use")),
+            "use": PUBLIC_USE_LABELS.get(raw_use, raw_use),
             "construction": _text(item.get("construction")),
         }
         if record["permit"] and record["date"] and record["year"]:

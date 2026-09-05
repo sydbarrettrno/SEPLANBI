@@ -250,3 +250,39 @@ test("projetos públicos: carteira independente, filtros e detalhamento reconcil
   await expect(page.getByText("20 projetos visíveis.")).toBeVisible();
   expect(failures).toEqual([]);
 });
+
+test("construção civil: visão executiva e consulta ficam separadas e utilizáveis", async ({ page }) => {
+  const failures = watchRuntime(page);
+  await page.goto("/#/construction", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { name: "Construção Civil", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "2026 até 03/09 × mesmo período de 2025", level: 2 })).toBeVisible();
+  await expect(page.getByText("+75,1%", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Base analítica — alvará por alvará", level: 2 })).toHaveCount(0);
+  const constructionViews = page.getByRole("navigation", { name: "Modo de visualização da construção civil" });
+  await expect(constructionViews.getByRole("button", { name: /Visão executiva/ })).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", { name: /Área autorizada/ }).first().click();
+  await expect(page.getByRole("heading", { name: "Área autorizada para construção nova · 2016–2025", level: 2 })).toBeVisible();
+
+  await constructionViews.getByRole("button", { name: /Consultar alvarás/ }).click();
+  await expect(page.getByRole("heading", { name: "Base analítica — alvará por alvará", level: 2 })).toBeVisible();
+  await expect(page.getByText("9.912 registros", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Uso")).toContainText("Residencial — não especificado");
+  await expect(page.getByText("Residencial unifamiliar", { exact: true })).toHaveCount(0);
+  await expect(page.locator(".construction-base-table tbody tr")).toHaveCount(25);
+  expect(failures).toEqual([]);
+});
+
+test("construção civil não cria rolagem horizontal no celular", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/#/construction", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Construção Civil", level: 1 })).toBeVisible();
+  const executiveViewport = await page.evaluate(() => ({ body: document.body.scrollWidth, html: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+  expect(Math.max(executiveViewport.body, executiveViewport.html)).toBeLessThanOrEqual(executiveViewport.viewport);
+
+  await page.getByRole("navigation", { name: "Modo de visualização da construção civil" }).getByRole("button", { name: /Consultar alvarás/ }).click();
+  await expect(page.getByRole("heading", { name: "Base analítica — alvará por alvará", level: 2 })).toBeVisible();
+  const recordsViewport = await page.evaluate(() => ({ body: document.body.scrollWidth, html: document.documentElement.scrollWidth, viewport: window.innerWidth }));
+  expect(Math.max(recordsViewport.body, recordsViewport.html)).toBeLessThanOrEqual(recordsViewport.viewport);
+});

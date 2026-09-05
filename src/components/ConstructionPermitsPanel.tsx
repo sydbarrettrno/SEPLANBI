@@ -5,7 +5,7 @@ import { formatDate, formatNumber } from "../format";
 const WIDTH = 960;
 const HEIGHT = 360;
 const PAD = { top: 40, right: 18, bottom: 48, left: 58 };
-const BASE_LIMIT = 50;
+const BASE_LIMIT = 25;
 
 function compactArea(value: number) {
   if (value >= 1_000_000) return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value / 1_000_000)} mi m²`;
@@ -92,7 +92,7 @@ function AreaHistoryChart({ data }: { data: readonly ConstructionAnnualPoint[] }
 
 const COMPOSITION = [
   { key: "multifamily", label: "Residencial multifamiliar", className: "composition-multifamily" },
-  { key: "residentialUnspecified", label: "Residencial unifamiliar", className: "composition-residential" },
+  { key: "residentialUnspecified", label: "Residencial — não especificado", className: "composition-residential" },
   { key: "commercialServices", label: "Comercial / serviços", className: "composition-commercial" },
   { key: "industrial", label: "Industrial", className: "composition-industrial" },
   { key: "other", label: "Outros", className: "composition-other" },
@@ -103,6 +103,8 @@ type CompositionSelection = { key: CompositionKey; year: number | null } | null;
 
 function CompositionChart({ data }: { data: readonly ConstructionAnnualPoint[] }) {
   const [selection, setSelection] = useState<CompositionSelection>(null);
+  const [showFullHistory, setShowFullHistory] = useState(false);
+  const visibleData = showFullHistory ? data : data.slice(-5);
   const selectedCategory = selection ? COMPOSITION.find((item) => item.key === selection.key) : null;
   const selectedRow = selection?.year != null ? data.find((row) => row.year === selection.year) : null;
   const selectedValue = selectedRow && selection ? selectedRow[selection.key] : null;
@@ -121,20 +123,26 @@ function CompositionChart({ data }: { data: readonly ConstructionAnnualPoint[] }
   return (
     <div className="construction-composition construction-composition-interactive">
       <div className="construction-composition-toolbar">
-        <div className="construction-composition-legend" aria-label="Segmentação por uso">
-          {COMPOSITION.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={`construction-composition-legend-button ${selection?.key === item.key ? "active" : ""} ${selection && selection.key !== item.key ? "muted" : ""}`}
-              aria-pressed={selection?.key === item.key}
-              onClick={() => toggleCategory(item.key)}
-            >
-              <i className={item.className} />{item.label}
-            </button>
-          ))}
+        <div className="construction-composition-toolbar-main">
+          <div className="construction-composition-legend" aria-label="Segmentação por uso">
+            {COMPOSITION.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                className={`construction-composition-legend-button ${selection?.key === item.key ? "active" : ""} ${selection && selection.key !== item.key ? "muted" : ""}`}
+                aria-pressed={selection?.key === item.key}
+                onClick={() => toggleCategory(item.key)}
+              >
+                <i className={item.className} />{item.label}
+              </button>
+            ))}
+          </div>
+          <span className="construction-segmentation-hint">Selecione uma categoria ou faixa para detalhar</span>
         </div>
-        <span className="construction-segmentation-hint">Clique na legenda ou em uma faixa para segmentar</span>
+        <div className="construction-period-switch" role="group" aria-label="Período da composição por uso">
+          <button type="button" aria-pressed={!showFullHistory} className={!showFullHistory ? "active" : ""} onClick={() => { setShowFullHistory(false); setSelection(null); }}>2021–2025</button>
+          <button type="button" aria-pressed={showFullHistory} className={showFullHistory ? "active" : ""} onClick={() => { setShowFullHistory(true); setSelection(null); }}>2016–2025</button>
+        </div>
       </div>
 
       {selection ? (
@@ -153,7 +161,7 @@ function CompositionChart({ data }: { data: readonly ConstructionAnnualPoint[] }
       ) : null}
 
       <div className="construction-composition-grid">
-        {data.map((row) => {
+        {visibleData.map((row) => {
           const selectedRowActive = selection?.year === row.year;
           const selectedRowMuted = selection?.year != null && selection.year !== row.year;
           const rightValue = selection ? row[selection.key] : row.newConstruction;
@@ -275,7 +283,7 @@ function ConstructionBaseTable() {
   const filtered = data?.records.filtered ?? 0;
   const offset = data?.records.offset ?? 0;
   const shownFrom = filtered ? offset + 1 : 0;
-  const shownTo = Math.min(offset + BASE_LIMIT, filtered);
+  const shownTo = Math.min(offset + (data?.records.limit ?? BASE_LIMIT), filtered);
   const hasNext = shownTo < filtered;
 
   return (
@@ -288,14 +296,14 @@ function ConstructionBaseTable() {
         </div>
         <div className="construction-base-actions">
           <span className="panel-chip">{formatNumber(data ? filtered : 0)} registros</span>
-          <a className="primary-button construction-export-button" href={exportUrl}>Baixar CSV</a>
+          <a className="primary-button construction-export-button" href={exportUrl}>Exportar resultados (CSV)</a>
         </div>
       </div>
 
       <div className="construction-base-filters">
         <label className="construction-base-search">
           <span>Pesquisar</span>
-          <input value={query} onChange={(event) => { setQuery(event.target.value); resetPage(); }} placeholder="Nº do alvará, uso ou tipo..." />
+          <input value={query} onChange={(event) => { setQuery(event.target.value); resetPage(); }} placeholder="Nº do alvará, tipo, uso ou construção..." />
         </label>
         <label>
           <span>Ano</span>
@@ -370,6 +378,8 @@ function ConstructionBaseTable() {
 
 export function ConstructionPermitsPanel() {
   const { meta, totals, annual, currentYtd, ytdComparison } = constructionPermitsData;
+  const [view, setView] = useState<"executive" | "records">("executive");
+  const [historyMetric, setHistoryMetric] = useState<"permits" | "area">("permits");
 
   return (
     <section className="construction-page">
@@ -387,72 +397,100 @@ export function ConstructionPermitsPanel() {
         </div>
       </header>
 
-      <section className="kpi-grid construction-kpi-grid" aria-label="Indicadores da construção civil">
-        <article className="kpi-card tone-blue construction-kpi-card">
-          <span className="kpi-accent" />
-          <div className="kpi-topline"><span>ALVARÁS · 2016–2025</span></div>
-          <strong>{formatNumber(totals.permits)}</strong>
-          <p>Todos os tipos emitidos no período.</p>
-          <footer><span>Série histórica consolidada</span></footer>
-        </article>
-        <article className="kpi-card tone-blue construction-kpi-card">
-          <span className="kpi-accent" />
-          <div className="kpi-topline"><span>CONSTRUÇÃO NOVA</span></div>
-          <strong>{formatNumber(totals.newConstruction)}</strong>
-          <p>Alvarás classificados como construção nova.</p>
-          <footer><span>Volume autorizado</span></footer>
-        </article>
-        <article className="kpi-card tone-green construction-kpi-card">
-          <span className="kpi-accent" />
-          <div className="kpi-topline"><span>ÁREA AUTORIZADA</span></div>
-          <strong>{compactArea(totals.authorizedAreaM2)}</strong>
-          <p>Somente área vinculada à construção nova.</p>
-          <footer><span>Intensidade física</span></footer>
-        </article>
-        <article className="kpi-card tone-purple construction-kpi-card">
-          <span className="kpi-accent" />
-          <div className="kpi-topline"><span>MEDIANA DE ÁREA</span></div>
-          <strong>{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(totals.medianAreaM2)} m²</strong>
-          <p>Porte central das obras autorizadas.</p>
-          <footer><span>Distribuição das áreas</span></footer>
-        </article>
-      </section>
+      <nav className="construction-view-switch" aria-label="Modo de visualização da construção civil">
+        <button type="button" className={view === "executive" ? "active" : ""} aria-pressed={view === "executive"} onClick={() => setView("executive")}>
+          <strong>Visão executiva</strong>
+          <span>Indicadores e tendências</span>
+        </button>
+        <button type="button" className={view === "records" ? "active" : ""} aria-pressed={view === "records"} onClick={() => setView("records")}>
+          <strong>Consultar alvarás</strong>
+          <span>Pesquisa, filtros e exportação</span>
+        </button>
+      </nav>
 
-      <article className="panel construction-panel">
-        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Volume autorizado</span><h2>Evolução dos alvarás emitidos — 2016 a 2025</h2><p>Total anual e parcela correspondente a construção nova.</p></div></div>
-        <CountHistoryChart data={annual} />
-      </article>
+      {view === "executive" ? (
+        <>
+          <section className="panel construction-ytd-section construction-ytd-priority">
+            <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Cenário atual</span><h2>2026 até 03/09 × mesmo período de 2025</h2><p>Os três sinais avançaram no período equivalente. A área autorizada cresceu mais que a quantidade de alvarás.</p></div><span className="panel-chip construction-ytd-chip">2026 parcial · {formatNumber(currentYtd.permits)} alvarás</span></div>
+            <div className="construction-ytd-grid">
+              {ytdComparison.map((item) => (
+                <article key={item.label} className={item.label === "Área autorizada" ? "construction-ytd-highlight" : ""}>
+                  <span>{item.label}</span>
+                  <em>+{percent(item.changePercent)}</em>
+                  <div><strong>{item.unit === "m2" ? compactArea(item.previous) : formatNumber(item.previous)}</strong><b>→</b><strong>{item.unit === "m2" ? compactArea(item.current) : formatNumber(item.current)}</strong></div>
+                  <small>01/01–03/09/2025 → 01/01–03/09/2026</small>
+                </article>
+              ))}
+            </div>
+          </section>
 
-      <article className="panel construction-panel">
-        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Intensidade física</span><h2>Área autorizada para construção nova — 2016 a 2025</h2><p>A metragem evidencia o porte físico da atividade, que não aparece apenas na contagem de documentos.</p></div></div>
-        <AreaHistoryChart data={annual} />
-      </article>
+          <section className="construction-kpi-section" aria-labelledby="construction-historical-title">
+            <div className="construction-section-heading">
+              <div><span className="eyebrow">Panorama consolidado</span><h2 id="construction-historical-title">Dez anos completos · 2016–2025</h2></div>
+              <p>Referência histórica separada do ano parcial de 2026.</p>
+            </div>
+            <div className="kpi-grid construction-kpi-grid" aria-label="Indicadores históricos da construção civil">
+              <article className="kpi-card tone-blue construction-kpi-card">
+                <span className="kpi-accent" />
+                <div className="kpi-topline"><span>ALVARÁS EMITIDOS</span></div>
+                <strong>{formatNumber(totals.permits)}</strong>
+                <p>Todos os tipos emitidos no período.</p>
+                <footer><span>2016–2025</span></footer>
+              </article>
+              <article className="kpi-card tone-blue construction-kpi-card">
+                <span className="kpi-accent" />
+                <div className="kpi-topline"><span>CONSTRUÇÃO NOVA</span></div>
+                <strong>{formatNumber(totals.newConstruction)}</strong>
+                <p>Alvarás classificados como construção nova.</p>
+                <footer><span>2016–2025</span></footer>
+              </article>
+              <article className="kpi-card tone-green construction-kpi-card">
+                <span className="kpi-accent" />
+                <div className="kpi-topline"><span>ÁREA AUTORIZADA</span></div>
+                <strong>{compactArea(totals.authorizedAreaM2)}</strong>
+                <p>Somente área vinculada à construção nova.</p>
+                <footer><span>2016–2025</span></footer>
+              </article>
+              <article className="kpi-card tone-purple construction-kpi-card">
+                <span className="kpi-accent" />
+                <div className="kpi-topline"><span>MEDIANA DE ÁREA</span></div>
+                <strong>{new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(totals.medianAreaM2)} m²</strong>
+                <p>Porte central das construções novas.</p>
+                <footer><span>2016–2025</span></footer>
+              </article>
+            </div>
+          </section>
 
-      <section className="panel construction-ytd-section">
-        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Comparação equivalente</span><h2>2026 até 03/09 × mesmo período de 2025</h2><p>O ano corrente não é comparado diretamente com anos completos.</p></div><span className="panel-chip construction-ytd-chip">2026 YTD · {formatNumber(currentYtd.permits)} alvarás</span></div>
-        <div className="construction-ytd-grid">
-          {ytdComparison.map((item) => (
-            <article key={item.label} className={item.label === "Área autorizada" ? "construction-ytd-highlight" : ""}>
-              <span>{item.label}</span>
-              <div><strong>{item.unit === "m2" ? compactArea(item.previous) : formatNumber(item.previous)}</strong><b>→</b><strong>{item.unit === "m2" ? compactArea(item.current) : formatNumber(item.current)}</strong></div>
-              <em>+{percent(item.changePercent)}</em>
-              <small>01/01–03/09/2025 → 01/01–03/09/2026</small>
-            </article>
-          ))}
-        </div>
-      </section>
+          <article className="panel construction-panel construction-history-panel">
+            <div className="panel-heading construction-panel-heading">
+              <div><span className="eyebrow">Evolução anual</span><h2>{historyMetric === "permits" ? "Alvarás emitidos" : "Área autorizada para construção nova"} · 2016–2025</h2><p>{historyMetric === "permits" ? "Total anual e parcela correspondente a construção nova." : "A metragem mostra o porte físico autorizado, além da contagem de documentos."}</p></div>
+              <div className="construction-metric-switch" role="group" aria-label="Indicador do histórico anual">
+                <button type="button" aria-pressed={historyMetric === "permits"} className={historyMetric === "permits" ? "active" : ""} onClick={() => setHistoryMetric("permits")}>Alvarás</button>
+                <button type="button" aria-pressed={historyMetric === "area"} className={historyMetric === "area" ? "active" : ""} onClick={() => setHistoryMetric("area")}>Área autorizada</button>
+              </div>
+            </div>
+            {historyMetric === "permits" ? <CountHistoryChart data={annual} /> : <AreaHistoryChart data={annual} />}
+          </article>
 
-      <article className="panel construction-panel construction-composition-panel">
-        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Perfil das autorizações</span><h2>Composição da construção nova por uso</h2><p>Participação anual dentro dos alvarás classificados como construção nova. Clique em uma categoria para segmentar a leitura.</p></div></div>
-        <CompositionChart data={annual} />
-      </article>
+          <article className="panel construction-panel construction-composition-panel">
+            <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Perfil das autorizações</span><h2>Composição da construção nova por uso</h2><p>Participação anual dentro dos alvarás classificados como construção nova. A visão inicia nos cinco anos completos mais recentes.</p></div></div>
+            <CompositionChart data={annual} />
+          </article>
 
-      <ConstructionBaseTable />
-
-      <section className="construction-reading-note">
-        <div className="management-note"><strong>Como ler</strong><p>Alvará é autorização administrativa e funciona como indicador antecedente da atividade construtiva; não significa obra concluída.</p></div>
-        <div className="management-note"><strong>Critério de uso</strong><p>Nesta análise, a finalidade RESIDENCIAL é tratada como residencial unifamiliar; RESIDENCIAL (MULTIFAMILIAR) permanece separada. CA e outorga onerosa não constam nesta extração.</p></div>
-      </section>
+          <section className="construction-reading-note">
+            <div className="management-note"><strong>Como interpretar</strong><p>Alvará é autorização administrativa e funciona como indicador antecedente da atividade construtiva; não significa obra concluída.</p></div>
+            <div className="management-note"><strong>Limitações da fonte</strong><p>“Residencial” sem modalidade explícita permanece como não especificado. Coeficiente de aproveitamento e outorga onerosa não constam nesta extração.</p></div>
+          </section>
+        </>
+      ) : (
+        <>
+          <section className="construction-records-intro">
+            <div><span className="eyebrow">Consulta pública</span><h2>Localize um alvará ou recorte a base</h2><p>Use ano, tipo e uso para reduzir o universo. A exportação respeita os filtros aplicados.</p></div>
+            <div className="construction-records-meta"><strong>{formatNumber(currentYtd.permits)}</strong><span>alvarás em 2026 até 03/09</span></div>
+          </section>
+          <ConstructionBaseTable />
+        </>
+      )}
     </section>
   );
 }

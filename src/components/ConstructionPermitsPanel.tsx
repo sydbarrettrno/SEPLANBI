@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { constructionPermitsData, type ConstructionAnnualPoint } from "../construction";
 import { formatDate, formatNumber } from "../format";
 
@@ -92,31 +93,100 @@ const COMPOSITION = [
   { key: "other", label: "Outros", className: "composition-other" },
 ] as const;
 
+type CompositionKey = (typeof COMPOSITION)[number]["key"];
+type CompositionSelection = { key: CompositionKey; year: number | null } | null;
+
 function CompositionChart({ data }: { data: readonly ConstructionAnnualPoint[] }) {
+  const [selection, setSelection] = useState<CompositionSelection>(null);
+  const selectedCategory = selection ? COMPOSITION.find((item) => item.key === selection.key) : null;
+  const selectedRow = selection?.year != null ? data.find((row) => row.year === selection.year) : null;
+  const selectedValue = selectedRow && selection ? selectedRow[selection.key] : null;
+  const selectedShare = selectedRow && selectedValue != null && selectedRow.newConstruction
+    ? (selectedValue / selectedRow.newConstruction) * 100
+    : null;
+
+  function toggleCategory(key: CompositionKey) {
+    setSelection((current) => current?.key === key && current.year == null ? null : { key, year: null });
+  }
+
+  function toggleSegment(key: CompositionKey, year: number) {
+    setSelection((current) => current?.key === key && current.year === year ? null : { key, year });
+  }
+
   return (
-    <div className="construction-composition">
-      <div className="construction-composition-legend">
-        {COMPOSITION.map((item) => <span key={item.key}><i className={item.className} />{item.label}</span>)}
+    <div className="construction-composition construction-composition-interactive">
+      <div className="construction-composition-toolbar">
+        <div className="construction-composition-legend" aria-label="Segmentação por uso">
+          {COMPOSITION.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`construction-composition-legend-button ${selection?.key === item.key ? "active" : ""} ${selection && selection.key !== item.key ? "muted" : ""}`}
+              aria-pressed={selection?.key === item.key}
+              onClick={() => toggleCategory(item.key)}
+            >
+              <i className={item.className} />{item.label}
+            </button>
+          ))}
+        </div>
+        <span className="construction-segmentation-hint">Clique na legenda ou em uma faixa para segmentar</span>
       </div>
-      <div className="construction-composition-grid">
-        {data.map((row) => (
-          <div className="construction-composition-row" key={row.year}>
-            <strong>{row.year}</strong>
-            <div className="construction-composition-track" aria-label={`Composição de ${row.year}`}>
-              {COMPOSITION.map((item) => {
-                const value = row[item.key];
-                const share = row.newConstruction ? (value / row.newConstruction) * 100 : 0;
-                return (
-                  <span key={item.key} className={item.className} style={{ width: `${share}%` }}>
-                    {share >= 9.5 ? <b>{formatNumber(value)}</b> : null}
-                    <title>{`${item.label}: ${formatNumber(value)} (${percent(share)})`}</title>
-                  </span>
-                );
-              })}
-            </div>
-            <span className="construction-composition-total">{formatNumber(row.newConstruction)}</span>
+
+      {selection ? (
+        <div className="construction-segmentation-summary" role="status">
+          <div>
+            <small>Segmentação ativa</small>
+            <strong>{selectedCategory?.label}</strong>
+            {selectedRow && selectedValue != null && selectedShare != null ? (
+              <span>{selection.year}: {formatNumber(selectedValue)} alvarás · {percent(selectedShare)} da construção nova</span>
+            ) : (
+              <span>Comparação da categoria ao longo de 2016–2025</span>
+            )}
           </div>
-        ))}
+          <button type="button" onClick={() => setSelection(null)}>Limpar segmentação ×</button>
+        </div>
+      ) : null}
+
+      <div className="construction-composition-grid">
+        {data.map((row) => {
+          const selectedRowActive = selection?.year === row.year;
+          const selectedRowMuted = selection?.year != null && selection.year !== row.year;
+          const rightValue = selection ? row[selection.key] : row.newConstruction;
+          const rightShare = selection && row.newConstruction ? (rightValue / row.newConstruction) * 100 : null;
+          return (
+            <div
+              className={`construction-composition-row ${selectedRowActive ? "row-active" : ""} ${selectedRowMuted ? "row-muted" : ""}`}
+              key={row.year}
+            >
+              <strong>{row.year}</strong>
+              <div className="construction-composition-track" aria-label={`Composição de ${row.year}`}>
+                {COMPOSITION.map((item) => {
+                  const value = row[item.key];
+                  const share = row.newConstruction ? (value / row.newConstruction) * 100 : 0;
+                  const active = selection?.key === item.key;
+                  const muted = Boolean(selection && !active);
+                  return (
+                    <button
+                      type="button"
+                      key={item.key}
+                      className={`${item.className} construction-composition-segment ${active ? "segment-active" : ""} ${muted ? "segment-muted" : ""}`}
+                      style={{ width: `${share}%` }}
+                      aria-label={`${row.year} — ${item.label}: ${formatNumber(value)} (${percent(share)})`}
+                      aria-pressed={selection?.key === item.key && (selection.year == null || selection.year === row.year)}
+                      onClick={() => toggleSegment(item.key, row.year)}
+                    >
+                      {share >= 6.5 ? <b>{formatNumber(value)}</b> : null}
+                      <title>{`${item.label}: ${formatNumber(value)} (${percent(share)})`}</title>
+                    </button>
+                  );
+                })}
+              </div>
+              <span className={`construction-composition-total ${selection ? "segmented" : ""}`}>
+                {formatNumber(rightValue)}{rightShare != null ? <small>{percent(rightShare)}</small> : null}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -196,8 +266,8 @@ export function ConstructionPermitsPanel() {
         </div>
       </section>
 
-      <article className="panel construction-panel">
-        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Perfil das autorizações</span><h2>Composição da construção nova por uso</h2><p>Participação anual dentro dos alvarás classificados como construção nova. O total de cada ano aparece à direita.</p></div></div>
+      <article className="panel construction-panel construction-composition-panel">
+        <div className="panel-heading construction-panel-heading"><div><span className="eyebrow">Perfil das autorizações</span><h2>Composição da construção nova por uso</h2><p>Participação anual dentro dos alvarás classificados como construção nova. Clique em uma categoria para segmentar a leitura.</p></div></div>
         <CompositionChart data={annual} />
       </article>
 

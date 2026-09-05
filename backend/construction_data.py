@@ -12,6 +12,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 PART_GLOB = "construction_permits_public.xz.b64.part*"
+PART_SIZE = 10_000
 PUBLIC_FIELDS = ("permit", "date", "year", "type", "area", "use", "construction")
 
 
@@ -33,15 +34,31 @@ def _number(value, default: float = 0.0) -> float:
         return default
 
 
+def _read_encoded_parts(parts: list[Path]) -> str:
+    chunks: list[str] = []
+    for index, part in enumerate(parts):
+        chunk = part.read_text(encoding="ascii").strip()
+        if index < len(parts) - 1:
+            if len(chunk) < PART_SIZE:
+                raise RuntimeError("Parte incompleta da base analítica de alvarás.")
+            # As partes intermediárias são blocos fixos de 10 mil caracteres.
+            # O corte também neutraliza eventual caractere duplicado na fronteira.
+            chunk = chunk[:PART_SIZE]
+        chunks.append(chunk)
+    return "".join(chunks)
+
+
 @lru_cache(maxsize=1)
 def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
     parts = sorted(DATA_DIR.glob(PART_GLOB))
     if not parts:
         raise RuntimeError("Base analítica de alvarás não configurada.")
     try:
-        encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
+        encoded = _read_encoded_parts(parts)
         raw = lzma.decompress(base64.b64decode(encoded, validate=True))
         payload = json.loads(raw.decode("utf-8"))
+    except RuntimeError:
+        raise
     except Exception as exc:
         raise RuntimeError("Base analítica de alvarás inválida.") from exc
 

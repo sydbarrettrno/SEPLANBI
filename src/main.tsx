@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import Root from "./RootV2";
+import Root from "./RootV3";
 import "./styles.css";
 import "./indicator-enhancements.css";
 import "./flow-audit.css";
@@ -13,6 +13,8 @@ import "./construction-dashboard.css";
 import "./construction-interaction.css";
 import "./construction-base.css";
 import "./construction-private.css";
+import "./construction-chart-v2.css";
+import "./chart-units-v2.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

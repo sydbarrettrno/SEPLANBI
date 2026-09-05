@@ -1,0 +1,54 @@
+.audited-flow-wrap {
+  position: relative;
+  padding-left: 34px;
+  padding-bottom: 24px;
+}
+
+.audited-flow-wrap::before {
+  position: absolute;
+  top: 50%;
+  left: -18px;
+  color: #627086;
+  content: "Protocolos no período (un.)";
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center;
+  white-space: nowrap;
+}
+
+.audited-flow-wrap::after {
+  position: absolute;
+  right: 0;
+  bottom: 1px;
+  left: 34px;
+  color: #627086;
+  content: "Mês de referência";
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-align: center;
+}
+
+.flow-hover-tooltip span:nth-of-type(1) b { color: #2d83d6; }
+.flow-hover-tooltip span:nth-of-type(2) b { color: #247a60; }
+.flow-hover-tooltip span:nth-of-type(3) b { color: #16805f; }
+.flow-hover-tooltip span:nth-of-type(4) b { color: #087d83; }
+.flow-hover-tooltip .tooltip-accumulated b { color: #c77808; }
+
+.flow-hover-tooltip span b::before {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 2px;
+  background: currentColor;
+  content: "";
+  vertical-align: 1px;
+}
+
+@media (max-width: 760px) {
+  .audited-flow-wrap { padding-left: 22px; }
+  .audited-flow-wrap::before { left: -29px; font-size: 8px; }
+}

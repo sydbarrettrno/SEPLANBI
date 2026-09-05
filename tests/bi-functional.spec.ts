@@ -270,6 +270,9 @@ test("construção civil: visão executiva e consulta ficam separadas e utilizá
   await expect(page.getByText("9.912 registros", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Uso")).toContainText("Residencial — não especificado");
   await expect(page.getByText("Residencial unifamiliar", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("columnheader", { name: "Coef. de aproveitamento" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Outorga onerosa" })).toBeVisible();
+  await expect(page.getByText("N/D na fonte", { exact: true }).first()).toBeVisible();
   await expect(page.locator(".construction-base-table tbody tr")).toHaveCount(25);
   expect(failures).toEqual([]);
 });

@@ -210,6 +210,8 @@ type ConstructionBaseRow = {
   area: number;
   use: string;
   construction: string;
+  coefficient: string;
+  outorga: string;
 };
 
 type ConstructionBaseResponse = {
@@ -292,11 +294,11 @@ function ConstructionBaseTable() {
         <div>
           <span className="eyebrow">Rastreabilidade</span>
           <h2>Base analítica — alvará por alvará</h2>
-          <p>Relação da extração do IPM de 2016 até 03/09/2026. Pesquise, filtre e exporte os registros exibidos.</p>
+          <p>Todos os 9.912 registros da extração do IPM, de 2016 até 03/09/2026. Pesquise, filtre e exporte o recorte público.</p>
         </div>
         <div className="construction-base-actions">
           <span className="panel-chip">{formatNumber(data ? filtered : 0)} registros</span>
-          <a className="primary-button construction-export-button" href={exportUrl}>Exportar resultados (CSV)</a>
+          <a className="primary-button construction-export-button" href={exportUrl}>Exportar recorte público (CSV)</a>
         </div>
       </div>
 
@@ -344,6 +346,8 @@ function ConstructionBaseTable() {
                   <th className="number-column">Área autorizada</th>
                   <th>Uso</th>
                   <th>Construção</th>
+                  <th>Coef. de aproveitamento</th>
+                  <th>Outorga onerosa</th>
                 </tr>
               </thead>
               <tbody>
@@ -355,9 +359,11 @@ function ConstructionBaseTable() {
                     <td className="number-column"><strong>{detailedArea(row.area)}</strong></td>
                     <td>{row.use || "—"}</td>
                     <td>{row.construction || "—"}</td>
+                    <td>{row.coefficient || "N/D na fonte"}</td>
+                    <td>{row.outorga || "N/D na fonte"}</td>
                   </tr>
                 ))}
-                {!data.records.items.length ? <tr><td colSpan={6} className="empty-state">Nenhum alvará encontrado para os filtros selecionados.</td></tr> : null}
+                {!data.records.items.length ? <tr><td colSpan={8} className="empty-state">Nenhum alvará encontrado para os filtros selecionados.</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -369,7 +375,7 @@ function ConstructionBaseTable() {
               <button type="button" disabled={!hasNext || loading} onClick={() => setPage((current) => current + 1)}>Próxima →</button>
             </div>
           </div>
-          <p className="construction-base-privacy">Consulta pública com campos administrativos não sensíveis. Titular, CPF/CNPJ, cadastro, inscrição e endereço detalhado permanecem fora desta visualização.</p>
+          <p className="construction-base-privacy">A relação interna preserva os 22 campos da planilha, inclusive o titular da obra. Esta consulta pública omite titular, CPF/CNPJ, cadastro, inscrição e endereço detalhado. Coeficiente de aproveitamento e outorga onerosa aparecem como “N/D na fonte” porque não vieram preenchidos em nenhum registro.</p>
         </>
       ) : null}
     </article>
@@ -485,7 +491,7 @@ export function ConstructionPermitsPanel() {
       ) : (
         <>
           <section className="construction-records-intro">
-            <div><span className="eyebrow">Consulta pública</span><h2>Localize um alvará ou recorte a base</h2><p>Use ano, tipo e uso para reduzir o universo. A exportação respeita os filtros aplicados.</p></div>
+            <div><span className="eyebrow">Consulta pública</span><h2>Localize um alvará ou recorte a base</h2><p>Os 9.912 registros da fonte estão disponíveis. Use ano, tipo e uso para reduzir o universo; a exportação respeita os filtros aplicados e mantém dados pessoais fora do site.</p></div>
             <div className="construction-records-meta"><strong>{formatNumber(currentYtd.permits)}</strong><span>alvarás em 2026 até 03/09</span></div>
           </section>
           <ConstructionBaseTable />

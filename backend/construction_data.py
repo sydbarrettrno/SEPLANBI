@@ -13,7 +13,17 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 PART_GLOB = "construction_permits_public.xz.b64.part*"
 PART_SIZE = 10_000
-PUBLIC_FIELDS = ("permit", "date", "year", "type", "area", "use", "construction")
+PUBLIC_FIELDS = (
+    "permit",
+    "date",
+    "year",
+    "type",
+    "area",
+    "use",
+    "construction",
+    "coefficient",
+    "outorga",
+)
 PUBLIC_USE_LABELS = {
     "Residencial unifamiliar": "Residencial — não especificado",
 }
@@ -81,6 +91,10 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
             "area": round(_number(item.get("area")), 2),
             "use": PUBLIC_USE_LABELS.get(raw_use, raw_use),
             "construction": _text(item.get("construction")),
+            # As duas colunas existem na planilha analítica, mas a extração
+            # atual do IPM não fornece valores em nenhuma das 9.912 linhas.
+            "coefficient": "N/D na fonte",
+            "outorga": "N/D na fonte",
         }
         if record["permit"] and record["date"] and record["year"]:
             normalized.append(record)
@@ -165,6 +179,8 @@ def export_construction_csv(params: dict[str, str]) -> str:
         "Área autorizada (m²)",
         "Uso",
         "Tipo de construção",
+        "Coef. de aproveitamento",
+        "Outorga onerosa",
     ])
     for row in filtered:
         writer.writerow([
@@ -175,5 +191,7 @@ def export_construction_csv(params: dict[str, str]) -> str:
             f'{row["area"]:.2f}'.replace(".", ","),
             row["use"],
             row["construction"],
+            row["coefficient"],
+            row["outorga"],
         ])
     return output.getvalue()

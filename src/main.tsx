@@ -15,6 +15,7 @@ import "./construction-base.css";
 import "./construction-private.css";
 import "./construction-chart-v2.css";
 import "./chart-units-v2.css";
+import "./design-system-v1.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

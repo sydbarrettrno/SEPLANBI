@@ -1,14 +1,19 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { constructionPermitsData, type ConstructionAnnualPoint } from "../construction";
 import { formatDate, formatNumber } from "../format";
 
 const WIDTH = 960;
 const HEIGHT = 360;
 const PAD = { top: 40, right: 18, bottom: 48, left: 58 };
+const BASE_LIMIT = 50;
 
 function compactArea(value: number) {
   if (value >= 1_000_000) return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(value / 1_000_000)} mi m²`;
   return `${formatNumber(Math.round(value))} m²`;
+}
+
+function detailedArea(value: number) {
+  return `${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value)} m²`;
 }
 
 function percent(value: number) {
@@ -87,7 +92,7 @@ function AreaHistoryChart({ data }: { data: readonly ConstructionAnnualPoint[] }
 
 const COMPOSITION = [
   { key: "multifamily", label: "Residencial multifamiliar", className: "composition-multifamily" },
-  { key: "residentialUnspecified", label: "Residencial não especificado", className: "composition-residential" },
+  { key: "residentialUnspecified", label: "Residencial unifamiliar", className: "composition-residential" },
   { key: "commercialServices", label: "Comercial / serviços", className: "composition-commercial" },
   { key: "industrial", label: "Industrial", className: "composition-industrial" },
   { key: "other", label: "Outros", className: "composition-other" },
@@ -154,10 +159,7 @@ function CompositionChart({ data }: { data: readonly ConstructionAnnualPoint[] }
           const rightValue = selection ? row[selection.key] : row.newConstruction;
           const rightShare = selection && row.newConstruction ? (rightValue / row.newConstruction) * 100 : null;
           return (
-            <div
-              className={`construction-composition-row ${selectedRowActive ? "row-active" : ""} ${selectedRowMuted ? "row-muted" : ""}`}
-              key={row.year}
-            >
+            <div className={`construction-composition-row ${selectedRowActive ? "row-active" : ""} ${selectedRowMuted ? "row-muted" : ""}`} key={row.year}>
               <strong>{row.year}</strong>
               <div className="construction-composition-track" aria-label={`Composição de ${row.year}`}>
                 {COMPOSITION.map((item) => {
@@ -189,6 +191,180 @@ function CompositionChart({ data }: { data: readonly ConstructionAnnualPoint[] }
         })}
       </div>
     </div>
+  );
+}
+
+type ConstructionBaseRow = {
+  permit: number;
+  date: string;
+  year: number;
+  type: string;
+  area: number;
+  use: string;
+  construction: string;
+};
+
+type ConstructionBaseResponse = {
+  ok: boolean;
+  meta: { source: string; extracted_at: string; total: number };
+  facets: { years: number[]; types: string[]; uses: string[] };
+  records: { filtered: number; offset: number; limit: number; items: ConstructionBaseRow[] };
+};
+
+function ConstructionBaseTable() {
+  const [query, setQuery] = useState("");
+  const [year, setYear] = useState("");
+  const [permitType, setPermitType] = useState("");
+  const [use, setUse] = useState("");
+  const [page, setPage] = useState(0);
+  const [data, setData] = useState<ConstructionBaseResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const params = useMemo(() => {
+    const result = new URLSearchParams({ action: "construction-data", limit: String(BASE_LIMIT), offset: String(page * BASE_LIMIT) });
+    if (query.trim()) result.set("q", query.trim());
+    if (year) result.set("year", year);
+    if (permitType) result.set("type", permitType);
+    if (use) result.set("use", use);
+    return result;
+  }, [query, year, permitType, use, page]);
+
+  const exportUrl = useMemo(() => {
+    const result = new URLSearchParams({ action: "construction-export" });
+    if (query.trim()) result.set("q", query.trim());
+    if (year) result.set("year", year);
+    if (permitType) result.set("type", permitType);
+    if (use) result.set("use", use);
+    return `/api?${result.toString()}`;
+  }, [query, year, permitType, use]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch(`/api?${params.toString()}`, { signal: controller.signal, cache: "no-store" });
+        const payload = await response.json() as ConstructionBaseResponse & { error?: string };
+        if (!response.ok || !payload.ok) throw new Error(payload.error || "Falha ao carregar a base de alvarás.");
+        setData(payload);
+      } catch (requestError) {
+        if (controller.signal.aborted) return;
+        setError(requestError instanceof Error ? requestError.message : "Falha ao carregar a base de alvarás.");
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }, query ? 220 : 0);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [params, query]);
+
+  const resetPage = () => setPage(0);
+  const clearFilters = () => {
+    setQuery("");
+    setYear("");
+    setPermitType("");
+    setUse("");
+    setPage(0);
+  };
+
+  const filtered = data?.records.filtered ?? 0;
+  const offset = data?.records.offset ?? 0;
+  const shownFrom = filtered ? offset + 1 : 0;
+  const shownTo = Math.min(offset + BASE_LIMIT, filtered);
+  const hasNext = shownTo < filtered;
+
+  return (
+    <article className="panel construction-panel construction-base-panel">
+      <div className="panel-heading construction-panel-heading construction-base-heading">
+        <div>
+          <span className="eyebrow">Rastreabilidade</span>
+          <h2>Base analítica — alvará por alvará</h2>
+          <p>Relação da extração do IPM de 2016 até 03/09/2026. Pesquise, filtre e exporte os registros exibidos.</p>
+        </div>
+        <div className="construction-base-actions">
+          <span className="panel-chip">{formatNumber(data ? filtered : 0)} registros</span>
+          <a className="primary-button construction-export-button" href={exportUrl}>Baixar CSV</a>
+        </div>
+      </div>
+
+      <div className="construction-base-filters">
+        <label className="construction-base-search">
+          <span>Pesquisar</span>
+          <input value={query} onChange={(event) => { setQuery(event.target.value); resetPage(); }} placeholder="Nº do alvará, uso ou tipo..." />
+        </label>
+        <label>
+          <span>Ano</span>
+          <select value={year} onChange={(event) => { setYear(event.target.value); resetPage(); }}>
+            <option value="">Todos</option>
+            {(data?.facets.years ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Tipo de alvará</span>
+          <select value={permitType} onChange={(event) => { setPermitType(event.target.value); resetPage(); }}>
+            <option value="">Todos</option>
+            {(data?.facets.types ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>Uso</span>
+          <select value={use} onChange={(event) => { setUse(event.target.value); resetPage(); }}>
+            <option value="">Todos</option>
+            {(data?.facets.uses ?? []).map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </label>
+        <button type="button" className="ghost-button construction-clear-filter" onClick={clearFilters}>Limpar filtros</button>
+      </div>
+
+      {error ? <div className="construction-base-status error">{error}</div> : null}
+      {loading && !data ? <div className="construction-base-status">Carregando base analítica…</div> : null}
+
+      {data ? (
+        <>
+          <div className={`table-scroll construction-base-table-wrap ${loading ? "loading" : ""}`}>
+            <table className="construction-base-table">
+              <thead>
+                <tr>
+                  <th>Alvará</th>
+                  <th>Data de emissão</th>
+                  <th>Tipo de alvará</th>
+                  <th className="number-column">Área autorizada</th>
+                  <th>Uso</th>
+                  <th>Construção</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.records.items.map((row) => (
+                  <tr key={`${row.year}-${row.permit}-${row.date}-${row.type}`}>
+                    <td><strong className="protocol-number">{row.permit}/{row.year}</strong></td>
+                    <td>{formatDate(row.date)}</td>
+                    <td><span className="construction-type-badge">{row.type}</span></td>
+                    <td className="number-column"><strong>{detailedArea(row.area)}</strong></td>
+                    <td>{row.use || "—"}</td>
+                    <td>{row.construction || "—"}</td>
+                  </tr>
+                ))}
+                {!data.records.items.length ? <tr><td colSpan={6} className="empty-state">Nenhum alvará encontrado para os filtros selecionados.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="construction-base-footer">
+            <span>Exibindo {formatNumber(shownFrom)}–{formatNumber(shownTo)} de {formatNumber(filtered)} registros</span>
+            <div className="pager">
+              <button type="button" disabled={page === 0 || loading} onClick={() => setPage((current) => Math.max(0, current - 1))}>← Anterior</button>
+              <button type="button" disabled={!hasNext || loading} onClick={() => setPage((current) => current + 1)}>Próxima →</button>
+            </div>
+          </div>
+          <p className="construction-base-privacy">Consulta pública com campos administrativos não sensíveis. Titular, CPF/CNPJ, cadastro, inscrição e endereço detalhado permanecem fora desta visualização.</p>
+        </>
+      ) : null}
+    </article>
   );
 }
 
@@ -271,9 +447,11 @@ export function ConstructionPermitsPanel() {
         <CompositionChart data={annual} />
       </article>
 
+      <ConstructionBaseTable />
+
       <section className="construction-reading-note">
         <div className="management-note"><strong>Como ler</strong><p>Alvará é autorização administrativa e funciona como indicador antecedente da atividade construtiva; não significa obra concluída.</p></div>
-        <div className="management-note"><strong>Limitações da fonte</strong><p>Coeficiente de aproveitamento e outorga onerosa não estão disponíveis nesta extração. “Residencial” sem modalidade explícita não é convertido automaticamente em unifamiliar.</p></div>
+        <div className="management-note"><strong>Critério de uso</strong><p>Nesta análise, a finalidade RESIDENCIAL é tratada como residencial unifamiliar; RESIDENCIAL (MULTIFAMILIAR) permanece separada. CA e outorga onerosa não constam nesta extração.</p></div>
       </section>
     </section>
   );

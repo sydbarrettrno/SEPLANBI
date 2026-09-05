@@ -10,6 +10,7 @@ import "./category-filter.css";
 import "./universe-reconciliation.css";
 import "./semantic-dashboard-v1.css";
 import "./construction-dashboard.css";
+import "./construction-interaction.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

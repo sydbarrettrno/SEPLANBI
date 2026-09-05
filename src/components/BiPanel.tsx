@@ -15,6 +15,7 @@ interface BiPanelProps {
 
 interface PanelData {
   summary: AnalyticsResponse;
+  primaryVisual: AnalyticsResponse;
   macro: AnalyticsResponse;
   category: AnalyticsResponse;
   secondary: AnalyticsResponse;
@@ -69,6 +70,27 @@ function items(response: AnalyticsResponse | undefined, dimension: string): Visu
   });
 }
 
+function withoutDimension(request: AnalyticsRequest, dimension: keyof AnalyticsRequest): AnalyticsRequest {
+  const next = { ...request };
+  delete next[dimension];
+  return next;
+}
+
+function visualRequestFor(request: AnalyticsRequest, dimension: string): AnalyticsRequest {
+  const requestKey: Partial<Record<string, keyof AnalyticsRequest>> = {
+    month: "month",
+    macroprocess: "macro",
+    category: "category",
+    status: "status",
+    sector: "sector",
+    responsibility: "responsibility",
+    output_type: "outputType",
+    age_band: "ageBand",
+  };
+  const key = requestKey[dimension];
+  return key ? withoutDimension(request, key) : request;
+}
+
 export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
   const { copy } = useDashboardContent();
   const [data, setData] = useState<PanelData | null>(null);
@@ -108,23 +130,27 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
       sortDir,
     };
     const summaryGroup = indicator === "received" ? ["month"] : indicator === "outputs" ? ["output_type"] : ["responsibility"];
+    const primaryVisualDimension = indicator === "stock" ? "responsibility" : "month";
     const secondaryGroup = indicator === "received" ? ["month"] : indicator === "outputs" ? ["output_type"] : ["age_band"];
+    const secondaryDimension = indicator === "received" ? "month" : indicator === "outputs" ? "output_type" : "age_band";
+    const categoryBase = visualRequestFor(baseRequest, "category");
     const categoryRequest: AnalyticsRequest = indicator === "stock" && !filters.owner
-      ? { ...baseRequest, responsibility: ["Fila Interna SEPLAN"], groupBy: ["category"] }
-      : { ...baseRequest, groupBy: ["category"] };
+      ? { ...categoryBase, responsibility: ["Fila Interna SEPLAN"], groupBy: ["category"] }
+      : { ...categoryBase, groupBy: ["category"] };
     const requests = [
       fetchAnalytics({ ...baseRequest, groupBy: summaryGroup }, controller.signal),
-      fetchAnalytics({ ...baseRequest, groupBy: ["macroprocess"] }, controller.signal),
+      fetchAnalytics({ ...visualRequestFor(baseRequest, primaryVisualDimension), groupBy: summaryGroup }, controller.signal),
+      fetchAnalytics({ ...visualRequestFor(baseRequest, "macroprocess"), groupBy: ["macroprocess"] }, controller.signal),
       fetchAnalytics(categoryRequest, controller.signal),
-      fetchAnalytics({ ...baseRequest, groupBy: secondaryGroup }, controller.signal),
+      fetchAnalytics({ ...visualRequestFor(baseRequest, secondaryDimension), groupBy: secondaryGroup }, controller.signal),
       fetchAnalytics(detailRequest, controller.signal),
     ];
     if (indicator === "stock") {
-      requests.push(fetchAnalytics({ ...baseRequest, groupBy: [stockDimension] }, controller.signal));
-      requests.push(fetchAnalytics({ ...baseRequest, groupBy: ["status"] }, controller.signal));
+      requests.push(fetchAnalytics({ ...visualRequestFor(baseRequest, stockDimension), groupBy: [stockDimension] }, controller.signal));
+      requests.push(fetchAnalytics({ ...visualRequestFor(baseRequest, "status"), groupBy: ["status"] }, controller.signal));
     }
     Promise.all(requests)
-      .then(([summary, macro, category, secondary, detail, concentration, status]) => setData({ summary, macro, category, secondary, detail, concentration, status }))
+      .then(([summary, primaryVisual, macro, category, secondary, detail, concentration, status]) => setData({ summary, primaryVisual, macro, category, secondary, detail, concentration, status }))
       .catch((reason: unknown) => {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
         setError(reason instanceof Error ? reason.message : "Falha ao consultar a camada analítica.");
@@ -182,7 +208,7 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
               </section>
               <section className="bi-layout-main">
                 <article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.received.monthly.eyebrow}</span><h2>{copy.received.monthly.title}</h2><p>{copy.received.monthly.description}</p></div><span className="panel-chip">{currentYear} × {previousYear}</span></div>
-                  <MonthComparison data={data.summary.comparison?.monthly ?? []} currentYear={currentYear} previousYear={previousYear} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} />
+                  <MonthComparison data={data.primaryVisual.comparison?.monthly ?? []} currentYear={currentYear} previousYear={previousYear} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} />
                 </article>
                 <article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.received.macro.eyebrow}</span><h2>{copy.received.macro.title}</h2><p>{copy.received.macro.description}</p></div></div><InteractiveBars items={items(data.macro, "macroprocess")} selected={filters.macro} onSelect={(item) => toggle("macro", item.key)} /></article>
               </section>
@@ -199,15 +225,15 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
                 <MetricTile label={copy.outputs.metrics.balance} value={`${data.summary.totals.period_balance > 0 ? "+" : ""}${formatNumber(data.summary.totals.period_balance)}`} detail={data.summary.totals.period_balance > 0 ? copy.outputs.metrics.balancePositive : copy.outputs.metrics.balanceNegative} tone={data.summary.totals.period_balance > 0 ? "orange" : "green"} />
                 <MetricTile label={`${copy.outputs.metrics.previous} ${previousYear}`} value={formatNumber(data.summary.comparison?.previous.value)} detail={`${formatPercent(data.summary.comparison?.change_percent)} no período homólogo`} />
               </section>
-              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.flow.eyebrow}</span><h2>{copy.outputs.flow.title}</h2><p>{copy.outputs.flow.description}</p></div></div><MonthlyFlow data={data.summary.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.composition.eyebrow}</span><h2>{copy.outputs.composition.title}</h2><p>{copy.outputs.composition.description}</p></div></div><InteractiveBars items={items(data.secondary, "output_type")} selected={filters.outputType} onSelect={(item) => toggle("outputType", item.key)} tone="green" /></article></section>
-              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.category.eyebrow}</span><h2>{copy.outputs.category.title}</h2><p>{copy.outputs.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.balanceEvolution.eyebrow}</span><h2>{copy.outputs.balanceEvolution.title}</h2><p>{copy.outputs.balanceEvolution.description}</p></div></div><BalanceEvolution data={data.summary.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article></section>
+              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.flow.eyebrow}</span><h2>{copy.outputs.flow.title}</h2><p>{copy.outputs.flow.description}</p></div></div><MonthlyFlow data={data.primaryVisual.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.composition.eyebrow}</span><h2>{copy.outputs.composition.title}</h2><p>{copy.outputs.composition.description}</p></div></div><InteractiveBars items={items(data.secondary, "output_type")} selected={filters.outputType} onSelect={(item) => toggle("outputType", item.key)} tone="green" /></article></section>
+              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.category.eyebrow}</span><h2>{copy.outputs.category.title}</h2><p>{copy.outputs.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.balanceEvolution.eyebrow}</span><h2>{copy.outputs.balanceEvolution.title}</h2><p>{copy.outputs.balanceEvolution.description}</p></div></div><BalanceEvolution data={data.primaryVisual.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article></section>
             </>
           ) : null}
 
           {indicator === "stock" ? (
             <>
               <section className="bi-metric-grid five"><MetricTile label={copy.stock.metrics.total} value={formatNumber(data.summary.totals.stock)} /><MetricTile label={copy.stock.metrics.internal} value={formatNumber(data.summary.totals.internal)} tone="blue" /><MetricTile label={copy.stock.metrics.external} value={formatNumber(data.summary.totals.external)} tone="slate" /><MetricTile label={copy.stock.metrics.paralyzed} value={formatNumber(data.summary.totals.paralyzed)} tone="red" /><MetricTile label={copy.stock.metrics.depends} value={formatPercent(data.summary.totals.depends_on_seplan_percent)} detail={copy.stock.metrics.dependsDetail} tone="teal" /></section>
-              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.composition.eyebrow}</span><h2>{copy.stock.composition.title}</h2><p>{copy.stock.composition.description}</p></div></div><StackedComposition items={items(data.summary, "responsibility")} selected={filters.owner ? RESPONSIBILITY_TO_QUERY[filters.owner] : ""} onSelect={(item) => selectResponsibility(item.key)} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.age.eyebrow}</span><h2>{copy.stock.age.title}</h2><p>{copy.stock.age.description}</p></div></div><InteractiveBars items={items(data.secondary, "age_band")} selected={filters.ageBand} onSelect={(item) => toggle("ageBand", item.key)} tone="orange" /></article></section>
+              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.composition.eyebrow}</span><h2>{copy.stock.composition.title}</h2><p>{copy.stock.composition.description}</p></div></div><StackedComposition items={items(data.primaryVisual, "responsibility")} selected={filters.owner ? RESPONSIBILITY_TO_QUERY[filters.owner] : ""} onSelect={(item) => selectResponsibility(item.key)} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.age.eyebrow}</span><h2>{copy.stock.age.title}</h2><p>{copy.stock.age.description}</p></div></div><InteractiveBars items={items(data.secondary, "age_band")} selected={filters.ageBand} onSelect={(item) => toggle("ageBand", item.key)} tone="orange" /></article></section>
               <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.gargles.eyebrow}</span><h2>{copy.stock.gargles.title}</h2><p>{filters.owner ? copy.stock.gargles.selectedDescription : copy.stock.gargles.defaultDescription}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => selectCategoryFromStockPriority(item.key)} tone="red" initialLimit={10} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.concentration.eyebrow}</span><h2>{copy.stock.concentration.title}</h2><p>{copy.stock.concentration.description}</p></div><div className="dimension-switch"><button className={stockDimension === "macroprocess" ? "active" : ""} onClick={() => setStockDimension("macroprocess")}>Família de Processos</button><button className={stockDimension === "category" ? "active" : ""} onClick={() => setStockDimension("category")}>Categoria</button><button className={stockDimension === "sector" ? "active" : ""} onClick={() => setStockDimension("sector")}>Setor de tramitação</button><button disabled title="Exige autenticação e autorização para PII">Responsável 🔒</button></div></div><InteractiveBars items={items(data.concentration, stockDimension)} selected={filters[stockDimension === "macroprocess" ? "macro" : stockDimension]} onSelect={(item) => toggle(stockDimension === "macroprocess" ? "macro" : stockDimension, item.key)} tone="teal" initialLimit={8} /></article></section>
               <section className="panel bi-status-level"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.status.eyebrow}</span><h2>{filters.category ? `${copy.stock.status.titlePrefix} ${filters.category}` : copy.stock.status.titleDefault}</h2><p>{copy.stock.status.description}</p></div><span className="panel-chip">{copy.stock.status.chip}</span></div><InteractiveBars items={items(data.status, "status")} selected={filters.status} onSelect={(item) => toggle("status", item.key)} tone="blue" initialLimit={6} /></section>
             </>

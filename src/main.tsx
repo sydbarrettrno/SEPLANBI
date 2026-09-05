@@ -9,6 +9,7 @@ import "./ux-security-v1.css";
 import "./category-filter.css";
 import "./universe-reconciliation.css";
 import "./semantic-dashboard-v1.css";
+import "./construction-dashboard.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

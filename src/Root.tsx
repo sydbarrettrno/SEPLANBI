@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import App from "./App";
 import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
+import { ConstructionPermitsPanel } from "./components/ConstructionPermitsPanel";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
 import { IndicatorAuditSupplement } from "./components/IndicatorAuditSupplement";
 import { IndicatorMonthlyTrend } from "./components/IndicatorMonthlyTrend";
@@ -76,11 +77,33 @@ function RootRoutes() {
   const openAdmin = () => navigate("admin");
   const kpi = useMemo(() => route === "projects" ? 10 : KPI_BY_ROUTE[route], [route]);
   const isProjects = route === "projects";
+  const isConstruction = route === "construction";
   const updateExtendedFilters = (next: DashboardFilters) => setFilters({ ...next, recordset: "all", offset: 0 });
 
   return (
     <>
-      {kpi ? (
+      {isConstruction ? (
+        <div className="app-shell extended-route-shell">
+          <Sidebar
+            page="construction"
+            onNavigate={navigate}
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            adminAuthorized={adminAuthorized}
+          />
+          <div className="app-main">
+            <main className="content">
+              <nav className="extended-route-nav" aria-label="Navegação da seção construção civil">
+                <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
+                  ☰ Menu
+                </button>
+                <a className="ghost-button" href="#/overview">← {copy.common.breadcrumbOverview}</a>
+              </nav>
+              <ConstructionPermitsPanel />
+            </main>
+          </div>
+        </div>
+      ) : kpi ? (
         <div className="app-shell extended-route-shell">
           <Sidebar
             page={route as PageId}

@@ -1,4 +1,4 @@
-export type PageId = "overview" | "received" | "outputs" | "stock" | "processes" | "indicators" | "projects" | "kpi04" | "kpi05" | "kpi06" | "kpi07" | "kpi08" | "kpi09" | "kpi11" | "admin";
+export type PageId = "overview" | "received" | "outputs" | "stock" | "processes" | "indicators" | "projects" | "construction" | "kpi04" | "kpi05" | "kpi06" | "kpi07" | "kpi08" | "kpi09" | "kpi11" | "admin";
 export type Recordset = "all" | "received" | "concluded" | "stock" | "stopped";
 export type DetailId = "all" | "received" | "concluded" | "balance" | "stock" | "time" | "stopped" | "external" | "paralyzed";
 

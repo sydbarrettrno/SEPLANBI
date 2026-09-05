@@ -15,6 +15,7 @@ from backend.indicator_views import indicator_view_response
 from backend.private_export import build_private_xlsx
 from backend.private_data import load_private_rows
 from backend.private_import import install_private_xlsx
+from backend.construction_data import construction_data_response, export_construction_csv
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -105,11 +106,11 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _csv(self, status: int, body_text: str) -> None:
+    def _csv(self, status: int, body_text: str, filename: str = "seplanbi-drilldown.csv") -> None:
         body = body_text.encode("utf-8-sig")
         self.send_response(status)
         self.send_header("Content-Type", "text/csv; charset=utf-8")
-        self.send_header("Content-Disposition", 'attachment; filename="seplanbi-drilldown.csv"')
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, private")
         self.send_header("Pragma", "no-cache")
@@ -207,6 +208,12 @@ class handler(BaseHTTPRequestHandler):
                 return
             if action == "indicator-bi":
                 self._json(200, indicator_view_response(params))
+                return
+            if action == "construction-data":
+                self._json(200, construction_data_response(params))
+                return
+            if action == "construction-export":
+                self._csv(200, export_construction_csv(params), "alvaras-itapoa-base-analitica.csv")
                 return
             if action != "dashboard":
                 self._json(400, {"ok": False, "error": "Ação inválida."})

@@ -4,9 +4,11 @@ import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ConstructionDashboardV2 } from "./components/ConstructionDashboardV2";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
+import { Header } from "./components/Header";
 import { IndicatorAuditSupplement } from "./components/IndicatorAuditSupplement";
 import { IndicatorMonthlyTrend } from "./components/IndicatorMonthlyTrend";
 import { Sidebar } from "./components/Sidebar";
+import { SiteFooter } from "./components/SiteFooter";
 import { TimeComparisonPanel } from "./components/TimeComparisonPanel";
 import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
 import type { ExtendedKpi } from "./extended";
@@ -92,6 +94,7 @@ function RootRoutes() {
             adminAuthorized={adminAuthorized}
           />
           <div className="app-main">
+            <Header onMenu={() => setMenuOpen(true)} />
             <main className="content">
               <nav className="extended-route-nav" aria-label="Navegação da seção construção civil">
                 <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
@@ -116,6 +119,7 @@ function RootRoutes() {
             adminAuthorized={adminAuthorized}
           />
           <div className="app-main">
+            <Header onMenu={() => setMenuOpen(true)} />
             <main className="content">
               <nav className="extended-route-nav" aria-label="Navegação do indicador">
                 <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
@@ -147,6 +151,8 @@ function RootRoutes() {
           </div>
         </div>
       ) : <App adminAuthorized={adminAuthorized} />}
+
+      <SiteFooter />
 
       <AdminAccessGate
         authorized={adminAuthorized}

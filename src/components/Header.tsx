@@ -19,6 +19,7 @@ interface UniverseSummary {
 }
 
 interface HealthPayload {
+  source_updated_at?: string;
   audit?: {
     rows?: number;
     unique_protocols?: number;
@@ -41,7 +42,8 @@ function displayPeriod(raw: string) {
 
 export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
   const [universe, setUniverse] = useState<UniverseSummary | null>(null);
-  const [periodLabel, setPeriodLabel] = useState("Período selecionado");
+  const [healthSourceDate, setHealthSourceDate] = useState<string | undefined>();
+  const [periodLabel, setPeriodLabel] = useState("Período conforme visão atual");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -54,6 +56,7 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
         return await response.json() as HealthPayload;
       })
       .then((payload) => {
+        if (payload.source_updated_at) setHealthSourceDate(payload.source_updated_at);
         const audit = payload.audit ?? {};
         const total = asCount(audit.unique_protocols) ?? asCount(audit.rows);
         const stock = asCount(audit.stock);
@@ -92,6 +95,7 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
     return () => observer.disconnect();
   }, []);
 
+  const effectiveSourceDate = sourceDate || healthSourceDate;
   const structuralScopeActive = universe && scopeRows != null && scopeRows !== universe.total;
 
   return (
@@ -110,8 +114,8 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
           <details className="universe-details">
             <summary>
               <span className="source-meta-copy">
-                <strong>Fonte: Sistema IPM - {formatDate(sourceDate)}</strong>
-                <small>{universe ? formatNumber(universe.total) : "—"} protocolos · Período {periodLabel}</small>
+                <strong>Fonte: Sistema IPM{effectiveSourceDate ? ` - ${formatDate(effectiveSourceDate)}` : ""}</strong>
+                <small>{universe ? formatNumber(universe.total) : "—"} protocolos · {periodLabel}</small>
               </span>
               <span className="universe-info-icon" aria-hidden="true">i</span>
             </summary>
@@ -136,7 +140,7 @@ export function Header({ sourceDate, scopeRows, onMenu }: HeaderProps) {
                     </p>
                   ) : null}
                   <p className="universe-method-note">
-                    Recebidos e saídas abaixo obedecem ao período selecionado. A pendência representa a posição atual da base em {formatDate(sourceDate)} e não deve ser somada aos fluxos do período.
+                    Recebidos e saídas abaixo obedecem ao período selecionado. A pendência representa a posição atual da base{effectiveSourceDate ? ` em ${formatDate(effectiveSourceDate)}` : ""} e não deve ser somada aos fluxos do período.
                   </p>
                   <span className={universe.reconciled ? "universe-check ok" : "universe-check warning"}>
                     {universe.reconciled ? "✓ Universo reconciliado" : "⚠ Reconciliação divergente"}

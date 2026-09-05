@@ -31,9 +31,13 @@
 }
 
 /* Estrutura global */
+.app-shell {
+  min-height: calc(100vh - 62px);
+}
+
 .app-main {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh - 62px);
   flex-direction: column;
 }
 
@@ -287,7 +291,7 @@
 .site-footer-art-right::before { left: 0; }
 .site-footer-art-right::after { left: 52px; }
 
-@media (max-width: 920px) {
+@media (max-width: 960px) {
   .site-footer { margin-left: 0; }
   .site-footer-content { padding: 13px 18px; }
   .site-footer-art { opacity: .16; }

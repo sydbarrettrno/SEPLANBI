@@ -154,10 +154,12 @@
 .indicator-month,
 .month-columns > button,
 .flow-columns > button,
-.interactive-bars > button {
+.interactive-bars > button,
+.balance-evolution > button {
   transition:
-    opacity var(--ds-motion-fast) var(--ds-ease),
+    opacity var(--ds-motion-base) var(--ds-ease),
     transform var(--ds-motion-fast) var(--ds-ease),
+    filter var(--ds-motion-base) var(--ds-ease),
     background-color var(--ds-motion-fast) var(--ds-ease),
     border-color var(--ds-motion-fast) var(--ds-ease);
 }
@@ -166,8 +168,35 @@
 .indicator-month:hover,
 .month-columns > button:hover,
 .flow-columns > button:hover,
-.interactive-bars > button:hover {
+.interactive-bars > button:hover,
+.balance-evolution > button:hover {
   filter: saturate(1.05);
+}
+
+/* Seleção preserva o universo visual: destaque no item ativo e contexto esmaecido. */
+.interactive-bars:has(> button.selected) > button:not(.selected):not(.expand-bars),
+.month-columns:has(> button.selected) > button:not(.selected),
+.flow-columns:has(> button.selected) > button:not(.selected),
+.balance-evolution:has(> button.selected) > button:not(.selected) {
+  opacity: .34;
+  filter: saturate(.42) grayscale(.18);
+}
+
+.interactive-bars > button.selected,
+.month-columns > button.selected,
+.flow-columns > button.selected,
+.balance-evolution > button.selected {
+  opacity: 1;
+  filter: none;
+  transform: translateY(-1px);
+}
+
+.interactive-bars:has(> button.selected) > button:not(.selected):not(.expand-bars):hover,
+.month-columns:has(> button.selected) > button:not(.selected):hover,
+.flow-columns:has(> button.selected) > button:not(.selected):hover,
+.balance-evolution:has(> button.selected) > button:not(.selected):hover {
+  opacity: .58;
+  filter: saturate(.68);
 }
 
 .flow-hover-tooltip,

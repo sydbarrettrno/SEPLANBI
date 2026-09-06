@@ -167,9 +167,13 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
     const field = order.find((key) => Boolean(filters[key as keyof DashboardFilters]));
     if (field) apply({ [field]: "" } as Partial<DashboardFilters>);
   };
+  const openGlobalFilters = () => {
+    document.querySelector<HTMLButtonElement>('button[aria-controls="global-filter-drawer"]')?.click();
+  };
 
   const pageCopy = indicator === "received" ? copy.received : indicator === "outputs" ? copy.outputs : copy.stock;
   const active = activeDashboardFilters(filters).filter((item) => !(indicator === "stock" && item.key === "period"));
+  const actionFilters = active.filter((item) => item.key !== "period");
   const detail = data?.detail.records;
   const exportHref = publicAnalyticsExportUrl(baseRequest);
   const currentYear = data?.summary.comparison?.current.from.slice(0, 4) ?? filters.from.slice(0, 4) ?? "2026";
@@ -183,7 +187,26 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
       </nav>
       <header className="page-hero bi-hero">
         <div><span className="eyebrow">{pageCopy.eyebrow}</span><h1>{pageCopy.title}</h1><p>{pageCopy.description}</p></div>
-        <div className="bi-page-actions"><button className="ghost-button" onClick={drillUp} disabled={!active.some((item) => item.key !== "period")}>Drill-up</button><button className="ghost-button" onClick={clearSelection}>Limpar seleção</button></div>
+        <div className="bi-page-actions">
+          {indicator === "received" ? (
+            <>
+              {actionFilters.length ? (
+                <div className="active-filter-strip received-filter-summary" aria-live="polite" aria-label="Filtros aplicados">
+                  {actionFilters.slice(0, 2).map((item) => <span key={item.key}>{item.label}: {item.value}</span>)}
+                  {actionFilters.length > 2 ? <span>+{actionFilters.length - 2}</span> : null}
+                </div>
+              ) : null}
+              <button className="filter-launcher received-filter-launcher" type="button" onClick={openGlobalFilters}>
+                <span className="filter-launcher-icon" aria-hidden="true">≡</span>
+                <span><strong>Filtros</strong><small>{actionFilters.length ? `${actionFilters.length} ativo${actionFilters.length > 1 ? "s" : ""}` : "Ajustar recorte"}</small></span>
+                {actionFilters.length ? <b>{actionFilters.length}</b> : null}
+              </button>
+            </>
+          ) : (
+            <button className="ghost-button" onClick={drillUp} disabled={!active.some((item) => item.key !== "period")}>Drill-up</button>
+          )}
+          <button className="ghost-button" onClick={clearSelection}>Limpar seleção</button>
+        </div>
       </header>
 
       {error ? <div className="error-panel" role="alert"><div><span>Falha analítica</span><strong>Não foi possível montar este painel.</strong><p>{error}</p></div></div> : null}

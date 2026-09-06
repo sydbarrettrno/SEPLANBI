@@ -1,0 +1,155 @@
+/*
+ * Layout V01 — Processos recebidos.
+ * Escopo intencionalmente restrito ao painel [data-panel="received"].
+ * Não altera Visão Executiva, Saídas, Carteira, Construção Civil ou KPIs estendidos.
+ */
+
+.bi-page[data-panel="received"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+/* Elementos estruturais continuam ocupando toda a área útil. */
+.bi-page[data-panel="received"] > .drill-breadcrumb,
+.bi-page[data-panel="received"] > .bi-hero,
+.bi-page[data-panel="received"] > .bi-metric-grid,
+.bi-page[data-panel="received"] > .error-panel,
+.bi-page[data-panel="received"] > .loading-screen,
+.bi-page[data-panel="received"] > .bi-detail-table,
+.bi-page[data-panel="received"] > .refresh-strip {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/*
+ * Remove somente os wrappers de layout do painel Recebidos da grade visual.
+ * Assim, os cards internos passam a participar da mesma grade e podem alinhar
+ * alturas naturalmente sem valores fixos em px.
+ */
+.bi-page[data-panel="received"] > .bi-layout-main,
+.bi-page[data-panel="received"] > .bi-layout-secondary {
+  display: contents;
+}
+
+/* Gráfico principal: largura total. */
+.bi-page[data-panel="received"] > .bi-layout-main > .bi-primary-chart {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Macroprocessos à esquerda. */
+.bi-page[data-panel="received"] > .bi-layout-main > article:not(.bi-primary-chart) {
+  grid-column: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+/* Atividades/categorias à direita, na mesma linha e mesma altura do painel vizinho. */
+.bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+/* Leitura auxiliar permanece abaixo sem criar coluna vazia. */
+.bi-page[data-panel="received"] > .bi-layout-secondary > article:last-child {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Drill-down/protocolos sempre usa toda a largura do painel. */
+.bi-page[data-panel="received"] > .bi-detail-table {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+
+.bi-page[data-panel="received"] > .bi-detail-table .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Impede conteúdo interno de forçar a largura das colunas. */
+.bi-page[data-panel="received"] .panel,
+.bi-page[data-panel="received"] .panel-heading,
+.bi-page[data-panel="received"] .interactive-bars,
+.bi-page[data-panel="received"] .month-comparison {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Notebook/tablet: uma coluna quando dois painéis já não têm largura útil suficiente. */
+@media (max-width: 980px) {
+  .bi-page[data-panel="received"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bi-page[data-panel="received"] > .drill-breadcrumb,
+  .bi-page[data-panel="received"] > .bi-hero,
+  .bi-page[data-panel="received"] > .bi-metric-grid,
+  .bi-page[data-panel="received"] > .error-panel,
+  .bi-page[data-panel="received"] > .loading-screen,
+  .bi-page[data-panel="received"] > .bi-detail-table,
+  .bi-page[data-panel="received"] > .refresh-strip,
+  .bi-page[data-panel="received"] > .bi-layout-main > .bi-primary-chart,
+  .bi-page[data-panel="received"] > .bi-layout-main > article:not(.bi-primary-chart),
+  .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child,
+  .bi-page[data-panel="received"] > .bi-layout-secondary > article:last-child {
+    grid-column: 1;
+  }
+}
+
+/* Mobile: protege largura útil, ações, tabela e conteúdo dos cards. */
+@media (max-width: 640px) {
+  .bi-page[data-panel="received"] {
+    gap: 12px;
+  }
+
+  .bi-page[data-panel="received"] .bi-hero {
+    min-width: 0;
+  }
+
+  .bi-page[data-panel="received"] .bi-page-actions {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .bi-page[data-panel="received"] .bi-page-actions > * {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+
+  .bi-page[data-panel="received"] .panel-heading {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .bi-page[data-panel="received"] .panel-chip {
+    max-width: 100%;
+  }
+
+  .bi-page[data-panel="received"] > .bi-detail-table .table-heading {
+    align-items: stretch;
+  }
+
+  .bi-page[data-panel="received"] > .bi-detail-table .pager {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .bi-page[data-panel="received"] > .bi-detail-table .pager > * {
+    flex: 1 1 auto;
+  }
+}

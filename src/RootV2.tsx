@@ -5,6 +5,7 @@ import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ConstructionDashboardV2 } from "./components/ConstructionDashboardV2";
 import { DashboardShell } from "./components/DashboardShell";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
+import { Header } from "./components/Header";
 import { IndicatorAuditSupplement } from "./components/IndicatorAuditSupplement";
 import { IndicatorMonthlyTrend } from "./components/IndicatorMonthlyTrend";
 import { TimeComparisonPanel } from "./components/TimeComparisonPanel";
@@ -79,6 +80,7 @@ function RootRoutes() {
   const isProjects = route === "projects";
   const isConstruction = route === "construction";
   const updateExtendedFilters = (next: DashboardFilters) => setFilters({ ...next, recordset: "all", offset: 0 });
+  const institutionalHeader = <Header onMenu={() => setMenuOpen(true)} />;
 
   return (
     <>
@@ -90,11 +92,9 @@ function RootRoutes() {
           onMenuClose={() => setMenuOpen(false)}
           adminAuthorized={adminAuthorized}
           className="extended-route-shell"
+          beforeContent={institutionalHeader}
         >
           <nav className="extended-route-nav" aria-label="Navegação da seção construção civil">
-            <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
-              ☰ Menu
-            </button>
             <a className="ghost-button" href="#/overview">← {copy.common.breadcrumbOverview}</a>
           </nav>
           <ConstructionDashboardV2
@@ -110,11 +110,9 @@ function RootRoutes() {
           onMenuClose={() => setMenuOpen(false)}
           adminAuthorized={adminAuthorized}
           className="extended-route-shell"
+          beforeContent={institutionalHeader}
         >
           <nav className="extended-route-nav" aria-label="Navegação do indicador">
-            <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
-              ☰ Menu
-            </button>
             <a className="ghost-button" href={isProjects ? "#/overview" : "#/indicators"}>← {isProjects ? copy.common.breadcrumbOverview : copy.common.breadcrumbIndicators}</a>
             <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
           </nav>

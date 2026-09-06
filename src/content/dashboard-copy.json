@@ -36,7 +36,7 @@
   "received": {
     "eyebrow": "PAINEL 1 · DEMANDA",
     "title": "Processos recebidos",
-    "description": "Compare períodos equivalentes e investigue mês, família de processos, categoria e protocolo.",
+    "description": "Análise de demanda e sazonalidade por macroprocesso e atividade. Utilize o filtro especial conforme necessidade.",
     "metrics": { "current": "Recebidos no período", "previous": "Mesmo período", "previousDetail": "Comparação homóloga", "absolute": "Variação absoluta", "absoluteDetail": "Período atual menos anterior", "percent": "Variação percentual", "percentDetail": "Períodos equivalentes" },
     "monthly": { "eyebrow": "GRÁFICO PRINCIPAL", "title": "Recebidos por mês", "description": "Clique no mês; os gráficos de família, categoria e a tabela serão recalculados." },
     "macro": { "eyebrow": "NÍVEL 2", "title": "Famílias de Processos", "description": "Barras ordenadas no recorte ativo." },

@@ -1,22 +1,19 @@
-/* Header de seção V06 — compacto, sticky, filtro geral fixo e grid de Recebidos corrigido */
+/* Header de seção V07 — compacto, sticky, filtro geral fixo e grid de Recebidos corrigido */
 .content:has(.bi-page) {
   position: relative;
   padding-top: 0;
 }
 
-/* O header institucional já é sticky e mede 104px. */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 1000;
 }
 
-/* Breadcrumb não deve criar uma faixa exclusiva nas páginas BI. */
 .bi-page > .drill-breadcrumb {
   display: none;
 }
 
-/* Cabeçalho da seção: compacto e congelado logo abaixo do header institucional. */
 .bi-page > .bi-hero {
   position: sticky;
   top: 104px;
@@ -71,7 +68,6 @@
   line-height: 1.35;
 }
 
-/* Ações internas do cabeçalho. */
 .bi-page-actions {
   position: absolute;
   right: 32px;
@@ -106,7 +102,6 @@
   padding: 0 16px;
 }
 
-/* FilterBar sobreposto ao mesmo header sticky, sem criar nova faixa. */
 .content:has(.bi-page) > .filter-toolbar {
   position: sticky;
   top: 104px;
@@ -138,7 +133,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .bi-page[data-panel="received"] > .bi-hero,
@@ -147,9 +142,11 @@
 .bi-page[data-panel="received"] > .loading-screen,
 .bi-page[data-panel="received"] > .bi-detail-table,
 .bi-page[data-panel="received"] > .refresh-strip {
-  grid-column: 1 / -1;
-  width: 100%;
+  grid-column: 1 / -1 !important;
+  width: 100% !important;
+  max-width: none !important;
   min-width: 0;
+  justify-self: stretch;
 }
 
 .bi-page[data-panel="received"] > .bi-layout-main,
@@ -163,16 +160,21 @@
   min-width: 0;
 }
 
-.bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2) {
-  grid-column: 1;
+/* Os dois painéis inferiores devem ocupar exatamente a mesma linha e a mesma altura. */
+.bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2),
+.bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
   width: 100%;
   min-width: 0;
+  height: 100%;
+  align-self: stretch;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2) {
+  grid-column: 1;
 }
 
 .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
   grid-column: 2;
-  width: 100%;
-  min-width: 0;
 }
 
 .bi-page[data-panel="received"] > .bi-layout-secondary > .bi-reading {
@@ -192,6 +194,20 @@
 .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child .panel-heading h2::after {
   content: "Atividades";
   font-size: 20px;
+}
+
+/* Blindagem contra regras legadas da tabela que possam limitar a largura. */
+.bi-page[data-panel="received"] .bi-detail-table,
+.bi-page[data-panel="received"] .bi-detail-table.panel {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  grid-column: 1 / -1 !important;
+}
+
+.bi-page[data-panel="received"] .bi-detail-table .table-scroll {
+  width: 100%;
+  max-width: none;
 }
 
 @media (max-width: 960px) {
@@ -221,7 +237,7 @@
   .bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2),
   .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child,
   .bi-page[data-panel="received"] > .bi-detail-table {
-    grid-column: 1 / -1;
+    grid-column: 1 / -1 !important;
   }
 }
 

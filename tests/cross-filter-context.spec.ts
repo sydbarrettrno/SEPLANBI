@@ -16,11 +16,10 @@ test("recebidos mantém contexto da própria dimensão ao filtrar", async ({ pag
   const monthButtons = page.locator(".month-columns [data-month]");
   const monthCount = await monthButtons.count();
   expect(monthCount).toBeGreaterThan(1);
-  const month = monthButtons.filter({ has: page.locator("[data-current-value]:not([data-current-value='0'])") }).first();
-  const fallbackMonth = page.locator(".month-columns [data-current-value]:not([data-current-value='0'])").first();
-  await fallbackMonth.click();
+  const firstNonZeroMonth = page.locator(".month-columns [data-current-value]:not([data-current-value='0'])").first();
+  await firstNonZeroMonth.click();
   await expect(page.locator(".month-columns [data-month]")).toHaveCount(monthCount);
-  await expect(fallbackMonth).toHaveClass(/selected/);
+  await expect(firstNonZeroMonth).toHaveClass(/selected/);
 
   await page.getByRole("button", { name: "Limpar seleção" }).click();
   const macroBars = page.locator("article:has(h2:text-is('Famílias de Processos')) [data-visual-key]");

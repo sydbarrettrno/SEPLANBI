@@ -1,4 +1,4 @@
-/* Header de seção V02 — referência visual aprovada pelo usuário */
+/* Header de seção V03 — alinhado ao mockup e layout de Recebidos */
 .content:has(.bi-page) {
   position: relative;
   padding-top: 12px;
@@ -22,8 +22,7 @@
   margin: 0 -32px 18px;
   padding: 8px 32px 16px;
   border-bottom: 1px solid #d9e2ec;
-  background:
-    linear-gradient(90deg, rgba(244,247,251,.96) 0%, rgba(244,247,251,.96) 65%, rgba(235,242,249,.96) 100%);
+  background: linear-gradient(90deg, rgba(244,247,251,.96) 0%, rgba(244,247,251,.96) 65%, rgba(235,242,249,.96) 100%);
 }
 
 .bi-page > .bi-hero > div:first-child {
@@ -54,7 +53,7 @@
   line-height: 1.4;
 }
 
-/* Texto solicitado para Recebidos. A cópia persistida da aplicação ainda contém a versão antiga. */
+/* Texto solicitado para Recebidos. */
 .bi-page[data-panel="received"] > .bi-hero p {
   font-size: 0;
 }
@@ -68,24 +67,28 @@
   line-height: 1.4;
 }
 
-/* Ações em uma única linha, como no mockup. */
+/* Ações: Filtros e Limpar seleção compartilham a mesma linha de base. */
 .bi-page-actions {
   position: absolute;
   right: 32px;
-  bottom: 18px;
+  top: 50%;
+  bottom: auto;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0;
+  transform: translateY(15px);
 }
 
 .bi-page-actions > button:first-child {
   display: none;
 }
 
-.bi-page-actions .ghost-button {
+.bi-page-actions .ghost-button,
+.content:has(.bi-page) > .filter-toolbar .filter-launcher {
+  box-sizing: border-box;
+  height: 42px;
   min-height: 42px;
-  padding: 0 16px;
   border: 1px solid #d4deea;
   border-radius: 10px;
   background: rgba(255,255,255,.96);
@@ -95,12 +98,16 @@
   box-shadow: 0 5px 14px rgba(17,43,75,.045);
 }
 
-/* O botão Filtros pertence visualmente ao mesmo header. */
+.bi-page-actions .ghost-button {
+  padding: 0 16px;
+}
+
+/* O launcher externo é ancorado na mesma cota vertical do botão Limpar seleção. */
 .content:has(.bi-page) > .filter-toolbar {
   position: absolute;
   z-index: 20;
-  top: 88px;
-  right: 176px;
+  top: 117px;
+  right: 164px;
   display: block;
   min-height: 42px;
   margin: 0;
@@ -112,17 +119,76 @@
 }
 
 .content:has(.bi-page) > .filter-toolbar .filter-launcher {
-  min-height: 42px;
   padding: 0 14px;
-  border: 1px solid #d4deea;
-  border-radius: 10px;
-  background: rgba(255,255,255,.96);
-  box-shadow: 0 5px 14px rgba(17,43,75,.045);
+}
+
+/* RECEBIDOS: gráfico principal em 100%; abaixo, Macroprocessos e Atividades em 50/50. */
+.bi-page[data-panel="received"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.bi-page[data-panel="received"] > .drill-breadcrumb,
+.bi-page[data-panel="received"] > .bi-hero,
+.bi-page[data-panel="received"] > .bi-metric-grid,
+.bi-page[data-panel="received"] > .error-panel,
+.bi-page[data-panel="received"] > .loading-screen,
+.bi-page[data-panel="received"] > .bi-drill-table,
+.bi-page[data-panel="received"] > .refresh-strip {
+  grid-column: 1 / -1;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-main,
+.bi-page[data-panel="received"] > .bi-layout-secondary {
+  display: contents;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-main > article:first-child {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2) {
+  grid-column: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+}
+
+/* O antigo card de leitura não ocupa a posição reservada à Atividade. */
+.bi-page[data-panel="received"] > .bi-layout-secondary > .bi-reading {
+  display: none;
+}
+
+/* Nomenclatura visual solicitada nesta composição. */
+.bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2) .panel-heading h2,
+.bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child .panel-heading h2 {
+  font-size: 0;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2) .panel-heading h2::after {
+  content: "Macroprocessos";
+  font-size: 20px;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child .panel-heading h2::after {
+  content: "Atividades";
+  font-size: 20px;
 }
 
 @media (max-width: 960px) {
   .content:has(.bi-page) > .filter-toolbar {
     position: static;
+    display: flex;
+    justify-content: flex-end;
     margin: 0 0 10px;
   }
 
@@ -134,6 +200,17 @@
   .bi-page-actions {
     position: static;
     align-self: flex-end;
+    transform: none;
+  }
+
+  .bi-page[data-panel="received"] {
+    grid-template-columns: 1fr;
+  }
+
+  .bi-page[data-panel="received"] > .bi-layout-main > article:first-child,
+  .bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2),
+  .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
+    grid-column: 1 / -1;
   }
 }
 

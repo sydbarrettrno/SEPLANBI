@@ -53,6 +53,113 @@
   box-shadow: 0 1px 0 rgba(17, 43, 75, .03), 0 8px 24px rgba(17, 43, 75, .035);
 }
 
+/* Cabeçalho das seções BI */
+.content:has(.bi-page) {
+  padding-top: 14px;
+}
+
+.bi-page > .drill-breadcrumb {
+  min-height: 24px;
+  margin: 0 0 6px;
+  color: #748399;
+  font-size: 12px;
+}
+
+.bi-page > .drill-breadcrumb span + span::before {
+  color: #9aa8b8;
+}
+
+.bi-page > .bi-hero {
+  position: relative;
+  display: flex;
+  min-height: 118px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 -32px 20px;
+  padding: 8px 32px 18px;
+  border-bottom: 1px solid #dce4ed;
+  background:
+    radial-gradient(circle at 82% 10%, rgba(24, 113, 213, .055), transparent 26rem),
+    linear-gradient(180deg, rgba(248, 250, 252, .42), rgba(242, 245, 249, .78));
+}
+
+.bi-page > .bi-hero > div:first-child {
+  max-width: 980px;
+}
+
+.bi-page > .bi-hero .eyebrow {
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: .09em;
+}
+
+.bi-page > .bi-hero h1 {
+  margin: 0;
+  color: #122f53;
+  font-size: clamp(34px, 3vw, 48px);
+  line-height: 1.03;
+  letter-spacing: -.035em;
+}
+
+.bi-page > .bi-hero p {
+  max-width: 920px;
+  margin: 7px 0 0;
+  color: #6b7788;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.42;
+}
+
+.bi-page-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+
+/* Drill-up deixa de competir com as ações principais do cabeçalho. */
+.bi-page-actions > button:first-child {
+  display: none;
+}
+
+.bi-page-actions .ghost-button {
+  min-height: 42px;
+  padding-inline: 16px;
+  border-color: #d4deea;
+  border-radius: 10px;
+  color: #4b5b72;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 5px 14px rgba(17,43,75,.045);
+}
+
+/* O launcher de filtros passa a fazer parte visualmente do cabeçalho da seção. */
+.content:has(.bi-page) > .filter-toolbar {
+  position: absolute;
+  z-index: 12;
+  top: 84px;
+  right: 174px;
+  min-height: 42px;
+  margin: 0;
+}
+
+.content:has(.bi-page) > .filter-toolbar > div {
+  display: none;
+}
+
+.content:has(.bi-page) > .filter-toolbar .filter-launcher {
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 5px 14px rgba(17,43,75,.045);
+}
+
+.content:has(.bi-page) > .filter-toolbar .filter-launcher-icon {
+  font-size: 17px;
+}
+
 /* Tipografia, painéis e cards */
 .panel,
 .kpi-card,
@@ -324,6 +431,39 @@
   .site-footer { margin-left: 0; }
   .site-footer-content { padding: 13px 18px; }
   .site-footer-art { opacity: .16; }
+
+  .content:has(.bi-page) > .filter-toolbar {
+    position: static;
+    justify-content: flex-end;
+    margin: 0 0 10px;
+  }
+
+  .content:has(.bi-page) > .filter-toolbar > div {
+    display: none;
+  }
+
+  .bi-page > .bi-hero {
+    margin-inline: -22px;
+    padding-inline: 22px;
+  }
+}
+
+@media (max-width: 720px) {
+  .bi-page > .bi-hero {
+    min-height: 0;
+    align-items: stretch;
+    flex-direction: column;
+    margin-inline: -13px;
+    padding: 8px 13px 16px;
+  }
+
+  .bi-page > .bi-hero h1 {
+    font-size: clamp(30px, 10vw, 38px);
+  }
+
+  .bi-page-actions {
+    align-self: flex-start;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

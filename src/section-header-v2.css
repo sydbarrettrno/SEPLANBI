@@ -1,46 +1,52 @@
-/* Header de seção V04 — alinhamento visual e layout de Recebidos */
+/* Header de seção V05 — compacto, sticky e com filtro geral fixo */
 .content:has(.bi-page) {
   position: relative;
-  padding-top: 12px;
+  padding-top: 0;
 }
 
+/* O header institucional já é sticky e mede 104px. */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Breadcrumb não deve criar uma faixa exclusiva nas páginas BI. */
 .bi-page > .drill-breadcrumb {
-  min-height: 20px;
-  margin: 0 0 10px;
-  color: #7a8798;
-  font-size: 12px;
-  line-height: 1.2;
+  display: none;
 }
 
+/* Cabeçalho da seção: compacto e congelado logo abaixo do header institucional. */
 .bi-page > .bi-hero {
-  position: relative;
+  position: sticky;
+  top: 104px;
+  z-index: 900;
   display: flex;
-  min-height: 126px;
-  align-items: flex-end;
+  min-height: 92px;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
   margin: 0 -32px 18px;
-  padding: 8px 32px 16px;
+  padding: 10px 32px 12px;
   border-bottom: 1px solid #d9e2ec;
-  background: linear-gradient(90deg, rgba(244,247,251,.96) 0%, rgba(244,247,251,.96) 65%, rgba(235,242,249,.96) 100%);
+  background: linear-gradient(90deg, rgba(244,247,251,.98) 0%, rgba(244,247,251,.98) 65%, rgba(235,242,249,.98) 100%);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 18px rgba(17, 43, 75, .045);
 }
 
 .bi-page > .bi-hero > div:first-child {
   max-width: 980px;
 }
 
+/* O rótulo PAINEL ocupava a área morta destacada no mockup; fica oculto no modo sticky compacto. */
 .bi-page > .bi-hero .eyebrow {
-  margin-bottom: 7px;
-  color: #176fd1;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: .09em;
+  display: none;
 }
 
 .bi-page > .bi-hero h1 {
   margin: 0;
   color: #132f53;
-  font-size: clamp(36px, 3.1vw, 50px);
+  font-size: clamp(34px, 2.8vw, 48px);
   line-height: 1.02;
   letter-spacing: -.04em;
 }
@@ -50,7 +56,7 @@
   color: #6c7788;
   font-size: 14px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .bi-page[data-panel="received"] > .bi-hero p {
@@ -63,10 +69,10 @@
   color: #6c7788;
   font-size: 14px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
-/* Ações do cabeçalho: mesma cota vertical e mesma altura. */
+/* Ações internas do cabeçalho. */
 .bi-page-actions {
   position: absolute;
   right: 32px;
@@ -76,7 +82,7 @@
   align-items: center;
   gap: 10px;
   padding: 0;
-  transform: translateY(15px);
+  transform: translateY(-50%);
 }
 
 .bi-page-actions > button:first-child {
@@ -90,7 +96,7 @@
   min-height: 42px;
   border: 1px solid #d4deea;
   border-radius: 10px;
-  background: rgba(255,255,255,.96);
+  background: rgba(255,255,255,.97);
   color: #4c5b70;
   font-size: 12px;
   font-weight: 800;
@@ -101,17 +107,24 @@
   padding: 0 16px;
 }
 
-/* A toolbar é irmã do painel; a cota abaixo compensa esse referencial externo
-   e coloca o launcher exatamente na mesma linha de Limpar seleção. */
+/*
+ * A FilterBar fica fora do BiPanel no DOM. Para manter o filtro geral fixo sem
+ * criar outra faixa, a toolbar tem altura zero e o launcher é sobreposto ao
+ * mesmo cabeçalho sticky. Assim título, descrição, Filtros e Limpar seleção
+ * permanecem congelados juntos.
+ */
 .content:has(.bi-page) > .filter-toolbar {
-  position: absolute;
-  z-index: 20;
-  top: 136px;
-  right: 164px;
+  position: sticky;
+  top: 104px;
+  z-index: 905;
   display: block;
-  min-height: 42px;
+  width: 100%;
+  height: 0;
+  min-height: 0;
   margin: 0;
   padding: 0;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .content:has(.bi-page) > .filter-toolbar > div {
@@ -119,7 +132,11 @@
 }
 
 .content:has(.bi-page) > .filter-toolbar .filter-launcher {
+  position: absolute;
+  top: 25px;
+  right: 164px;
   padding: 0 14px;
+  pointer-events: auto;
 }
 
 /* RECEBIDOS: gráfico principal em 100%; abaixo, Macroprocessos e Atividades em 50/50. */
@@ -130,7 +147,6 @@
   align-items: start;
 }
 
-.bi-page[data-panel="received"] > .drill-breadcrumb,
 .bi-page[data-panel="received"] > .bi-hero,
 .bi-page[data-panel="received"] > .bi-metric-grid,
 .bi-page[data-panel="received"] > .error-panel,
@@ -183,22 +199,22 @@
 }
 
 @media (max-width: 960px) {
-  .content:has(.bi-page) > .filter-toolbar {
-    position: static;
-    display: flex;
-    justify-content: flex-end;
-    margin: 0 0 10px;
-  }
-
   .bi-page > .bi-hero {
+    top: 82px;
     margin-inline: -22px;
     padding-inline: 22px;
   }
 
+  .content:has(.bi-page) > .filter-toolbar {
+    top: 82px;
+  }
+
+  .content:has(.bi-page) > .filter-toolbar .filter-launcher {
+    right: 154px;
+  }
+
   .bi-page-actions {
-    position: static;
-    align-self: flex-end;
-    transform: none;
+    right: 22px;
   }
 
   .bi-page[data-panel="received"] {
@@ -214,14 +230,31 @@
 
 @media (max-width: 720px) {
   .bi-page > .bi-hero {
+    position: static;
     min-height: 0;
     align-items: stretch;
     flex-direction: column;
     margin-inline: -13px;
-    padding: 8px 13px 16px;
+    padding: 12px 13px 14px;
   }
 
   .bi-page-actions {
+    position: static;
     align-self: flex-start;
+    transform: none;
+  }
+
+  .content:has(.bi-page) > .filter-toolbar {
+    position: static;
+    display: flex;
+    height: auto;
+    min-height: 42px;
+    justify-content: flex-start;
+    margin-bottom: 8px;
+    pointer-events: auto;
+  }
+
+  .content:has(.bi-page) > .filter-toolbar .filter-launcher {
+    position: static;
   }
 }

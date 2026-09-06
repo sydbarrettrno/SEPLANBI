@@ -62,11 +62,13 @@
   height: 100%;
 }
 
-/* Leitura auxiliar permanece abaixo sem criar coluna vazia. */
-.bi-page[data-panel="received"] > .bi-layout-secondary > article:last-child {
-  grid-column: 1 / -1;
-  width: 100%;
-  min-width: 0;
+/*
+ * A antiga "Leitura em 5 segundos" apenas repetia totais e regra já evidentes
+ * no painel. Ela é removida da composição para preservar densidade informacional
+ * e evitar um bloco desproporcional sem função analítica nova.
+ */
+.bi-page[data-panel="received"] > .bi-layout-secondary > article.bi-reading {
+  display: none;
 }
 
 /* Drill-down/protocolos sempre usa toda a largura do painel. */
@@ -96,9 +98,9 @@
 
 /*
  * Cabeçalho do painel Recebidos.
- * O filtro geral deixa de consumir uma linha vazia e passa a compor visualmente
- * o mesmo bloco do título. Header institucional + cabeçalho do painel permanecem
- * disponíveis durante a rolagem.
+ * O filtro geral deixa de consumir uma linha própria e passa a compartilhar
+ * exatamente o mesmo eixo vertical de "Limpar seleção". Não usa offsets
+ * verticais independentes entre os dois botões.
  */
 .content:has(> .bi-page[data-panel="received"]) {
   padding-top: 12px;
@@ -108,9 +110,14 @@
   position: sticky;
   top: 104px;
   z-index: 28;
-  height: 0;
-  min-height: 0;
-  margin: 0;
+  display: flex;
+  height: 94px;
+  min-height: 94px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0 0 -94px;
+  padding: 0 130px 0 0;
   overflow: visible;
   pointer-events: none;
 }
@@ -120,11 +127,10 @@
 }
 
 .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
-  position: absolute;
-  top: 24px;
-  right: 130px;
+  position: static;
   min-width: 112px;
   min-height: 42px;
+  height: 42px;
   pointer-events: auto;
 }
 
@@ -166,11 +172,13 @@
   flex: 0 0 auto;
   min-width: 120px;
   justify-content: flex-end;
+  align-items: center;
 }
 
 .bi-page[data-panel="received"] .bi-page-actions .ghost-button:last-child {
   min-width: 120px;
   min-height: 42px;
+  height: 42px;
 }
 
 /* Notebook/tablet: uma coluna quando dois painéis já não têm largura útil suficiente. */
@@ -188,8 +196,7 @@
   .bi-page[data-panel="received"] > .refresh-strip,
   .bi-page[data-panel="received"] > .bi-layout-main > .bi-primary-chart,
   .bi-page[data-panel="received"] > .bi-layout-main > article:not(.bi-primary-chart),
-  .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child,
-  .bi-page[data-panel="received"] > .bi-layout-secondary > article:last-child {
+  .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
     grid-column: 1;
   }
 }
@@ -204,6 +211,7 @@
     top: 74px;
     height: 48px;
     min-height: 48px;
+    margin-bottom: 0;
     padding: 4px 0;
     align-items: center;
     background: rgba(242, 245, 249, .96);
@@ -214,6 +222,7 @@
   .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
     position: static;
     min-height: 40px;
+    height: 40px;
     margin-left: auto;
   }
 
@@ -221,7 +230,7 @@
     top: 122px;
     min-height: 0;
     margin-bottom: 12px;
-    padding: 10px 0 10px;
+    padding: 10px 0;
     gap: 8px;
   }
 

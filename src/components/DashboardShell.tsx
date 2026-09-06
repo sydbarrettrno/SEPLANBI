@@ -10,6 +10,7 @@ interface DashboardShellProps {
   adminAuthorized: boolean;
   className?: string;
   beforeContent?: ReactNode;
+  afterContent?: ReactNode;
   children: ReactNode;
 }
 
@@ -21,6 +22,7 @@ export function DashboardShell({
   adminAuthorized,
   className = "",
   beforeContent,
+  afterContent,
   children,
 }: DashboardShellProps) {
   const shellClassName = ["app-shell", className].filter(Boolean).join(" ");
@@ -37,6 +39,7 @@ export function DashboardShell({
       <div className="app-main">
         {beforeContent}
         <main className="content">{children}</main>
+        {afterContent}
       </div>
     </div>
   );

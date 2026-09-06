@@ -212,14 +212,14 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
                 {draftActive.length ? draftActive.map((item) => <span key={item.key}>{item.label}: {item.value}</span>) : <span>Nenhum</span>}
               </div>
 
-              <section className="special-filter-panel" aria-label="Filtros especiais">
+              <section className="special-filter-panel" aria-label="Recortes salvos de categorias">
                 <div className="special-filter-heading">
-                  <div><span>Setor Responsável</span><strong>Aplicar conjunto de categorias</strong></div>
+                  <div><span>Recorte salvo</span><strong>Aplicar conjunto de categorias</strong></div>
                   {activePreset ? <b>{activePreset.name}</b> : null}
                 </div>
                 <div className="special-filter-row">
-                  <select value={selectedPresetId} onChange={(event) => applyPreset(event.target.value)} aria-label="Escolher Setor Responsável">
-                    <option value="">Escolher setor…</option>
+                  <select value={selectedPresetId} onChange={(event) => applyPreset(event.target.value)} aria-label="Escolher recorte salvo">
+                    <option value="">Escolher recorte…</option>
                     {presets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}{preset.builtin ? " · padrão" : ""}</option>)}
                   </select>
                   {customPresets.some((preset) => preset.id === selectedPresetId) ? (
@@ -234,13 +234,13 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
                     type="text"
                     maxLength={48}
                     value={presetName}
-                    placeholder="Nome do Setor Responsável"
-                    aria-label="Nome do novo Setor Responsável"
+                    placeholder="Nome do recorte"
+                    aria-label="Nome do novo recorte"
                     onChange={(event) => setPresetName(event.target.value)}
                   />
-                  <button type="button" onClick={saveCurrentAsPreset} disabled={!presetName.trim() || !categories.length}>Criar setor</button>
+                  <button type="button" onClick={saveCurrentAsPreset} disabled={!presetName.trim() || !categories.length}>Criar recorte</button>
                 </div>
-                <small>Os conjuntos ficam salvos neste navegador e são aplicados imediatamente a cards, gráficos, tabelas e exportação. “Setor de tramitação” permanece separado.</small>
+                <small>Estes recortes são conjuntos de categorias salvos neste navegador. Não representam setor nem responsabilidade e são aplicados a cards, gráficos, tabelas e exportação.</small>
               </section>
 
               {!snapshotMode ? (

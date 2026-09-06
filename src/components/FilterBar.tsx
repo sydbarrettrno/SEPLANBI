@@ -150,7 +150,9 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     setOpen(false);
   };
   const active = activeDashboardFilters(filters);
-  const selectionCount = active.filter((item) => item.key !== "period").length;
+  const activeSelections = active.filter((item) => item.key !== "period");
+  const draftActive = activeDashboardFilters(draft);
+  const selectionCount = activeSelections.length;
   const period = `${filters.from || "Início"} — ${filters.to || "Data de corte"}`;
   const close = () => {
     setDraft(filters);
@@ -164,6 +166,12 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
           <span>Período de análise</span>
           <strong>{period}</strong>
         </div>
+        {activeSelections.length ? (
+          <section className="active-filter-strip filter-toolbar-active" aria-live="polite" aria-label="Filtros aplicados">
+            {activeSelections.slice(0, 3).map((item) => <span key={item.key}>{item.label}: {item.value}</span>)}
+            {activeSelections.length > 3 ? <span>+{activeSelections.length - 3}</span> : null}
+          </section>
+        ) : null}
         <button
           type="button"
           className="filter-launcher"
@@ -195,8 +203,8 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
               }}
             >
               <div className="active-filter-strip" aria-live="polite">
-                <strong>Filtros ativos</strong>
-                {active.length ? active.map((item) => <span key={item.key}>{item.label}: {item.value}</span>) : <span>Nenhum</span>}
+                <strong>Recorte em edição</strong>
+                {draftActive.length ? draftActive.map((item) => <span key={item.key}>{item.label}: {item.value}</span>) : <span>Nenhum</span>}
               </div>
 
               <section className="special-filter-panel" aria-label="Filtros especiais">

@@ -29,7 +29,7 @@ async function openPanel(page: Page, indicator: "received" | "outputs" | "stock"
 }
 
 async function openFilters(page: Page) {
-  await page.locator(".filter-launcher").click();
+  await page.getByRole("button", { name: /Filtros/ }).first().click();
   await expect(page.getByRole("dialog", { name: "Filtros do painel" })).toBeVisible();
 }
 
@@ -68,9 +68,9 @@ test("recebidos: período homólogo, cross-filter e drill-down exato", async ({ 
   const categoryValue = Number(await category.getAttribute("data-visual-value"));
   await category.click();
   await waitForCount(page, categoryValue);
-  await expect(page.locator(".filter-toolbar-active")).toBeVisible();
-  await expect(page.locator(".filter-toolbar-active")).toContainText("Família de Processos");
-  await expect(page.locator(".filter-toolbar-active")).toContainText("Categoria");
+  await expect(page.locator(".received-filter-summary")).toBeVisible();
+  await expect(page.locator(".received-filter-summary")).toContainText("Família de Processos");
+  await expect(page.locator(".received-filter-summary")).toContainText("Categoria");
 
   await category.click();
   await waitForCount(page, macroValue);
@@ -168,8 +168,8 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await page.getByLabel("Família de Processos").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect.poll(() => recordCount(page)).toBeLessThan(2899);
-  await expect(page.locator(".filter-launcher")).toContainText("2 ativos");
-  await expect(page.locator(".filter-toolbar-active")).toBeVisible();
+  await expect(page.locator(".received-filter-launcher")).toContainText("2 ativos");
+  await expect(page.locator(".received-filter-summary")).toBeVisible();
 
   await openFilters(page);
   await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Mês: 1");

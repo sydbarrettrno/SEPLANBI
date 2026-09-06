@@ -34,6 +34,15 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
   }, [filters]);
 
   useEffect(() => {
+    const openFromPage = () => {
+      setDraft(filters);
+      setOpen(true);
+    };
+    window.addEventListener("seplanbi:open-filters", openFromPage);
+    return () => window.removeEventListener("seplanbi:open-filters", openFromPage);
+  }, [filters]);
+
+  useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
     const closeOnEscape = (event: KeyboardEvent) => {

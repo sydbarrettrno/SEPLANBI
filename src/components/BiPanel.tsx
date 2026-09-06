@@ -168,7 +168,7 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
     if (field) apply({ [field]: "" } as Partial<DashboardFilters>);
   };
   const openGlobalFilters = () => {
-    document.querySelector<HTMLButtonElement>('button[aria-controls="global-filter-drawer"]')?.click();
+    window.dispatchEvent(new Event("seplanbi:open-filters"));
   };
 
   const pageCopy = indicator === "received" ? copy.received : indicator === "outputs" ? copy.outputs : copy.stock;
@@ -192,8 +192,8 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
             <>
               {actionFilters.length ? (
                 <div className="active-filter-strip received-filter-summary" aria-live="polite" aria-label="Filtros aplicados">
-                  {actionFilters.slice(0, 2).map((item) => <span key={item.key}>{item.label}: {item.value}</span>)}
-                  {actionFilters.length > 2 ? <span>+{actionFilters.length - 2}</span> : null}
+                  {actionFilters.slice(0, 3).map((item) => <span key={item.key}>{item.label}: {item.value}</span>)}
+                  {actionFilters.length > 3 ? <span>+{actionFilters.length - 3}</span> : null}
                 </div>
               ) : null}
               <button className="filter-launcher received-filter-launcher" type="button" onClick={openGlobalFilters}>

@@ -1,4 +1,4 @@
-/* Header de seção V05 — compacto, sticky e com filtro geral fixo */
+/* Header de seção V06 — compacto, sticky, filtro geral fixo e grid de Recebidos corrigido */
 .content:has(.bi-page) {
   position: relative;
   padding-top: 0;
@@ -38,7 +38,6 @@
   max-width: 980px;
 }
 
-/* O rótulo PAINEL ocupava a área morta destacada no mockup; fica oculto no modo sticky compacto. */
 .bi-page > .bi-hero .eyebrow {
   display: none;
 }
@@ -107,12 +106,7 @@
   padding: 0 16px;
 }
 
-/*
- * A FilterBar fica fora do BiPanel no DOM. Para manter o filtro geral fixo sem
- * criar outra faixa, a toolbar tem altura zero e o launcher é sobreposto ao
- * mesmo cabeçalho sticky. Assim título, descrição, Filtros e Limpar seleção
- * permanecem congelados juntos.
- */
+/* FilterBar sobreposto ao mesmo header sticky, sem criar nova faixa. */
 .content:has(.bi-page) > .filter-toolbar {
   position: sticky;
   top: 104px;
@@ -139,7 +133,7 @@
   pointer-events: auto;
 }
 
-/* RECEBIDOS: gráfico principal em 100%; abaixo, Macroprocessos e Atividades em 50/50. */
+/* RECEBIDOS: gráfico principal 100%; abaixo, Macroprocessos e Atividades em 50/50. */
 .bi-page[data-panel="received"] {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -151,9 +145,11 @@
 .bi-page[data-panel="received"] > .bi-metric-grid,
 .bi-page[data-panel="received"] > .error-panel,
 .bi-page[data-panel="received"] > .loading-screen,
-.bi-page[data-panel="received"] > .bi-drill-table,
+.bi-page[data-panel="received"] > .bi-detail-table,
 .bi-page[data-panel="received"] > .refresh-strip {
   grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
 }
 
 .bi-page[data-panel="received"] > .bi-layout-main,
@@ -223,7 +219,8 @@
 
   .bi-page[data-panel="received"] > .bi-layout-main > article:first-child,
   .bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2),
-  .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
+  .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child,
+  .bi-page[data-panel="received"] > .bi-detail-table {
     grid-column: 1 / -1;
   }
 }

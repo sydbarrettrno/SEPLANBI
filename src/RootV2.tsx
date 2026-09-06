@@ -3,10 +3,10 @@ import App from "./App";
 import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
 import { ConstructionDashboardV2 } from "./components/ConstructionDashboardV2";
+import { DashboardShell } from "./components/DashboardShell";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
 import { IndicatorAuditSupplement } from "./components/IndicatorAuditSupplement";
 import { IndicatorMonthlyTrend } from "./components/IndicatorMonthlyTrend";
-import { Sidebar } from "./components/Sidebar";
 import { TimeComparisonPanel } from "./components/TimeComparisonPanel";
 import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
 import type { ExtendedKpi } from "./extended";
@@ -83,69 +83,61 @@ function RootRoutes() {
   return (
     <>
       {isConstruction ? (
-        <div className="app-shell extended-route-shell">
-          <Sidebar
-            page="construction"
-            onNavigate={navigate}
-            open={menuOpen}
-            onClose={() => setMenuOpen(false)}
+        <DashboardShell
+          page="construction"
+          menuOpen={menuOpen}
+          onNavigate={navigate}
+          onMenuClose={() => setMenuOpen(false)}
+          adminAuthorized={adminAuthorized}
+          className="extended-route-shell"
+        >
+          <nav className="extended-route-nav" aria-label="Navegação da seção construção civil">
+            <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
+              ☰ Menu
+            </button>
+            <a className="ghost-button" href="#/overview">← {copy.common.breadcrumbOverview}</a>
+          </nav>
+          <ConstructionDashboardV2
             adminAuthorized={adminAuthorized}
+            onAdminAuthenticated={() => setAdminAuthorized(true)}
           />
-          <div className="app-main">
-            <main className="content">
-              <nav className="extended-route-nav" aria-label="Navegação da seção construção civil">
-                <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
-                  ☰ Menu
-                </button>
-                <a className="ghost-button" href="#/overview">← {copy.common.breadcrumbOverview}</a>
-              </nav>
-              <ConstructionDashboardV2
-                adminAuthorized={adminAuthorized}
-                onAdminAuthenticated={() => setAdminAuthorized(true)}
-              />
-            </main>
-          </div>
-        </div>
+        </DashboardShell>
       ) : kpi ? (
-        <div className="app-shell extended-route-shell">
-          <Sidebar
-            page={route as PageId}
-            onNavigate={navigate}
-            open={menuOpen}
-            onClose={() => setMenuOpen(false)}
-            adminAuthorized={adminAuthorized}
+        <DashboardShell
+          page={route as PageId}
+          menuOpen={menuOpen}
+          onNavigate={navigate}
+          onMenuClose={() => setMenuOpen(false)}
+          adminAuthorized={adminAuthorized}
+          className="extended-route-shell"
+        >
+          <nav className="extended-route-nav" aria-label="Navegação do indicador">
+            <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
+              ☰ Menu
+            </button>
+            <a className="ghost-button" href={isProjects ? "#/overview" : "#/indicators"}>← {isProjects ? copy.common.breadcrumbOverview : copy.common.breadcrumbIndicators}</a>
+            <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
+          </nav>
+          <ExtendedIndicatorPanel
+            kpi={kpi}
+            filters={filters}
+            onFilters={updateExtendedFilters}
           />
-          <div className="app-main">
-            <main className="content">
-              <nav className="extended-route-nav" aria-label="Navegação do indicador">
-                <button className="ghost-button extended-menu-launcher" type="button" onClick={() => setMenuOpen(true)}>
-                  ☰ Menu
-                </button>
-                <a className="ghost-button" href={isProjects ? "#/overview" : "#/indicators"}>← {isProjects ? copy.common.breadcrumbOverview : copy.common.breadcrumbIndicators}</a>
-                <a className="ghost-button" href="#/overview">{copy.common.breadcrumbOverview}</a>
-              </nav>
-              <ExtendedIndicatorPanel
-                kpi={kpi}
-                filters={filters}
-                onFilters={updateExtendedFilters}
-              />
-              {kpi === 4 ? (
-                <TimeComparisonPanel
-                  filters={filters}
-                  onMonth={(month) => updateExtendedFilters({ ...filters, month: filters.month === month ? "" : month })}
-                />
-              ) : null}
-              {kpi === 7 || kpi === 9 ? <IndicatorMonthlyTrend kpi={kpi} filters={filters} /> : null}
-              {kpi === 6 || kpi === 8 || kpi === 11 ? (
-                <IndicatorAuditSupplement
-                  kpi={kpi}
-                  filters={filters}
-                  onOwner={(owner) => updateExtendedFilters({ ...filters, owner: filters.owner === owner ? "" : owner })}
-                />
-              ) : null}
-            </main>
-          </div>
-        </div>
+          {kpi === 4 ? (
+            <TimeComparisonPanel
+              filters={filters}
+              onMonth={(month) => updateExtendedFilters({ ...filters, month: filters.month === month ? "" : month })}
+            />
+          ) : null}
+          {kpi === 7 || kpi === 9 ? <IndicatorMonthlyTrend kpi={kpi} filters={filters} /> : null}
+          {kpi === 6 || kpi === 8 || kpi === 11 ? (
+            <IndicatorAuditSupplement
+              kpi={kpi}
+              filters={filters}
+              onOwner={(owner) => updateExtendedFilters({ ...filters, owner: filters.owner === owner ? "" : owner })}
+            />
+          ) : null}
+        </DashboardShell>
       ) : <App adminAuthorized={adminAuthorized} />}
 
       <AdminAccessGate

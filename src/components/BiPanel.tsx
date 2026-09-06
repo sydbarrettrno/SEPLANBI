@@ -97,8 +97,8 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
 
   const baseRequest = useMemo<AnalyticsRequest>(() => ({
     indicator,
-    from: filters.year ? undefined : filters.from,
-    to: filters.year ? undefined : filters.to,
+    from: indicator === "stock" || filters.year ? undefined : filters.from,
+    to: indicator === "stock" || filters.year ? undefined : filters.to,
     year: filters.year ? [filters.year] : undefined,
     month: filters.month ? [Number(filters.month)] : undefined,
     macro: filters.macro ? [filters.macro] : undefined,
@@ -169,7 +169,7 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
   };
 
   const pageCopy = indicator === "received" ? copy.received : indicator === "outputs" ? copy.outputs : copy.stock;
-  const active = activeDashboardFilters(filters);
+  const active = activeDashboardFilters(filters).filter((item) => !(indicator === "stock" && item.key === "period"));
   const detail = data?.detail.records;
   const exportHref = publicAnalyticsExportUrl(baseRequest);
   const currentYear = data?.summary.comparison?.current.from.slice(0, 4) ?? filters.from.slice(0, 4) ?? "2026";
@@ -204,7 +204,7 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
                 </article>
                 <article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.received.macro.eyebrow}</span><h2>{copy.received.macro.title}</h2><p>{copy.received.macro.description}</p></div></div><InteractiveBars items={items(data.macro, "macroprocess")} selected={filters.macro} onSelect={(item) => toggle("macro", item.key)} /></article>
               </section>
-              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.received.category.eyebrow}</span><h2>{copy.received.category.title}</h2><p>{copy.received.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article><article className="panel bi-reading"><span className="eyebrow">{copy.received.reading.eyebrow}</span><h2>{formatNumber(data.summary.meta.total)} {copy.received.reading.titleSuffix}</h2><p>A soma das categorias é {formatNumber(data.category.meta.grouped_sum)} e a reconciliação está {data.category.meta.grouping_reconciled ? copy.received.reading.reconciled : copy.received.reading.divergent}.</p><strong>{data.summary.comparison?.rule}</strong></article></section>
+              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.received.category.eyebrow}</span><h2>{copy.received.category.title}</h2><p>{copy.received.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article></section>
             </>
           ) : null}
 

@@ -22,7 +22,7 @@
   min-width: 0;
 }
 
-/* O recorte aplicado é exibido ao lado do acionador de filtros; o breadcrumb não cria faixa redundante. */
+/* O recorte aplicado aparece no próprio cabeçalho; o breadcrumb não cria faixa redundante. */
 .bi-page[data-panel="received"] > .drill-breadcrumb {
   display: none;
 }
@@ -79,37 +79,11 @@
 }
 
 /*
- * Cabeçalho e filtros permanecem no fluxo normal do documento.
- * Isso elimina dependência de altura do Header, margens negativas e compensações laterais.
+ * Recebidos usa o mesmo drawer global, acionado pelo botão no cabeçalho da seção.
+ * O toolbar externo permanece montado apenas como controlador do drawer e não ocupa layout.
  */
 .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
-  position: static;
-  z-index: auto;
-  min-height: 44px;
-  height: auto;
-  margin: 0 0 12px;
-  padding: 0;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  pointer-events: auto;
-}
-
-.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar > div {
   display: none;
-}
-
-.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-toolbar-active {
-  flex: 1 1 420px;
-  justify-content: flex-end;
-  min-width: 0;
-}
-
-.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
-  position: static;
-  min-width: 112px;
-  min-height: 42px;
-  height: 42px;
 }
 
 .bi-page[data-panel="received"] > .bi-hero {
@@ -125,7 +99,7 @@
 }
 
 .bi-page[data-panel="received"] > .bi-hero > div:first-child {
-  max-width: min(900px, 100%);
+  max-width: min(820px, 100%);
 }
 
 .bi-page[data-panel="received"] > .bi-hero .eyebrow {
@@ -140,22 +114,28 @@
   margin-top: 6px;
 }
 
-/* Drill-up continua disponível nos demais painéis; Recebidos usa Limpar seleção como ação primária. */
-.bi-page[data-panel="received"] .bi-page-actions .ghost-button:first-child {
-  display: none;
-}
-
 .bi-page[data-panel="received"] .bi-page-actions {
-  flex: 0 0 auto;
-  min-width: 120px;
-  justify-content: flex-end;
+  flex: 1 1 420px;
+  min-width: 0;
   align-items: center;
+  justify-content: flex-end;
 }
 
-.bi-page[data-panel="received"] .bi-page-actions .ghost-button:last-child {
-  min-width: 120px;
+.bi-page[data-panel="received"] .received-filter-summary {
+  flex: 1 1 240px;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.bi-page[data-panel="received"] .received-filter-launcher,
+.bi-page[data-panel="received"] .bi-page-actions > .ghost-button {
+  flex: 0 0 auto;
   min-height: 42px;
   height: 42px;
+}
+
+.bi-page[data-panel="received"] .bi-page-actions > .ghost-button {
+  min-width: 120px;
 }
 
 /*
@@ -179,27 +159,26 @@
   .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
     grid-column: 1;
   }
-}
 
-@media (max-width: 720px) {
-  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
-    min-height: 0;
-    margin-bottom: 10px;
-    gap: 8px;
-    align-items: stretch;
+  .bi-page[data-panel="received"] > .bi-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-toolbar-active {
-    flex: 1 1 100%;
+  .bi-page[data-panel="received"] .bi-page-actions {
+    width: 100%;
+    flex: 0 0 auto;
     justify-content: flex-start;
   }
 
-  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
-    min-height: 40px;
-    height: 40px;
-    margin-left: auto;
+  .bi-page[data-panel="received"] .received-filter-summary {
+    flex: 1 1 100%;
+    justify-content: flex-start;
   }
+}
 
+@media (max-width: 720px) {
   .bi-page[data-panel="received"] > .bi-hero {
     margin-bottom: 0;
     padding: 4px 0 10px;
@@ -223,12 +202,19 @@
   .bi-page[data-panel="received"] .bi-page-actions {
     width: 100%;
     min-width: 0;
-    justify-content: flex-end;
+    gap: 8px;
+    justify-content: flex-start;
   }
 
-  .bi-page[data-panel="received"] .bi-page-actions .ghost-button:last-child {
-    width: auto;
-    min-width: 120px;
+  .bi-page[data-panel="received"] .received-filter-summary {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .bi-page[data-panel="received"] .received-filter-launcher,
+  .bi-page[data-panel="received"] .bi-page-actions > .ghost-button {
+    min-height: 40px;
+    height: 40px;
   }
 }
 

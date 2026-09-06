@@ -68,10 +68,11 @@ test("recebidos: período homólogo, cross-filter e drill-down exato", async ({ 
   const categoryValue = Number(await category.getAttribute("data-visual-value"));
   await category.click();
   await waitForCount(page, categoryValue);
-  await expect(page.locator(".drill-breadcrumb")).toContainText("Família de Processos");
-  await expect(page.locator(".drill-breadcrumb")).toContainText("Categoria");
+  await expect(page.locator(".filter-toolbar-active")).toBeVisible();
+  await expect(page.locator(".filter-toolbar-active")).toContainText("Família de Processos");
+  await expect(page.locator(".filter-toolbar-active")).toContainText("Categoria");
 
-  await page.getByRole("button", { name: "Drill-up" }).click();
+  await category.click();
   await waitForCount(page, macroValue);
   await page.getByRole("button", { name: "Limpar seleção" }).click();
   await waitForCount(page, 2899);
@@ -168,10 +169,11 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect.poll(() => recordCount(page)).toBeLessThan(2899);
   await expect(page.locator(".filter-launcher")).toContainText("2 ativos");
+  await expect(page.locator(".filter-toolbar-active")).toBeVisible();
 
   await openFilters(page);
-  await expect(page.locator(".active-filter-strip")).toContainText("Mês: 1");
-  await expect(page.locator(".active-filter-strip")).toContainText("Família de Processos:");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Mês: 1");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Família de Processos:");
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2899);
 
@@ -187,14 +189,18 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await page.goto("/#/stock");
   await waitForCount(page, 2159);
   await openFilters(page);
+  await expect(page.getByLabel("De")).toHaveCount(0);
+  await expect(page.getByLabel("Até")).toHaveCount(0);
+  await expect(page.getByLabel("Ano de abertura")).toBeVisible();
+  await expect(page.getByLabel("Mês de abertura")).toBeVisible();
   await page.getByLabel("Status").selectOption("Em Análise");
   await page.getByLabel("Setor de tramitação").selectOption({ index: 1 });
   await page.locator(".filter-bar label", { hasText: "Responsabilidade" }).locator("select").selectOption("Interno");
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await openFilters(page);
-  await expect(page.locator(".active-filter-strip")).toContainText("Status: Em Análise");
-  await expect(page.locator(".active-filter-strip")).toContainText("Setor de tramitação:");
-  await expect(page.locator(".active-filter-strip")).toContainText("Responsabilidade: Interno");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Status: Em Análise");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Setor de tramitação:");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Responsabilidade: Interno");
   await expect.poll(() => recordCount(page)).toBeLessThan(2159);
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2159);

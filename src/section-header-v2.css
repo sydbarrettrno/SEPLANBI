@@ -1,4 +1,4 @@
-/* Header de seção V03 — alinhado ao mockup e layout de Recebidos */
+/* Header de seção V04 — alinhamento visual e layout de Recebidos */
 .content:has(.bi-page) {
   position: relative;
   padding-top: 12px;
@@ -53,7 +53,6 @@
   line-height: 1.4;
 }
 
-/* Texto solicitado para Recebidos. */
 .bi-page[data-panel="received"] > .bi-hero p {
   font-size: 0;
 }
@@ -67,7 +66,7 @@
   line-height: 1.4;
 }
 
-/* Ações: Filtros e Limpar seleção compartilham a mesma linha de base. */
+/* Ações do cabeçalho: mesma cota vertical e mesma altura. */
 .bi-page-actions {
   position: absolute;
   right: 32px;
@@ -102,11 +101,12 @@
   padding: 0 16px;
 }
 
-/* O launcher externo é ancorado na mesma cota vertical do botão Limpar seleção. */
+/* A toolbar é irmã do painel; a cota abaixo compensa esse referencial externo
+   e coloca o launcher exatamente na mesma linha de Limpar seleção. */
 .content:has(.bi-page) > .filter-toolbar {
   position: absolute;
   z-index: 20;
-  top: 117px;
+  top: 136px;
   right: 164px;
   display: block;
   min-height: 42px;
@@ -163,12 +163,10 @@
   min-width: 0;
 }
 
-/* O antigo card de leitura não ocupa a posição reservada à Atividade. */
 .bi-page[data-panel="received"] > .bi-layout-secondary > .bi-reading {
   display: none;
 }
 
-/* Nomenclatura visual solicitada nesta composição. */
 .bi-page[data-panel="received"] > .bi-layout-main > article:nth-child(2) .panel-heading h2,
 .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child .panel-heading h2 {
   font-size: 0;

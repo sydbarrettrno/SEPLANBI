@@ -1,6 +1,9 @@
 .construction-chart-with-tooltip {
   position: relative;
-  overflow: visible;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .construction-axis-title {
@@ -80,6 +83,8 @@
 
 .construction-composition {
   position: relative;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .construction-composition-hover {
@@ -115,6 +120,7 @@
     margin-bottom: 4px;
   }
   .construction-composition-axis {
-    min-width: 600px;
+    min-width: 0;
+    padding-inline: 0;
   }
 }

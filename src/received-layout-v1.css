@@ -1,7 +1,7 @@
 /*
  * Layout V01 — Processos recebidos.
- * Escopo intencionalmente restrito ao painel [data-panel="received"].
- * Não altera Visão Executiva, Saídas, Carteira, Construção Civil ou KPIs estendidos.
+ * Escopo restrito ao painel [data-panel="received"].
+ * A composição usa fluxo normal + CSS Grid; não depende de offsets ou sobreposição estrutural.
  */
 
 .bi-page[data-panel="received"] {
@@ -11,7 +11,6 @@
   min-width: 0;
 }
 
-/* Elementos estruturais continuam ocupando toda a área útil. */
 .bi-page[data-panel="received"] > .drill-breadcrumb,
 .bi-page[data-panel="received"] > .bi-hero,
 .bi-page[data-panel="received"] > .bi-metric-grid,
@@ -23,22 +22,17 @@
   min-width: 0;
 }
 
-/* O breadcrumb não ocupa uma faixa própria no painel Recebidos. */
+/* O recorte aplicado é exibido ao lado do acionador de filtros; o breadcrumb não cria faixa redundante. */
 .bi-page[data-panel="received"] > .drill-breadcrumb {
   display: none;
 }
 
-/*
- * Remove somente os wrappers de layout do painel Recebidos da grade visual.
- * Assim, os cards internos passam a participar da mesma grade e podem alinhar
- * alturas naturalmente sem valores fixos em px.
- */
 .bi-page[data-panel="received"] > .bi-layout-main,
 .bi-page[data-panel="received"] > .bi-layout-secondary {
   display: contents;
 }
 
-/* Gráfico principal: largura total. */
+/* Série temporal em largura total. */
 .bi-page[data-panel="received"] > .bi-layout-main > .bi-primary-chart {
   grid-column: 1 / -1;
   width: 100%;
@@ -46,7 +40,7 @@
   min-height: 0;
 }
 
-/* Macroprocessos à esquerda. */
+/* Família de Processos e Categoria formam a linha analítica secundária. */
 .bi-page[data-panel="received"] > .bi-layout-main > article:not(.bi-primary-chart) {
   grid-column: 1;
   width: 100%;
@@ -54,7 +48,6 @@
   height: 100%;
 }
 
-/* Atividades/categorias à direita, na mesma linha e mesma altura do painel vizinho. */
 .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
   grid-column: 2;
   width: 100%;
@@ -62,16 +55,6 @@
   height: 100%;
 }
 
-/*
- * A antiga "Leitura em 5 segundos" apenas repetia totais e regra já evidentes
- * no painel. Ela é removida da composição para preservar densidade informacional
- * e evitar um bloco desproporcional sem função analítica nova.
- */
-.bi-page[data-panel="received"] > .bi-layout-secondary > article.bi-reading {
-  display: none;
-}
-
-/* Drill-down/protocolos sempre usa toda a largura do painel. */
 .bi-page[data-panel="received"] > .bi-detail-table {
   width: 100%;
   max-width: none;
@@ -87,7 +70,6 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Impede conteúdo interno de forçar a largura das colunas. */
 .bi-page[data-panel="received"] .panel,
 .bi-page[data-panel="received"] .panel-heading,
 .bi-page[data-panel="received"] .interactive-bars,
@@ -97,33 +79,30 @@
 }
 
 /*
- * Cabeçalho do painel Recebidos.
- * O filtro geral deixa de consumir uma linha própria e passa a compartilhar
- * exatamente o mesmo eixo vertical de "Limpar seleção". Não usa offsets
- * verticais independentes entre os dois botões.
+ * Cabeçalho e filtros permanecem no fluxo normal do documento.
+ * Isso elimina dependência de altura do Header, margens negativas e compensações laterais.
  */
-.content:has(> .bi-page[data-panel="received"]) {
-  padding-top: 12px;
-}
-
 .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
-  position: sticky;
-  top: 104px;
-  z-index: 28;
-  display: flex;
-  height: 94px;
-  min-height: 94px;
+  position: static;
+  z-index: auto;
+  min-height: 44px;
+  height: auto;
+  margin: 0 0 12px;
+  padding: 0;
   align-items: center;
   justify-content: flex-end;
-  gap: 10px;
-  margin: 0 0 -94px;
-  padding: 0 130px 0 0;
-  overflow: visible;
-  pointer-events: none;
+  flex-wrap: wrap;
+  pointer-events: auto;
 }
 
 .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar > div {
   display: none;
+}
+
+.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-toolbar-active {
+  flex: 1 1 420px;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
@@ -131,24 +110,22 @@
   min-width: 112px;
   min-height: 42px;
   height: 42px;
-  pointer-events: auto;
 }
 
 .bi-page[data-panel="received"] > .bi-hero {
-  position: sticky;
-  top: 104px;
-  z-index: 26;
-  min-height: 94px;
-  margin: 0 0 14px;
-  padding: 14px 0 12px;
+  position: static;
+  z-index: auto;
+  min-height: 0;
+  margin: 0 0 2px;
+  padding: 4px 0 12px;
   align-items: center;
   border-bottom: 1px solid rgba(207, 219, 232, .95);
-  background: rgba(242, 245, 249, .96);
-  backdrop-filter: blur(12px);
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .bi-page[data-panel="received"] > .bi-hero > div:first-child {
-  max-width: min(880px, calc(100% - 270px));
+  max-width: min(900px, 100%);
 }
 
 .bi-page[data-panel="received"] > .bi-hero .eyebrow {
@@ -163,7 +140,7 @@
   margin-top: 6px;
 }
 
-/* Drill-up não agrega leitura no cabeçalho principal; limpar seleção permanece. */
+/* Drill-up continua disponível nos demais painéis; Recebidos usa Limpar seleção como ação primária. */
 .bi-page[data-panel="received"] .bi-page-actions .ghost-button:first-child {
   display: none;
 }
@@ -181,8 +158,11 @@
   height: 42px;
 }
 
-/* Notebook/tablet: uma coluna quando dois painéis já não têm largura útil suficiente. */
-@media (max-width: 980px) {
+/*
+ * Em 1024 px a área útil, descontada a navegação lateral, já não comporta
+ * dois painéis analíticos lado a lado com leitura confortável.
+ */
+@media (max-width: 1180px) {
   .bi-page[data-panel="received"] {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -201,36 +181,28 @@
   }
 }
 
-/* Mobile: compacta o conjunto sticky sem alterar os demais painéis do site. */
 @media (max-width: 720px) {
-  .content:has(> .bi-page[data-panel="received"]) {
-    padding-top: 8px;
+  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
+    min-height: 0;
+    margin-bottom: 10px;
+    gap: 8px;
+    align-items: stretch;
   }
 
-  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
-    top: 74px;
-    height: 48px;
-    min-height: 48px;
-    margin-bottom: 0;
-    padding: 4px 0;
-    align-items: center;
-    background: rgba(242, 245, 249, .96);
-    backdrop-filter: blur(12px);
-    pointer-events: auto;
+  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-toolbar-active {
+    flex: 1 1 100%;
+    justify-content: flex-start;
   }
 
   .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
-    position: static;
     min-height: 40px;
     height: 40px;
     margin-left: auto;
   }
 
   .bi-page[data-panel="received"] > .bi-hero {
-    top: 122px;
-    min-height: 0;
-    margin-bottom: 12px;
-    padding: 10px 0;
+    margin-bottom: 0;
+    padding: 4px 0 10px;
     gap: 8px;
   }
 

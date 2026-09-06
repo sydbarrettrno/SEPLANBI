@@ -29,7 +29,7 @@ async function openPanel(page: Page, indicator: "received" | "outputs" | "stock"
 }
 
 async function openFilters(page: Page) {
-  await page.getByRole("button", { name: /Filtros/ }).first().click();
+  await page.locator(".filter-launcher:visible").first().click();
   await expect(page.getByRole("dialog", { name: "Filtros do painel" })).toBeVisible();
 }
 

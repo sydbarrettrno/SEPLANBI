@@ -23,6 +23,11 @@
   min-width: 0;
 }
 
+/* O breadcrumb não ocupa uma faixa própria no painel Recebidos. */
+.bi-page[data-panel="received"] > .drill-breadcrumb {
+  display: none;
+}
+
 /*
  * Remove somente os wrappers de layout do painel Recebidos da grade visual.
  * Assim, os cards internos passam a participar da mesma grade e podem alinhar
@@ -89,6 +94,85 @@
   max-width: 100%;
 }
 
+/*
+ * Cabeçalho do painel Recebidos.
+ * O filtro geral deixa de consumir uma linha vazia e passa a compor visualmente
+ * o mesmo bloco do título. Header institucional + cabeçalho do painel permanecem
+ * disponíveis durante a rolagem.
+ */
+.content:has(> .bi-page[data-panel="received"]) {
+  padding-top: 12px;
+}
+
+.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
+  position: sticky;
+  top: 104px;
+  z-index: 28;
+  height: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar > div {
+  display: none;
+}
+
+.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
+  position: absolute;
+  top: 24px;
+  right: 130px;
+  min-width: 112px;
+  min-height: 42px;
+  pointer-events: auto;
+}
+
+.bi-page[data-panel="received"] > .bi-hero {
+  position: sticky;
+  top: 104px;
+  z-index: 26;
+  min-height: 94px;
+  margin: 0 0 14px;
+  padding: 14px 0 12px;
+  align-items: center;
+  border-bottom: 1px solid rgba(207, 219, 232, .95);
+  background: rgba(242, 245, 249, .96);
+  backdrop-filter: blur(12px);
+}
+
+.bi-page[data-panel="received"] > .bi-hero > div:first-child {
+  max-width: min(880px, calc(100% - 270px));
+}
+
+.bi-page[data-panel="received"] > .bi-hero .eyebrow {
+  margin-bottom: 4px;
+}
+
+.bi-page[data-panel="received"] > .bi-hero h1 {
+  line-height: 1.02;
+}
+
+.bi-page[data-panel="received"] > .bi-hero p {
+  margin-top: 6px;
+}
+
+/* Drill-up não agrega leitura no cabeçalho principal; limpar seleção permanece. */
+.bi-page[data-panel="received"] .bi-page-actions .ghost-button:first-child {
+  display: none;
+}
+
+.bi-page[data-panel="received"] .bi-page-actions {
+  flex: 0 0 auto;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+.bi-page[data-panel="received"] .bi-page-actions .ghost-button:last-child {
+  min-width: 120px;
+  min-height: 42px;
+}
+
 /* Notebook/tablet: uma coluna quando dois painéis já não têm largura útil suficiente. */
 @media (max-width: 980px) {
   .bi-page[data-panel="received"] {
@@ -110,25 +194,66 @@
   }
 }
 
-/* Mobile: protege largura útil, ações, tabela e conteúdo dos cards. */
-@media (max-width: 640px) {
-  .bi-page[data-panel="received"] {
-    gap: 12px;
+/* Mobile: compacta o conjunto sticky sem alterar os demais painéis do site. */
+@media (max-width: 720px) {
+  .content:has(> .bi-page[data-panel="received"]) {
+    padding-top: 8px;
   }
 
-  .bi-page[data-panel="received"] .bi-hero {
-    min-width: 0;
+  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
+    top: 74px;
+    height: 48px;
+    min-height: 48px;
+    padding: 4px 0;
+    align-items: center;
+    background: rgba(242, 245, 249, .96);
+    backdrop-filter: blur(12px);
+    pointer-events: auto;
+  }
+
+  .content:has(> .bi-page[data-panel="received"]) > .filter-toolbar .filter-launcher {
+    position: static;
+    min-height: 40px;
+    margin-left: auto;
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero {
+    top: 122px;
+    min-height: 0;
+    margin-bottom: 12px;
+    padding: 10px 0 10px;
+    gap: 8px;
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero > div:first-child {
+    max-width: 100%;
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero h1 {
+    font-size: clamp(26px, 8vw, 34px);
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero p {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .bi-page[data-panel="received"] .bi-page-actions {
     width: 100%;
     min-width: 0;
-    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
-  .bi-page[data-panel="received"] .bi-page-actions > * {
-    flex: 1 1 140px;
-    min-width: 0;
+  .bi-page[data-panel="received"] .bi-page-actions .ghost-button:last-child {
+    width: auto;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 640px) {
+  .bi-page[data-panel="received"] {
+    gap: 12px;
   }
 
   .bi-page[data-panel="received"] .panel-heading {

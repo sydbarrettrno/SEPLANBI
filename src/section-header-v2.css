@@ -1,0 +1,152 @@
+/* Header de seção V02 — referência visual aprovada pelo usuário */
+.content:has(.bi-page) {
+  position: relative;
+  padding-top: 12px;
+}
+
+.bi-page > .drill-breadcrumb {
+  min-height: 20px;
+  margin: 0 0 10px;
+  color: #7a8798;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.bi-page > .bi-hero {
+  position: relative;
+  display: flex;
+  min-height: 126px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 -32px 18px;
+  padding: 8px 32px 16px;
+  border-bottom: 1px solid #d9e2ec;
+  background:
+    linear-gradient(90deg, rgba(244,247,251,.96) 0%, rgba(244,247,251,.96) 65%, rgba(235,242,249,.96) 100%);
+}
+
+.bi-page > .bi-hero > div:first-child {
+  max-width: 980px;
+}
+
+.bi-page > .bi-hero .eyebrow {
+  margin-bottom: 7px;
+  color: #176fd1;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .09em;
+}
+
+.bi-page > .bi-hero h1 {
+  margin: 0;
+  color: #132f53;
+  font-size: clamp(36px, 3.1vw, 50px);
+  line-height: 1.02;
+  letter-spacing: -.04em;
+}
+
+.bi-page > .bi-hero p {
+  margin: 7px 0 0;
+  color: #6c7788;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Texto solicitado para Recebidos. A cópia persistida da aplicação ainda contém a versão antiga. */
+.bi-page[data-panel="received"] > .bi-hero p {
+  font-size: 0;
+}
+
+.bi-page[data-panel="received"] > .bi-hero p::after {
+  content: "Análise de demanda e sazonalidade por macroprocesso e atividade. Utilize o filtro especial conforme necessidade.";
+  display: block;
+  color: #6c7788;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* Ações em uma única linha, como no mockup. */
+.bi-page-actions {
+  position: absolute;
+  right: 32px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+}
+
+.bi-page-actions > button:first-child {
+  display: none;
+}
+
+.bi-page-actions .ghost-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d4deea;
+  border-radius: 10px;
+  background: rgba(255,255,255,.96);
+  color: #4c5b70;
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: 0 5px 14px rgba(17,43,75,.045);
+}
+
+/* O botão Filtros pertence visualmente ao mesmo header. */
+.content:has(.bi-page) > .filter-toolbar {
+  position: absolute;
+  z-index: 20;
+  top: 88px;
+  right: 176px;
+  display: block;
+  min-height: 42px;
+  margin: 0;
+  padding: 0;
+}
+
+.content:has(.bi-page) > .filter-toolbar > div {
+  display: none;
+}
+
+.content:has(.bi-page) > .filter-toolbar .filter-launcher {
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #d4deea;
+  border-radius: 10px;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 5px 14px rgba(17,43,75,.045);
+}
+
+@media (max-width: 960px) {
+  .content:has(.bi-page) > .filter-toolbar {
+    position: static;
+    margin: 0 0 10px;
+  }
+
+  .bi-page > .bi-hero {
+    margin-inline: -22px;
+    padding-inline: 22px;
+  }
+
+  .bi-page-actions {
+    position: static;
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 720px) {
+  .bi-page > .bi-hero {
+    min-height: 0;
+    align-items: stretch;
+    flex-direction: column;
+    margin-inline: -13px;
+    padding: 8px 13px 16px;
+  }
+
+  .bi-page-actions {
+    align-self: flex-start;
+  }
+}

@@ -27,6 +27,7 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>(() => loadCustomFilterPresets());
   const [presetName, setPresetName] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState("");
+  const snapshotMode = window.location.hash.replace(/^#\/?/, "") === "stock";
 
   useEffect(() => {
     setDraft(filters);
@@ -149,9 +150,9 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     onApply(clean);
     setOpen(false);
   };
-  const active = activeDashboardFilters(filters);
-  const activeSelections = active.filter((item) => item.key !== "period");
-  const draftActive = activeDashboardFilters(draft);
+  const visibleActive = (source: DashboardFilters) => activeDashboardFilters(source).filter((item) => !(snapshotMode && item.key === "period"));
+  const activeSelections = visibleActive(filters).filter((item) => item.key !== "period");
+  const draftActive = visibleActive(draft);
   const selectionCount = activeSelections.length;
   const period = `${filters.from || "Início"} — ${filters.to || "Data de corte"}`;
   const close = () => {
@@ -163,8 +164,8 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     <>
       <div className="filter-toolbar" aria-label="Resumo dos filtros">
         <div>
-          <span>Período de análise</span>
-          <strong>{period}</strong>
+          <span>{snapshotMode ? "Referência temporal" : "Período de análise"}</span>
+          <strong>{snapshotMode ? "Posição atual da base" : period}</strong>
         </div>
         {activeSelections.length ? (
           <section className="active-filter-strip filter-toolbar-active" aria-live="polite" aria-label="Filtros aplicados">
@@ -191,7 +192,11 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
           <button type="button" className="filter-drawer-backdrop" aria-label="Fechar filtros" onClick={close} />
           <aside id="global-filter-drawer" className="filter-drawer" role="dialog" aria-modal="true" aria-labelledby="filter-drawer-title">
             <header className="filter-drawer-header">
-              <div><span>RECORTE ANALÍTICO</span><h2 id="filter-drawer-title">Filtros do painel</h2><p>As alterações afetam todos os gráficos e a tabela.</p></div>
+              <div>
+                <span>RECORTE ANALÍTICO</span>
+                <h2 id="filter-drawer-title">Filtros do painel</h2>
+                <p>{snapshotMode ? "O estoque é a posição atual da base. Ano e mês recortam essa posição pela data de abertura do protocolo." : "As alterações afetam todos os gráficos e a tabela."}</p>
+              </div>
               <button type="button" className="drawer-close" aria-label="Fechar filtros" onClick={close}>×</button>
             </header>
             <form
@@ -238,10 +243,14 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
                 <small>Os conjuntos ficam salvos neste navegador e são aplicados imediatamente a cards, gráficos, tabelas e exportação. “Setor de tramitação” permanece separado.</small>
               </section>
 
-              <label className="filter-half"><span>De</span><input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} /></label>
-              <label className="filter-half"><span>Até</span><input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} /></label>
-              <label className="filter-half"><span>Ano</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>
-              <label className="filter-half"><span>Mês</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
+              {!snapshotMode ? (
+                <>
+                  <label className="filter-half"><span>De</span><input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} /></label>
+                  <label className="filter-half"><span>Até</span><input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} /></label>
+                </>
+              ) : null}
+              <label className="filter-half"><span>{snapshotMode ? "Ano de abertura" : "Ano"}</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <label className="filter-half"><span>{snapshotMode ? "Mês de abertura" : "Mês"}</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
               <label><span>Família de Processos</span><select value={draft.macro} onChange={(e) => update("macro", e.target.value)}><option value="">Todas</option>{options?.macroprocesses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Status</span><select value={draft.status} onChange={(e) => update("status", e.target.value)}><option value="">Todos</option>{options?.statuses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Setor de tramitação</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>

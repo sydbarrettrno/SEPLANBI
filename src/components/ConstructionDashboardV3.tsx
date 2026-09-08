@@ -11,6 +11,7 @@ type ConstructionBaseRow = {
   year: number;
   type: string;
   area: number;
+  lot_area: number | null;
   use: string;
   construction: string;
   coefficient: number | null;
@@ -24,6 +25,7 @@ type ConstructionBaseResponse = {
     total: number;
     ca_source?: string;
     ca_records?: number;
+    lot_area_records?: number;
   };
   facets: { years: number[]; types: string[]; uses: string[] };
   records: { filtered: number; offset: number; limit: number; items: ConstructionBaseRow[] };
@@ -116,7 +118,7 @@ function ConstructionBaseTable() {
         <div>
           <span className="eyebrow">Rastreabilidade</span>
           <h2>Relação analítica · alvará por alvará</h2>
-          <p>Base sanitizada do IPM com CA calculado pela área total do alvará dividida pela área do lote cadastral cruzado. Pesquise e filtre os registros sem dados pessoais.</p>
+          <p>Base sanitizada do IPM com área do imóvel cadastral e CA calculado pela área total do alvará dividida pela área do terreno cruzado. Pesquise e filtre os registros sem dados pessoais.</p>
         </div>
         <div className="construction-base-actions">
           <span className="panel-chip">{formatNumber(data ? filtered : 0)} registros</span>
@@ -169,6 +171,7 @@ function ConstructionBaseTable() {
                   <th>Data de emissão</th>
                   <th>Tipo de alvará</th>
                   <th className="number-column">Área autorizada</th>
+                  <th className="number-column">Área do imóvel</th>
                   <th>Uso</th>
                   <th>Construção</th>
                   <th>CA</th>
@@ -181,13 +184,14 @@ function ConstructionBaseTable() {
                     <td>{formatDate(row.date)}</td>
                     <td><span className="construction-type-badge">{row.type}</span></td>
                     <td className="number-column"><strong>{detailedArea(row.area)}</strong></td>
+                    <td className="number-column">{row.lot_area == null ? "—" : <strong>{detailedArea(row.lot_area)}</strong>}</td>
                     <td>{row.use || "—"}</td>
                     <td>{row.construction || "—"}</td>
                     <td>{formatCoefficient(row.coefficient)}</td>
                   </tr>
                 ))}
                 {!data.records.items.length ? (
-                  <tr><td colSpan={7} className="empty-state">Nenhum alvará encontrado para os filtros selecionados.</td></tr>
+                  <tr><td colSpan={8} className="empty-state">Nenhum alvará encontrado para os filtros selecionados.</td></tr>
                 ) : null}
               </tbody>
             </table>
@@ -201,7 +205,7 @@ function ConstructionBaseTable() {
             </div>
           </div>
           <p className="construction-base-privacy">
-            Consulta sem titular, CPF/CNPJ, cadastro, inscrição ou endereço detalhado. CA = área total do alvará ÷ área do lote. Registros sem área de lote vinculada permanecem como “—”.
+            Consulta sem titular, CPF/CNPJ, cadastro, inscrição ou endereço detalhado. Área do imóvel = área cadastral do terreno utilizada no cálculo. CA = área total do alvará ÷ área do imóvel. Registros sem vínculo cadastral confiável permanecem como “—”.
           </p>
         </>
       ) : null}
@@ -242,8 +246,8 @@ export function ConstructionDashboardV3() {
         <>
           <div className="construction-v2-executive"><ExecutiveConstructionPanel /></div>
           <section className="construction-reading-note construction-v2-normalization-note">
-            <div className="management-note"><strong>Normalização de uso</strong><p>Registros residenciais são organizados conforme a informação disponível na base; quando a fonte não diferencia explicitamente a tipologia, a interface sinaliza uso residencial não especificado.</p></div>
-            <div className="management-note"><strong>Coeficiente de aproveitamento</strong><p>CA = área total do alvará ÷ área do lote cadastral vinculado. Registros sem área de lote vinculada permanecem sem valor.</p></div>
+            <div className="management-note"><strong>Normalização de uso</strong><p>Registros residenciais sem tipologia específica são classificados como Residencial unifamiliar, conforme a regra operacional adotada para esta base.</p></div>
+            <div className="management-note"><strong>Coeficiente de aproveitamento</strong><p>CA = área total do alvará ÷ área do imóvel cadastral vinculado. Registros sem vínculo cadastral confiável permanecem sem valor.</p></div>
           </section>
         </>
       ) : <ConstructionBaseTable />}

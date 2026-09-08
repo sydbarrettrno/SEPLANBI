@@ -12,8 +12,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 PART_GLOB = "construction_permits_public.xz.b64.part*"
+CA_PART_GLOB = "construction_ca_public.xz.b64.part*"
 PART_SIZE = 10_000
-CA_FILE = DATA_DIR / "construction_ca_public.xz.b64"
 PUBLIC_FIELDS = (
     "permit",
     "date",
@@ -119,21 +119,18 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
 @lru_cache(maxsize=1)
 def load_ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict]:
     """Lê o resultado sanitizado do cruzamento Alvarás × Cadastro Imobiliário."""
-    diagnostic = {
-        "file_present": CA_FILE.exists(),
-        "file_size": CA_FILE.stat().st_size if CA_FILE.exists() else 0,
-    }
-    if not CA_FILE.exists():
-        return {}, {**diagnostic, "error": "missing"}
+    parts = sorted(DATA_DIR.glob(CA_PART_GLOB))
+    if not parts:
+        return {}, {}
     try:
-        encoded = CA_FILE.read_text(encoding="ascii").strip()
+        encoded = _read_encoded_parts(parts)
         raw = lzma.decompress(base64.b64decode(encoded, validate=True))
         payload = json.loads(raw.decode("utf-8"))
-    except Exception as exc:
-        return {}, {**diagnostic, "error": type(exc).__name__}
+    except Exception:
+        return {}, {}
 
     if int(payload.get("v") or 0) != 1:
-        return {}, {**diagnostic, "error": "version"}
+        return {}, {}
 
     exact: dict[tuple[int, int, str, str], float] = {}
     for item in payload.get("rows", []):
@@ -149,7 +146,6 @@ def load_ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict]:
         exact[(permit, year, date, permit_type)] = round(coefficient, 3)
 
     meta = {
-        **diagnostic,
         "source": _text(payload.get("source")),
         "formula": _text(payload.get("formula")),
         "processed": _integer(payload.get("processed")),
@@ -224,11 +220,6 @@ def construction_data_response(params: dict[str, str]) -> dict:
             "ca_source": "Área Total do Alvará ÷ Área do Terreno cadastral" if exact_ca else "",
             "ca_records": ca_records,
             "ca_resolved_total": ca_meta.get("resolved", 0),
-            "ca_diagnostic": {
-                "file_present": ca_meta.get("file_present", False),
-                "file_size": ca_meta.get("file_size", 0),
-                "error": ca_meta.get("error", ""),
-            },
         },
         "facets": facets,
         "records": {

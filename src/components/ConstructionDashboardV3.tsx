@@ -116,7 +116,7 @@ function ConstructionBaseTable() {
         <div>
           <span className="eyebrow">Rastreabilidade</span>
           <h2>Relação analítica · alvará por alvará</h2>
-          <p>Base sanitizada do IPM com CA estimado proveniente do cruzamento cadastral já realizado. Pesquise e filtre os registros sem dados pessoais.</p>
+          <p>Base sanitizada do IPM com CA calculado pela área total do alvará dividida pela área do lote cadastral cruzado. Pesquise e filtre os registros sem dados pessoais.</p>
         </div>
         <div className="construction-base-actions">
           <span className="panel-chip">{formatNumber(data ? filtered : 0)} registros</span>
@@ -171,7 +171,7 @@ function ConstructionBaseTable() {
                   <th className="number-column">Área autorizada</th>
                   <th>Uso</th>
                   <th>Construção</th>
-                  <th>CA estimado</th>
+                  <th>CA</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,7 +201,7 @@ function ConstructionBaseTable() {
             </div>
           </div>
           <p className="construction-base-privacy">
-            Consulta sem titular, CPF/CNPJ, cadastro, inscrição ou endereço detalhado. O CA exibido é o valor estimado no cruzamento com o Cadastro Imobiliário; registros sem associação consistente permanecem como “—”.
+            Consulta sem titular, CPF/CNPJ, cadastro, inscrição ou endereço detalhado. CA = área total do alvará ÷ área do lote. Registros sem área de lote vinculada permanecem como “—”.
           </p>
         </>
       ) : null}
@@ -243,7 +243,7 @@ export function ConstructionDashboardV3() {
           <div className="construction-v2-executive"><ExecutiveConstructionPanel /></div>
           <section className="construction-reading-note construction-v2-normalization-note">
             <div className="management-note"><strong>Normalização de uso</strong><p>Registros residenciais são organizados conforme a informação disponível na base; quando a fonte não diferencia explicitamente a tipologia, a interface sinaliza uso residencial não especificado.</p></div>
-            <div className="management-note"><strong>CA estimado</strong><p>O coeficiente é apresentado a partir do cruzamento já realizado com o Cadastro Imobiliário. Registros sem vínculo cadastral consistente permanecem sem valor.</p></div>
+            <div className="management-note"><strong>Coeficiente de aproveitamento</strong><p>CA = área total do alvará ÷ área do lote cadastral vinculado. Registros sem área de lote vinculada permanecem sem valor.</p></div>
           </section>
         </>
       ) : <ConstructionBaseTable />}

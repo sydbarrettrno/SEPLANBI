@@ -22,12 +22,25 @@ function selectedValues(value: string): string[] {
   return value.split("|").map((item) => item.trim()).filter(Boolean);
 }
 
-export function FilterBar({ filters, options, onApply, loading, snapshotMode = false }: FilterBarProps) {
+function routeIsStock(): boolean {
+  return window.location.hash.replace(/^#\/?/, "") === "stock";
+}
+
+export function FilterBar({ filters, options, onApply, loading, snapshotMode }: FilterBarProps) {
   const [draft, setDraft] = useState(filters);
   const [open, setOpen] = useState(false);
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>(() => loadCustomFilterPresets());
   const [presetName, setPresetName] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [routeSnapshotMode, setRouteSnapshotMode] = useState(routeIsStock);
+  const isSnapshotMode = snapshotMode ?? routeSnapshotMode;
+
+  useEffect(() => {
+    const syncRoute = () => setRouteSnapshotMode(routeIsStock());
+    syncRoute();
+    window.addEventListener("hashchange", syncRoute);
+    return () => window.removeEventListener("hashchange", syncRoute);
+  }, []);
 
   useEffect(() => {
     setDraft(filters);
@@ -159,7 +172,7 @@ export function FilterBar({ filters, options, onApply, loading, snapshotMode = f
     onApply(clean);
     setOpen(false);
   };
-  const visibleActive = (source: DashboardFilters) => activeDashboardFilters(source).filter((item) => !(snapshotMode && item.key === "period"));
+  const visibleActive = (source: DashboardFilters) => activeDashboardFilters(source).filter((item) => !(isSnapshotMode && item.key === "period"));
   const activeSelections = visibleActive(filters).filter((item) => item.key !== "period");
   const draftActive = visibleActive(draft);
   const selectionCount = activeSelections.length;
@@ -173,8 +186,8 @@ export function FilterBar({ filters, options, onApply, loading, snapshotMode = f
     <>
       <div className="filter-toolbar" aria-label="Resumo dos filtros">
         <div>
-          <span>{snapshotMode ? "Referência temporal" : "Período de análise"}</span>
-          <strong>{snapshotMode ? "Posição atual da base" : period}</strong>
+          <span>{isSnapshotMode ? "Referência temporal" : "Período de análise"}</span>
+          <strong>{isSnapshotMode ? "Posição atual da base" : period}</strong>
         </div>
         {activeSelections.length ? (
           <section className="active-filter-strip filter-toolbar-active" aria-live="polite" aria-label="Filtros aplicados">
@@ -204,7 +217,7 @@ export function FilterBar({ filters, options, onApply, loading, snapshotMode = f
               <div>
                 <span>RECORTE ANALÍTICO</span>
                 <h2 id="filter-drawer-title">Filtros do painel</h2>
-                <p>{snapshotMode ? "O estoque é a posição atual da base. Ano e mês recortam essa posição pela data de abertura do protocolo." : "As alterações afetam todos os gráficos e a tabela."}</p>
+                <p>{isSnapshotMode ? "O estoque é a posição atual da base. Ano e mês recortam essa posição pela data de abertura do protocolo." : "As alterações afetam todos os gráficos e a tabela."}</p>
               </div>
               <button type="button" className="drawer-close" aria-label="Fechar filtros" onClick={close}>×</button>
             </header>
@@ -252,14 +265,14 @@ export function FilterBar({ filters, options, onApply, loading, snapshotMode = f
                 <small>Estes recortes são conjuntos de categorias salvos neste navegador. Não representam setor nem responsabilidade e são aplicados a cards, gráficos, tabelas e exportação.</small>
               </section>
 
-              {!snapshotMode ? (
+              {!isSnapshotMode ? (
                 <>
                   <label className="filter-half"><span>De</span><input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} /></label>
                   <label className="filter-half"><span>Até</span><input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} /></label>
                 </>
               ) : null}
-              <label className="filter-half"><span>{snapshotMode ? "Ano de abertura" : "Ano"}</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>
-              <label className="filter-half"><span>{snapshotMode ? "Mês de abertura" : "Mês"}</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
+              <label className="filter-half"><span>{isSnapshotMode ? "Ano de abertura" : "Ano"}</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <label className="filter-half"><span>{isSnapshotMode ? "Mês de abertura" : "Mês"}</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
               <label><span>Família de Processos</span><select value={draft.macro} onChange={(e) => update("macro", e.target.value)}><option value="">Todas</option>{options?.macroprocesses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Status</span><select value={draft.status} onChange={(e) => update("status", e.target.value)}><option value="">Todos</option>{options?.statuses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Setor de tramitação</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>

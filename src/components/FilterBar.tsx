@@ -15,19 +15,19 @@ interface FilterBarProps {
   options?: DashboardData["options"];
   onApply: (filters: DashboardFilters) => void;
   loading: boolean;
+  snapshotMode?: boolean;
 }
 
 function selectedValues(value: string): string[] {
   return value.split("|").map((item) => item.trim()).filter(Boolean);
 }
 
-export function FilterBar({ filters, options, onApply, loading }: FilterBarProps) {
+export function FilterBar({ filters, options, onApply, loading, snapshotMode = false }: FilterBarProps) {
   const [draft, setDraft] = useState(filters);
   const [open, setOpen] = useState(false);
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>(() => loadCustomFilterPresets());
   const [presetName, setPresetName] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState("");
-  const snapshotMode = window.location.hash.replace(/^#\/?/, "") === "stock";
 
   useEffect(() => {
     setDraft(filters);

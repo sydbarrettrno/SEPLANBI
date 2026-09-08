@@ -1,0 +1,26 @@
+/* Hotfix de produção — 2026-09-08
+ * Escopo: compactar a faixa superior vazia da Visão Executiva e remover
+ * a ação pública de exportação CSV da relação analítica de alvarás.
+ */
+
+@media (min-width: 821px) {
+  .content:has(> .overview-hero-clean) > .filter-toolbar {
+    position: relative;
+    z-index: 4;
+    min-height: 40px;
+    margin-bottom: -40px;
+  }
+
+  .content:has(> .overview-hero-clean) > .overview-hero-clean {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    margin: 0 1px 12px;
+    padding: 0;
+  }
+}
+
+/* A exportação pública em massa fica desabilitada. A consulta paginada permanece. */
+.construction-export-button {
+  display: none !important;
+}

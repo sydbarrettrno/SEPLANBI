@@ -1,8 +1,11 @@
 .construction-composition-panel {
+  min-width: 0;
   padding: 23px 24px 24px;
 }
 
 .construction-composition-interactive {
+  min-width: 0;
+  max-width: 100%;
   gap: 18px;
   padding-top: 10px;
 }
@@ -122,12 +125,15 @@
 }
 
 .construction-composition-grid {
+  min-width: 0;
+  max-width: 100%;
   gap: 12px;
 }
 
 .construction-composition-row {
   grid-template-columns: 52px minmax(0, 1fr) 86px;
   gap: 12px;
+  min-width: 0;
   min-height: 42px;
   padding: 3px 5px;
   border-radius: 9px;
@@ -148,6 +154,7 @@
 }
 
 .construction-composition-track {
+  min-width: 0;
   height: 38px;
   border-radius: 9px;
 }
@@ -236,11 +243,16 @@
   }
 
   .construction-composition-row {
-    grid-template-columns: 42px minmax(620px, 1fr) 76px;
+    grid-template-columns: 42px minmax(0, 1fr) 64px;
+    gap: 8px;
+  }
+
+  .construction-composition-track b {
+    display: none;
   }
 
   .construction-composition-interactive {
-    overflow-x: auto;
+    overflow: visible;
     padding-bottom: 5px;
   }
 }

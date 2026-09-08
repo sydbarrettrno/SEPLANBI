@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchDashboard, fetchExtendedIndicator } from "./api";
 import { AdminDescriptions } from "./components/AdminDescriptions";
 import { BiPanel } from "./components/BiPanel";
+import { DashboardShell } from "./components/DashboardShell";
 import { DrilldownTable } from "./components/DrilldownTable";
 import { FilterBar } from "./components/FilterBar";
 import { Header } from "./components/Header";
@@ -9,7 +10,6 @@ import { IndicatorCoverage } from "./components/IndicatorCoverage";
 import { IndicatorDetail } from "./components/IndicatorDetail";
 import { KpiCard } from "./components/KpiCard";
 import { MonthlyFlowBarChart } from "./components/MonthlyFlowBarChart";
-import { Sidebar } from "./components/Sidebar";
 import { useDashboardContent } from "./content/DashboardContentContext";
 import { formatDays, formatNumber, formatPercent, monthLabel } from "./format";
 import type { DashboardData, DashboardFilters, DetailId, PageId } from "./types";
@@ -182,185 +182,186 @@ export default function App({ adminAuthorized = false }: AppProps) {
   const periodLabel = data ? `${data.meta.period.from} a ${data.meta.period.to}` : "Período selecionado";
 
   return (
-    <div className="app-shell">
-      <Sidebar page={page} onNavigate={navigate} open={menuOpen} onClose={() => setMenuOpen(false)} adminAuthorized={adminAuthorized} />
-      <div className="app-main">
-        <Header sourceDate={data?.meta.source_updated_at} scopeRows={data?.meta.scope_rows} onMenu={() => setMenuOpen(true)} />
-        <main className="content">
-          {page !== "admin" && page !== "indicators" ? (
-            <FilterBar
-              filters={filters}
-              options={data?.options}
-              loading={loading}
-              onApply={(next) => setFilters({ ...next, recordset: page === "overview" ? "all" : next.recordset, offset: 0 })}
-            />
-          ) : null}
+    <DashboardShell
+      page={page}
+      onNavigate={navigate}
+      menuOpen={menuOpen}
+      onMenuClose={() => setMenuOpen(false)}
+      adminAuthorized={adminAuthorized}
+      beforeContent={<Header sourceDate={data?.meta.source_updated_at} scopeRows={data?.meta.scope_rows} onMenu={() => setMenuOpen(true)} />}
+      afterContent={loading && data ? <div className="refresh-strip" aria-label="Atualizando dados"><i /></div> : null}
+    >
+      {page !== "admin" && page !== "indicators" ? (
+        <FilterBar
+          filters={filters}
+          options={data?.options}
+          loading={loading}
+          onApply={(next) => setFilters({ ...next, recordset: page === "overview" ? "all" : next.recordset, offset: 0 })}
+        />
+      ) : null}
 
-          {error ? (
-            <section className="error-panel" role="alert">
-              <div><span>Falha de conexão</span><strong>Os dados não puderam ser atualizados.</strong><p>{error}</p></div>
-              <button className="primary-button" onClick={() => setReloadKey((key) => key + 1)}>Tentar novamente</button>
-            </section>
-          ) : null}
+      {error ? (
+        <section className="error-panel" role="alert">
+          <div><span>Falha de conexão</span><strong>Os dados não puderam ser atualizados.</strong><p>{error}</p></div>
+          <button className="primary-button" onClick={() => setReloadKey((key) => key + 1)}>Tentar novamente</button>
+        </section>
+      ) : null}
 
-          {!data && loading ? (
-            <section className="loading-screen" aria-live="polite">
-              <span className="loading-mark" />
-              <div><strong>Preparando a visão executiva</strong><p>Aplicando os filtros aos dados validados…</p></div>
-            </section>
-          ) : null}
+      {!data && loading ? (
+        <section className="loading-screen" aria-live="polite">
+          <span className="loading-mark" />
+          <div><strong>Preparando a visão executiva</strong><p>Aplicando os filtros aos dados validados…</p></div>
+        </section>
+      ) : null}
 
-          {data && page === "overview" ? (
-            <>
-              <section className="page-hero overview-hero overview-hero-clean">
-                <div>
-                  <span className="eyebrow">{copy.overview.eyebrow}</span>
-                  <h1>{copy.overview.title}</h1>
-                  <p>{copy.overview.description}</p>
-                </div>
-              </section>
+      {data && page === "overview" ? (
+        <>
+          <section className="page-hero overview-hero overview-hero-clean">
+            <div>
+              <span className="eyebrow">{copy.overview.eyebrow}</span>
+              <h1>{copy.overview.title}</h1>
+              <p>{copy.overview.description}</p>
+            </div>
+          </section>
 
-              {metrics ? (
-                <section className="kpi-grid executive-kpi-grid" aria-label="Indicadores principais">
-                  <KpiCard
-                    icon="↗"
-                    eyebrow={copy.overview.cards.received.eyebrow}
-                    value={formatNumber(metrics.received)}
-                    description={copy.overview.cards.received.description}
-                    detail={periodLabel}
-                    tone="blue"
-                    trend={comparisonLabel(comparison?.received_change_percent, copy.overview.cards.received.trendSubject)}
-                    series={kpiTrends?.received}
-                    tooltip={{
-                      what: copy.overview.cards.received.description,
-                      interpret: "Mostra o volume de novas demandas que chegaram à SEPLAN.",
-                      period: periodLabel,
-                    }}
-                    onClick={() => navigate("received")}
-                  />
-                  <KpiCard
-                    icon="✓"
-                    eyebrow={copy.overview.cards.outputs.eyebrow}
-                    value={formatNumber(metrics.concluded)}
-                    description={copy.overview.cards.outputs.description}
-                    detail={copy.overview.cards.outputs.detail}
-                    tone="green"
-                    trend={comparisonLabel(comparison?.cohort_concluded_change_percent, copy.overview.cards.outputs.trendSubject)}
-                    series={kpiTrends?.concluded}
-                    tooltip={{
-                      what: copy.overview.cards.outputs.description,
-                      interpret: "Compare este volume com os recebidos para entender se a equipe está absorvendo a demanda.",
-                      period: periodLabel,
-                    }}
-                    onClick={() => navigate("outputs")}
-                  />
-                  <KpiCard
-                    icon="⇄"
-                    eyebrow={copy.overview.cards.balance.eyebrow}
-                    value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`}
-                    description={copy.overview.cards.balance.description}
-                    detail={`${formatNumber(metrics.received)} recebidos · ${formatNumber(metrics.concluded)} finalizados`}
-                    tone={metrics.period_balance > 0 ? "orange" : "green"}
-                    series={kpiTrends?.balance}
-                    tooltip={{
-                      what: copy.overview.cards.balance.description,
-                      interpret: metrics.period_balance > 0 ? "Saldo positivo indica pressão de crescimento sobre a fila." : "Saldo neutro ou negativo indica que as finalizações acompanharam ou superaram as entradas.",
-                      period: periodLabel,
-                    }}
-                    onClick={() => navigate("outputs")}
-                  />
-                  <KpiCard
-                    icon="▤"
-                    eyebrow={copy.overview.cards.stock.eyebrow}
-                    value={formatNumber(metrics.stock)}
-                    description={copy.overview.cards.stock.description}
-                    detail={`${formatNumber(metrics.internal_queue)} internos · ${formatNumber(metrics.external_wait)} externos`}
-                    tone="orange"
-                    series={kpiTrends?.stock}
-                    tooltip={{
-                      what: copy.overview.cards.stock.description,
-                      interpret: "Mostra o volume que ainda depende de alguma etapa para sair da carteira de atendimento.",
-                      period: `Posição em ${data.meta.period.to}`,
-                    }}
-                    onClick={() => navigate("stock")}
-                  />
-                  <KpiCard
-                    icon="◷"
-                    eyebrow={copy.overview.cards.time.eyebrow}
-                    value={formatDays(metrics.turnaround.median_days)}
-                    description={copy.overview.cards.time.description}
-                    detail={`${copy.overview.cards.time.detailPrefix} ${formatDays(metrics.turnaround.mean_days)} · ${copy.overview.cards.time.detailP90} ${formatDays(metrics.turnaround.p90_days)}`}
-                    tone="purple"
-                    series={turnaroundTrend}
-                    tooltip={{
-                      what: copy.overview.cards.time.description,
-                      interpret: "A mediana representa o tempo típico das finalizações, reduzindo o efeito de casos extremos.",
-                      period: periodLabel,
-                    }}
-                    onClick={() => window.location.hash = "#/kpi04"}
-                  />
-                </section>
-              ) : null}
-
-              <section className="overview-primary-analysis executive-flow-only">
-                <article className="panel flow-panel overview-flow-panel">
-                  <div className="panel-heading">
-                    <div>
-                      <span className="eyebrow">{copy.overview.flow.eyebrow}</span>
-                      <h2>{copy.overview.flow.title}</h2>
-                      <p>{copy.overview.flow.description}</p>
-                    </div>
-                    <span className="panel-chip">{copy.overview.flow.chip}</span>
-                  </div>
-                  <MonthlyFlowBarChart data={data.charts.flow} />
-                </article>
-              </section>
-
-              <section className="overview-support-grid overview-support-compact">
-                <aside className="panel seasonality-panel">
-                  <span className="eyebrow">{copy.overview.signals.eyebrow}</span>
-                  <h2>{copy.overview.signals.title}</h2>
-                  {seasonality ? (
-                    <div className="seasonality-signals">
-                      <div><i className="signal-blue" /><span><small>{copy.overview.signals.peakIn}</small><strong>{monthLabel(seasonality.peakIn.month)}</strong><p>{formatNumber(seasonality.peakIn.received)} protocolos</p></span></div>
-                      <div><i className="signal-green" /><span><small>{copy.overview.signals.peakOut}</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} finalizações</p></span></div>
-                      <div><i className="signal-slate" /><span><small>{copy.overview.signals.valleyIn}</small><strong>{monthLabel(seasonality.valleyIn.month)}</strong><p>{formatNumber(seasonality.valleyIn.received)} protocolos</p></span></div>
-                    </div>
-                  ) : <p>{copy.overview.signals.empty}</p>}
-                  <div className="management-note"><strong>{copy.overview.signals.howToTitle}</strong><p>{copy.overview.signals.howToText}</p></div>
-                </aside>
-              </section>
-            </>
-          ) : null}
-
-          {data && page === "processes" ? (
-            <section className="process-page">
-              <nav className="drill-breadcrumb" aria-label="Caminho do detalhamento">
-                {drillBreadcrumb(selectedDetail, filters).map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
-              </nav>
-              <div className="page-hero simple-hero">
-                <div><span className="eyebrow">{processCopy.eyebrow}</span><h1>{processCopy.title}</h1><p>{processCopy.description}</p></div>
-                <div className="recordset-label"><small>{copy.processes.recordsetLabel}</small><strong>{data.records.recordset === "all" ? copy.processes.allLabel : data.records.recordset}</strong></div>
-              </div>
-              <IndicatorDetail data={data} detail={selectedDetail} />
-              <DrilldownTable
-                records={data.records}
-                onPage={(offset) => setFilters((current) => ({ ...current, offset }))}
-                onProtocol={(protocol) => setFilters((current) => ({ ...current, q: protocol, offset: 0 }))}
+          {metrics ? (
+            <section className="kpi-grid executive-kpi-grid" aria-label="Indicadores principais">
+              <KpiCard
+                icon="↗"
+                eyebrow={copy.overview.cards.received.eyebrow}
+                value={formatNumber(metrics.received)}
+                description={copy.overview.cards.received.description}
+                detail={periodLabel}
+                tone="blue"
+                trend={comparisonLabel(comparison?.received_change_percent, copy.overview.cards.received.trendSubject)}
+                series={kpiTrends?.received}
+                tooltip={{
+                  what: copy.overview.cards.received.description,
+                  interpret: "Mostra o volume de novas demandas que chegaram à SEPLAN.",
+                  period: periodLabel,
+                }}
+                onClick={() => navigate("received")}
+              />
+              <KpiCard
+                icon="✓"
+                eyebrow={copy.overview.cards.outputs.eyebrow}
+                value={formatNumber(metrics.concluded)}
+                description={copy.overview.cards.outputs.description}
+                detail={copy.overview.cards.outputs.detail}
+                tone="green"
+                trend={comparisonLabel(comparison?.cohort_concluded_change_percent, copy.overview.cards.outputs.trendSubject)}
+                series={kpiTrends?.concluded}
+                tooltip={{
+                  what: copy.overview.cards.outputs.description,
+                  interpret: "Compare este volume com os recebidos para entender se a equipe está absorvendo a demanda.",
+                  period: periodLabel,
+                }}
+                onClick={() => navigate("outputs")}
+              />
+              <KpiCard
+                icon="⇄"
+                eyebrow={copy.overview.cards.balance.eyebrow}
+                value={`${metrics.period_balance > 0 ? "+" : ""}${formatNumber(metrics.period_balance)}`}
+                description={copy.overview.cards.balance.description}
+                detail={`${formatNumber(metrics.received)} recebidos · ${formatNumber(metrics.concluded)} finalizados`}
+                tone={metrics.period_balance > 0 ? "orange" : "green"}
+                series={kpiTrends?.balance}
+                tooltip={{
+                  what: copy.overview.cards.balance.description,
+                  interpret: metrics.period_balance > 0 ? "Saldo positivo indica pressão de crescimento sobre a fila." : "Saldo neutro ou negativo indica que as finalizações acompanharam ou superaram as entradas.",
+                  period: periodLabel,
+                }}
+                onClick={() => navigate("outputs")}
+              />
+              <KpiCard
+                icon="▤"
+                eyebrow={copy.overview.cards.stock.eyebrow}
+                value={formatNumber(metrics.stock)}
+                description={copy.overview.cards.stock.description}
+                detail={`${formatNumber(metrics.internal_queue)} internos · ${formatNumber(metrics.external_wait)} externos`}
+                tone="orange"
+                series={kpiTrends?.stock}
+                tooltip={{
+                  what: copy.overview.cards.stock.description,
+                  interpret: "Mostra o volume que ainda depende de alguma etapa para sair da carteira de atendimento.",
+                  period: `Posição em ${data.meta.period.to}`,
+                }}
+                onClick={() => navigate("stock")}
+              />
+              <KpiCard
+                icon="◷"
+                eyebrow={copy.overview.cards.time.eyebrow}
+                value={formatDays(metrics.turnaround.median_days)}
+                description={copy.overview.cards.time.description}
+                detail={`${copy.overview.cards.time.detailPrefix} ${formatDays(metrics.turnaround.mean_days)} · ${copy.overview.cards.time.detailP90} ${formatDays(metrics.turnaround.p90_days)}`}
+                tone="purple"
+                series={turnaroundTrend}
+                tooltip={{
+                  what: copy.overview.cards.time.description,
+                  interpret: "A mediana representa o tempo típico das finalizações, reduzindo o efeito de casos extremos.",
+                  period: periodLabel,
+                }}
+                onClick={() => window.location.hash = "#/kpi04"}
               />
             </section>
           ) : null}
 
-          {data && page === "received" ? <BiPanel indicator="received" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
-          {data && page === "outputs" ? <BiPanel indicator="outputs" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
-          {data && page === "stock" ? <BiPanel indicator="stock" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
+          <section className="overview-primary-analysis executive-flow-only">
+            <article className="panel flow-panel overview-flow-panel">
+              <div className="panel-heading">
+                <div>
+                  <span className="eyebrow">{copy.overview.flow.eyebrow}</span>
+                  <h2>{copy.overview.flow.title}</h2>
+                  <p>{copy.overview.flow.description}</p>
+                </div>
+                <span className="panel-chip">{copy.overview.flow.chip}</span>
+              </div>
+              <MonthlyFlowBarChart data={data.charts.flow} />
+            </article>
+          </section>
 
-          {data && page === "indicators" ? <IndicatorCoverage items={data.indicator_coverage} /> : null}
+          <section className="overview-support-grid overview-support-compact">
+            <aside className="panel seasonality-panel">
+              <span className="eyebrow">{copy.overview.signals.eyebrow}</span>
+              <h2>{copy.overview.signals.title}</h2>
+              {seasonality ? (
+                <div className="seasonality-signals">
+                  <div><i className="signal-blue" /><span><small>{copy.overview.signals.peakIn}</small><strong>{monthLabel(seasonality.peakIn.month)}</strong><p>{formatNumber(seasonality.peakIn.received)} protocolos</p></span></div>
+                  <div><i className="signal-green" /><span><small>{copy.overview.signals.peakOut}</small><strong>{monthLabel(seasonality.peakOut.month)}</strong><p>{formatNumber(seasonality.peakOut.concluded)} finalizações</p></span></div>
+                  <div><i className="signal-slate" /><span><small>{copy.overview.signals.valleyIn}</small><strong>{monthLabel(seasonality.valleyIn.month)}</strong><p>{formatNumber(seasonality.valleyIn.received)} protocolos</p></span></div>
+                </div>
+              ) : <p>{copy.overview.signals.empty}</p>}
+              <div className="management-note"><strong>{copy.overview.signals.howToTitle}</strong><p>{copy.overview.signals.howToText}</p></div>
+            </aside>
+          </section>
+        </>
+      ) : null}
 
-          {page === "admin" && adminAuthorized ? <AdminDescriptions /> : null}
-        </main>
-        {loading && data ? <div className="refresh-strip" aria-label="Atualizando dados"><i /></div> : null}
-      </div>
-    </div>
+      {data && page === "processes" ? (
+        <section className="process-page">
+          <nav className="drill-breadcrumb" aria-label="Caminho do detalhamento">
+            {drillBreadcrumb(selectedDetail, filters).map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
+          </nav>
+          <div className="page-hero simple-hero">
+            <div><span className="eyebrow">{processCopy.eyebrow}</span><h1>{processCopy.title}</h1><p>{processCopy.description}</p></div>
+            <div className="recordset-label"><small>{copy.processes.recordsetLabel}</small><strong>{data.records.recordset === "all" ? copy.processes.allLabel : data.records.recordset}</strong></div>
+          </div>
+          <IndicatorDetail data={data} detail={selectedDetail} />
+          <DrilldownTable
+            records={data.records}
+            onPage={(offset) => setFilters((current) => ({ ...current, offset }))}
+            onProtocol={(protocol) => setFilters((current) => ({ ...current, q: protocol, offset: 0 }))}
+          />
+        </section>
+      ) : null}
+
+      {data && page === "received" ? <BiPanel indicator="received" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
+      {data && page === "outputs" ? <BiPanel indicator="outputs" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
+      {data && page === "stock" ? <BiPanel indicator="stock" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
+
+      {data && page === "indicators" ? <IndicatorCoverage items={data.indicator_coverage} /> : null}
+
+      {page === "admin" && adminAuthorized ? <AdminDescriptions /> : null}
+    </DashboardShell>
   );
 }

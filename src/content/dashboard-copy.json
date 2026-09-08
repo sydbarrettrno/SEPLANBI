@@ -16,7 +16,7 @@
   },
   "overview": {
     "eyebrow": "VISÃO EXECUTIVA",
-    "title": "O que os processos estão dizendo?",
+    "title": "Situação Operacional da SEPLAN",
     "description": "Entradas, entregas, sazonalidade e exceções organizadas para orientar a próxima decisão.",
     "balanceLabel": "BALANÇO DO PERÍODO",
     "balancePressure": "entradas acima das conclusões",
@@ -25,7 +25,7 @@
       "received": { "eyebrow": "01 · RECEBIDOS", "description": "Demandas que entraram na SEPLAN durante o período selecionado.", "detail": "Abrir BI de recebidos", "trendSubject": "Entradas" },
       "outputs": { "eyebrow": "02 · SAÍDAS", "description": "Produção entregue, incluindo conclusões operacionais reconhecidas.", "detail": "Abrir BI de saídas", "trendSubject": "Entregas" },
       "balance": { "eyebrow": "FLUXO · SALDO", "description": "Diferença entre entradas e conclusões; saldo positivo pressiona o estoque.", "detailSuffix": "concluídos/recebidos" },
-      "stock": { "eyebrow": "03 · ESTOQUE", "description": "Pendências existentes na data final do recorte, independentemente da abertura.", "detailSuffix": "na fila interna" },
+      "stock": { "eyebrow": "03 · ESTOQUE", "description": "Pendências existentes na posição atual da base, independentemente da data de abertura.", "detailSuffix": "na fila interna" },
       "time": { "eyebrow": "04 · TEMPO MEDIANO", "description": "Tempo entre abertura e conclusão dos processos entregues no período.", "detailPrefix": "Média", "detailP90": "P90" }
     },
     "flow": { "eyebrow": "TENDÊNCIA E SAZONALIDADE", "title": "Entradas x saídas por mês", "description": "As barras mostram o volume mensal e a quantidade exata de protocolos em cada fluxo.", "chip": "Mensal" },
@@ -40,8 +40,7 @@
     "metrics": { "current": "Recebidos no período", "previous": "Mesmo período", "previousDetail": "Comparação homóloga", "absolute": "Variação absoluta", "absoluteDetail": "Período atual menos anterior", "percent": "Variação percentual", "percentDetail": "Períodos equivalentes" },
     "monthly": { "eyebrow": "GRÁFICO PRINCIPAL", "title": "Recebidos por mês", "description": "Clique no mês; os gráficos de família, categoria e a tabela serão recalculados." },
     "macro": { "eyebrow": "NÍVEL 2", "title": "Famílias de Processos", "description": "Barras ordenadas no recorte ativo." },
-    "category": { "eyebrow": "NÍVEL 3", "title": "Recebidos por categoria", "description": "Expanda a lista sem ocultar o restante do universo." },
-    "reading": { "eyebrow": "LEITURA EM 5 SEGUNDOS", "titleSuffix": "protocolos no cruzamento", "reconciled": "fechada", "divergent": "divergente" }
+    "category": { "eyebrow": "NÍVEL 3", "title": "Recebidos por categoria", "description": "Expanda a lista sem ocultar o restante do universo." }
   },
   "outputs": {
     "eyebrow": "PAINEL 2 · PRODUÇÃO",
@@ -81,7 +80,7 @@
   },
   "indicators": {
     "eyebrow": "CARTEIRA DE INDICADORES",
-    "title": "O que já podemos medir com segurança",
+    "title": "Cobertura e Homologação dos Indicadores",
     "description": "Cobertura explícita evita transformar ausência de fonte em número inventado.",
     "availableSuffix": "indicadores disponíveis",
     "items": {

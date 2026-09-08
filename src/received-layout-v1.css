@@ -1,0 +1,247 @@
+/*
+ * Layout V01 — Processos recebidos.
+ * Escopo restrito ao painel [data-panel="received"].
+ * A composição usa fluxo normal + CSS Grid; não depende de offsets ou sobreposição estrutural.
+ */
+
+.bi-page[data-panel="received"] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  min-width: 0;
+}
+
+.bi-page[data-panel="received"] > .drill-breadcrumb,
+.bi-page[data-panel="received"] > .bi-hero,
+.bi-page[data-panel="received"] > .bi-metric-grid,
+.bi-page[data-panel="received"] > .error-panel,
+.bi-page[data-panel="received"] > .loading-screen,
+.bi-page[data-panel="received"] > .bi-detail-table,
+.bi-page[data-panel="received"] > .refresh-strip {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+/* O recorte aplicado aparece no próprio cabeçalho; o breadcrumb não cria faixa redundante. */
+.bi-page[data-panel="received"] > .drill-breadcrumb {
+  display: none;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-main,
+.bi-page[data-panel="received"] > .bi-layout-secondary {
+  display: contents;
+}
+
+/* Série temporal em largura total. */
+.bi-page[data-panel="received"] > .bi-layout-main > .bi-primary-chart {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Família de Processos e Categoria formam a linha analítica secundária. */
+.bi-page[data-panel="received"] > .bi-layout-main > article:not(.bi-primary-chart) {
+  grid-column: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+.bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
+  grid-column: 2;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+.bi-page[data-panel="received"] > .bi-detail-table {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+
+.bi-page[data-panel="received"] > .bi-detail-table .table-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bi-page[data-panel="received"] .panel,
+.bi-page[data-panel="received"] .panel-heading,
+.bi-page[data-panel="received"] .interactive-bars,
+.bi-page[data-panel="received"] .month-comparison {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+ * Recebidos usa o mesmo drawer global, acionado pelo botão no cabeçalho da seção.
+ * O toolbar externo permanece montado apenas como controlador do drawer e não ocupa layout.
+ */
+.content:has(> .bi-page[data-panel="received"]) > .filter-toolbar {
+  display: none;
+}
+
+.bi-page[data-panel="received"] > .bi-hero {
+  position: static;
+  z-index: auto;
+  min-height: 0;
+  margin: 0 0 2px;
+  padding: 4px 0 12px;
+  align-items: center;
+  border-bottom: 1px solid rgba(207, 219, 232, .95);
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.bi-page[data-panel="received"] > .bi-hero > div:first-child {
+  max-width: min(820px, 100%);
+}
+
+.bi-page[data-panel="received"] > .bi-hero .eyebrow {
+  margin-bottom: 4px;
+}
+
+.bi-page[data-panel="received"] > .bi-hero h1 {
+  line-height: 1.02;
+}
+
+.bi-page[data-panel="received"] > .bi-hero p {
+  margin-top: 6px;
+}
+
+.bi-page[data-panel="received"] .bi-page-actions {
+  flex: 1 1 420px;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.bi-page[data-panel="received"] .received-filter-summary {
+  flex: 1 1 240px;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.bi-page[data-panel="received"] .received-filter-launcher,
+.bi-page[data-panel="received"] .bi-page-actions > .ghost-button {
+  flex: 0 0 auto;
+  min-height: 42px;
+  height: 42px;
+}
+
+.bi-page[data-panel="received"] .bi-page-actions > .ghost-button {
+  min-width: 120px;
+}
+
+/*
+ * Em 1024 px a área útil, descontada a navegação lateral, já não comporta
+ * dois painéis analíticos lado a lado com leitura confortável.
+ */
+@media (max-width: 1180px) {
+  .bi-page[data-panel="received"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bi-page[data-panel="received"] > .drill-breadcrumb,
+  .bi-page[data-panel="received"] > .bi-hero,
+  .bi-page[data-panel="received"] > .bi-metric-grid,
+  .bi-page[data-panel="received"] > .error-panel,
+  .bi-page[data-panel="received"] > .loading-screen,
+  .bi-page[data-panel="received"] > .bi-detail-table,
+  .bi-page[data-panel="received"] > .refresh-strip,
+  .bi-page[data-panel="received"] > .bi-layout-main > .bi-primary-chart,
+  .bi-page[data-panel="received"] > .bi-layout-main > article:not(.bi-primary-chart),
+  .bi-page[data-panel="received"] > .bi-layout-secondary > article:first-child {
+    grid-column: 1;
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bi-page[data-panel="received"] .bi-page-actions {
+    width: 100%;
+    flex: 0 0 auto;
+    justify-content: flex-start;
+  }
+
+  .bi-page[data-panel="received"] .received-filter-summary {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 720px) {
+  .bi-page[data-panel="received"] > .bi-hero {
+    margin-bottom: 0;
+    padding: 4px 0 10px;
+    gap: 8px;
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero > div:first-child {
+    max-width: 100%;
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero h1 {
+    font-size: clamp(26px, 8vw, 34px);
+  }
+
+  .bi-page[data-panel="received"] > .bi-hero p {
+    margin-top: 5px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .bi-page[data-panel="received"] .bi-page-actions {
+    width: 100%;
+    min-width: 0;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .bi-page[data-panel="received"] .received-filter-summary {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .bi-page[data-panel="received"] .received-filter-launcher,
+  .bi-page[data-panel="received"] .bi-page-actions > .ghost-button {
+    min-height: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .bi-page[data-panel="received"] {
+    gap: 12px;
+  }
+
+  .bi-page[data-panel="received"] .panel-heading {
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .bi-page[data-panel="received"] .panel-chip {
+    max-width: 100%;
+  }
+
+  .bi-page[data-panel="received"] > .bi-detail-table .table-heading {
+    align-items: stretch;
+  }
+
+  .bi-page[data-panel="received"] > .bi-detail-table .pager {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .bi-page[data-panel="received"] > .bi-detail-table .pager > * {
+    flex: 1 1 auto;
+  }
+}

@@ -15,21 +15,44 @@ interface FilterBarProps {
   options?: DashboardData["options"];
   onApply: (filters: DashboardFilters) => void;
   loading: boolean;
+  snapshotMode?: boolean;
 }
 
 function selectedValues(value: string): string[] {
   return value.split("|").map((item) => item.trim()).filter(Boolean);
 }
 
-export function FilterBar({ filters, options, onApply, loading }: FilterBarProps) {
+function routeIsStock(): boolean {
+  return window.location.hash.replace(/^#\/?/, "") === "stock";
+}
+
+export function FilterBar({ filters, options, onApply, loading, snapshotMode }: FilterBarProps) {
   const [draft, setDraft] = useState(filters);
   const [open, setOpen] = useState(false);
   const [customPresets, setCustomPresets] = useState<FilterPreset[]>(() => loadCustomFilterPresets());
   const [presetName, setPresetName] = useState("");
   const [selectedPresetId, setSelectedPresetId] = useState("");
+  const [routeSnapshotMode, setRouteSnapshotMode] = useState(routeIsStock);
+  const isSnapshotMode = snapshotMode ?? routeSnapshotMode;
+
+  useEffect(() => {
+    const syncRoute = () => setRouteSnapshotMode(routeIsStock());
+    syncRoute();
+    window.addEventListener("hashchange", syncRoute);
+    return () => window.removeEventListener("hashchange", syncRoute);
+  }, []);
 
   useEffect(() => {
     setDraft(filters);
+  }, [filters]);
+
+  useEffect(() => {
+    const openFromPage = () => {
+      setDraft(filters);
+      setOpen(true);
+    };
+    window.addEventListener("seplanbi:open-filters", openFromPage);
+    return () => window.removeEventListener("seplanbi:open-filters", openFromPage);
   }, [filters]);
 
   useEffect(() => {
@@ -149,8 +172,10 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     onApply(clean);
     setOpen(false);
   };
-  const active = activeDashboardFilters(filters);
-  const selectionCount = active.filter((item) => item.key !== "period").length;
+  const visibleActive = (source: DashboardFilters) => activeDashboardFilters(source).filter((item) => !(isSnapshotMode && item.key === "period"));
+  const activeSelections = visibleActive(filters).filter((item) => item.key !== "period");
+  const draftActive = visibleActive(draft);
+  const selectionCount = activeSelections.length;
   const period = `${filters.from || "Início"} — ${filters.to || "Data de corte"}`;
   const close = () => {
     setDraft(filters);
@@ -161,9 +186,15 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
     <>
       <div className="filter-toolbar" aria-label="Resumo dos filtros">
         <div>
-          <span>Período de análise</span>
-          <strong>{period}</strong>
+          <span>{isSnapshotMode ? "Referência temporal" : "Período de análise"}</span>
+          <strong>{isSnapshotMode ? "Posição atual da base" : period}</strong>
         </div>
+        {activeSelections.length ? (
+          <section className="active-filter-strip filter-toolbar-active" aria-live="polite" aria-label="Filtros aplicados">
+            {activeSelections.slice(0, 3).map((item) => <span key={item.key}>{item.label}: {item.value}</span>)}
+            {activeSelections.length > 3 ? <span>+{activeSelections.length - 3}</span> : null}
+          </section>
+        ) : null}
         <button
           type="button"
           className="filter-launcher"
@@ -183,7 +214,11 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
           <button type="button" className="filter-drawer-backdrop" aria-label="Fechar filtros" onClick={close} />
           <aside id="global-filter-drawer" className="filter-drawer" role="dialog" aria-modal="true" aria-labelledby="filter-drawer-title">
             <header className="filter-drawer-header">
-              <div><span>RECORTE ANALÍTICO</span><h2 id="filter-drawer-title">Filtros do painel</h2><p>As alterações afetam todos os gráficos e a tabela.</p></div>
+              <div>
+                <span>RECORTE ANALÍTICO</span>
+                <h2 id="filter-drawer-title">Filtros do painel</h2>
+                <p>{isSnapshotMode ? "O estoque é a posição atual da base. Ano e mês recortam essa posição pela data de abertura do protocolo." : "As alterações afetam todos os gráficos e a tabela."}</p>
+              </div>
               <button type="button" className="drawer-close" aria-label="Fechar filtros" onClick={close}>×</button>
             </header>
             <form
@@ -195,18 +230,18 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
               }}
             >
               <div className="active-filter-strip" aria-live="polite">
-                <strong>Filtros ativos</strong>
-                {active.length ? active.map((item) => <span key={item.key}>{item.label}: {item.value}</span>) : <span>Nenhum</span>}
+                <strong>Recorte em edição</strong>
+                {draftActive.length ? draftActive.map((item) => <span key={item.key}>{item.label}: {item.value}</span>) : <span>Nenhum</span>}
               </div>
 
-              <section className="special-filter-panel" aria-label="Filtros especiais">
+              <section className="special-filter-panel" aria-label="Recortes salvos de categorias">
                 <div className="special-filter-heading">
-                  <div><span>Setor Responsável</span><strong>Aplicar conjunto de categorias</strong></div>
+                  <div><span>Recorte salvo</span><strong>Aplicar conjunto de categorias</strong></div>
                   {activePreset ? <b>{activePreset.name}</b> : null}
                 </div>
                 <div className="special-filter-row">
-                  <select value={selectedPresetId} onChange={(event) => applyPreset(event.target.value)} aria-label="Escolher Setor Responsável">
-                    <option value="">Escolher setor…</option>
+                  <select value={selectedPresetId} onChange={(event) => applyPreset(event.target.value)} aria-label="Escolher recorte salvo">
+                    <option value="">Escolher recorte…</option>
                     {presets.map((preset) => <option key={preset.id} value={preset.id}>{preset.name}{preset.builtin ? " · padrão" : ""}</option>)}
                   </select>
                   {customPresets.some((preset) => preset.id === selectedPresetId) ? (
@@ -221,19 +256,23 @@ export function FilterBar({ filters, options, onApply, loading }: FilterBarProps
                     type="text"
                     maxLength={48}
                     value={presetName}
-                    placeholder="Nome do Setor Responsável"
-                    aria-label="Nome do novo Setor Responsável"
+                    placeholder="Nome do recorte"
+                    aria-label="Nome do novo recorte"
                     onChange={(event) => setPresetName(event.target.value)}
                   />
-                  <button type="button" onClick={saveCurrentAsPreset} disabled={!presetName.trim() || !categories.length}>Criar setor</button>
+                  <button type="button" onClick={saveCurrentAsPreset} disabled={!presetName.trim() || !categories.length}>Criar recorte</button>
                 </div>
-                <small>Os conjuntos ficam salvos neste navegador e são aplicados imediatamente a cards, gráficos, tabelas e exportação. “Setor de tramitação” permanece separado.</small>
+                <small>Estes recortes são conjuntos de categorias salvos neste navegador. Não representam setor nem responsabilidade e são aplicados a cards, gráficos, tabelas e exportação.</small>
               </section>
 
-              <label className="filter-half"><span>De</span><input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} /></label>
-              <label className="filter-half"><span>Até</span><input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} /></label>
-              <label className="filter-half"><span>Ano</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>
-              <label className="filter-half"><span>Mês</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
+              {!isSnapshotMode ? (
+                <>
+                  <label className="filter-half"><span>De</span><input type="date" value={draft.from} onChange={(e) => update("from", e.target.value)} /></label>
+                  <label className="filter-half"><span>Até</span><input type="date" value={draft.to} onChange={(e) => update("to", e.target.value)} /></label>
+                </>
+              ) : null}
+              <label className="filter-half"><span>{isSnapshotMode ? "Ano de abertura" : "Ano"}</span><select value={draft.year} onChange={(e) => update("year", e.target.value)}><option value="">Todos</option>{options?.years.map((value) => <option key={value}>{value}</option>)}</select></label>
+              <label className="filter-half"><span>{isSnapshotMode ? "Mês de abertura" : "Mês"}</span><select value={draft.month} onChange={(e) => update("month", e.target.value)}><option value="">Todos</option>{options?.months.map((value) => <option key={value} value={value}>{String(value).padStart(2, "0")}</option>)}</select></label>
               <label><span>Família de Processos</span><select value={draft.macro} onChange={(e) => update("macro", e.target.value)}><option value="">Todas</option>{options?.macroprocesses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Status</span><select value={draft.status} onChange={(e) => update("status", e.target.value)}><option value="">Todos</option>{options?.statuses.map((value) => <option key={value}>{value}</option>)}</select></label>
               <label><span>Setor de tramitação</span><select value={draft.sector} onChange={(e) => update("sector", e.target.value)}><option value="">Todos</option>{options?.sectors.map((value) => <option key={value}>{value}</option>)}</select></label>

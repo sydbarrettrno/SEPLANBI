@@ -169,99 +169,87 @@ interface CompositionProps {
   onSelect: (item: VisualItem) => void;
 }
 
-const PIE_COLORS = ["#1871d5", "#63728b", "#c63f47", "#16805f", "#7660c9"];
-
-function ellipsePoint(cx: number, cy: number, rx: number, ry: number, angle: number) {
-  const rad = (angle - 90) * Math.PI / 180;
-  return { x: cx + rx * Math.cos(rad), y: cy + ry * Math.sin(rad) };
-}
-
-function pieSlicePath(cx: number, cy: number, rx: number, ry: number, startAngle: number, endAngle: number) {
-  const start = ellipsePoint(cx, cy, rx, ry, endAngle);
-  const end = ellipsePoint(cx, cy, rx, ry, startAngle);
-  const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
-  return `M ${cx} ${cy} L ${start.x.toFixed(3)} ${start.y.toFixed(3)} A ${rx} ${ry} 0 ${largeArcFlag} 0 ${end.x.toFixed(3)} ${end.y.toFixed(3)} Z`;
-}
+const COMPOSITION_COLORS = ["#1871d5", "#63728b", "#c63f47", "#16805f", "#7660c9"];
 
 export function StackedComposition({ items, selected, onSelect }: CompositionProps) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
   if (!total) return <div className="bi-empty">Sem estoque no recorte.</div>;
 
-  let cursor = 0;
-  const slices = items.map((item, index) => {
-    const startAngle = cursor / total * 360;
-    cursor += item.value;
-    const endAngle = cursor / total * 360;
-    const color = item.color || PIE_COLORS[index % PIE_COLORS.length];
-    return { item, startAngle, endAngle, color, percent: item.value / total * 100 };
-  });
-
-  const cx = 180;
-  const cy = 94;
-  const rx = 126;
-  const ry = 70;
-  const depthLayers = [20, 16, 12, 8, 4];
+  const segments = items.map((item, index) => ({
+    item,
+    color: item.color || COMPOSITION_COLORS[index % COMPOSITION_COLORS.length],
+    percent: item.value / total * 100,
+  }));
 
   return (
     <div className="stacked-composition stacked-composition-chart">
-      <div style={{ minWidth: 0 }}>
-        <svg viewBox="0 0 360 220" role="img" aria-label={`Responsabilidade operacional de ${formatNumber(total)} protocolos`} style={{ width: "100%", minHeight: 250, overflow: "visible" }}>
-          <ellipse cx={cx} cy={cy + 22} rx={rx + 7} ry={ry + 7} fill="rgba(17,43,75,.10)" />
-          {depthLayers.map((depth) => (
-            <g key={`depth-${depth}`} transform={`translate(0 ${depth})`} opacity={0.36} style={{ filter: "brightness(.58) saturate(.9)" }}>
-              {slices.map(({ item, startAngle, endAngle, color }) => (
-                <path key={`${item.key}-${depth}`} d={pieSlicePath(cx, cy, rx, ry, startAngle, endAngle)} fill={color} />
-              ))}
-            </g>
-          ))}
-          {slices.map(({ item, startAngle, endAngle, color, percent }) => {
-            const mid = (startAngle + endAngle) / 2;
-            const labelPoint = ellipsePoint(cx, cy, rx * .58, ry * .58, mid);
-            const isSelected = selected === item.key;
-            return (
-              <g key={item.key}>
-                <path
-                  d={pieSlicePath(cx, cy, rx, ry, startAngle, endAngle)}
-                  fill={color}
-                  stroke={isSelected ? "#102943" : "rgba(255,255,255,.94)"}
-                  strokeWidth={isSelected ? 4 : 2}
-                  role="button"
-                  tabIndex={0}
-                  aria-label={`${item.label}: ${formatNumber(item.value)} protocolos, ${formatPercent(percent)}`}
-                  onClick={() => onSelect(item)}
-                  onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") onSelect(item); }}
-                  style={{ cursor: "pointer", transition: "filter 160ms ease", filter: isSelected ? "brightness(1.08)" : undefined }}
-                >
-                  <title>{`${item.label}: ${formatNumber(item.value)} (${formatPercent(percent)}). Clique para filtrar.`}</title>
-                </path>
-                {percent >= 7 ? (
-                  <text x={labelPoint.x} y={labelPoint.y + 4} textAnchor="middle" fill="white" fontSize="15" fontWeight="900" pointerEvents="none" style={{ textShadow: "0 1px 3px rgba(0,0,0,.28)" }}>
-                    {formatNumber(item.value)}
-                  </text>
-                ) : null}
-              </g>
-            );
-          })}
-          <text x={cx} y="205" textAnchor="middle" fill="#17243f" fontSize="12" fontWeight="800">Total: {formatNumber(total)} protocolos</text>
-        </svg>
+      <div
+        className="composition-bar-2d"
+        role="img"
+        aria-label={`Composição da responsabilidade operacional de ${formatNumber(total)} protocolos`}
+        style={{ display: "flex", width: "100%", minHeight: 44, overflow: "hidden", borderRadius: 10, background: "#edf1f5" }}
+      >
+        {segments.map(({ item, color, percent }) => {
+          const dimmed = Boolean(selected && selected !== item.key);
+          return (
+            <button
+              type="button"
+              key={item.key}
+              aria-label={`${item.label}: ${formatNumber(item.value)} protocolos, ${formatPercent(percent)}`}
+              title={`${item.label}: ${formatNumber(item.value)} (${formatPercent(percent)}). Clique para filtrar.`}
+              onClick={() => onSelect(item)}
+              style={{
+                flex: `0 0 ${percent}%`,
+                minWidth: percent > 0 ? 3 : 0,
+                padding: 0,
+                border: selected === item.key ? "3px solid #102943" : "1px solid rgba(255,255,255,.9)",
+                background: color,
+                opacity: dimmed ? .28 : 1,
+                transition: "opacity 160ms ease, border-color 160ms ease",
+              }}
+            />
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 8, color: "#6f7c8f", fontSize: 11 }}>
+        <span>0%</span><strong style={{ color: "#34435b" }}>Total: {formatNumber(total)} protocolos</strong><span>100%</span>
       </div>
 
-      <div className="composition-legend" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10 }}>
-        {slices.map(({ item, color, percent }) => (
-          <button
-            type="button"
-            key={item.key}
-            data-visual-key={item.key}
-            data-visual-value={item.value}
-            onClick={() => onSelect(item)}
-            style={{ display: "grid", gridTemplateColumns: "14px 1fr auto", alignItems: "center", gap: 10, width: "100%", padding: "11px 12px", border: selected === item.key ? "1px solid #8eb9df" : "1px solid #e0e7ef", borderRadius: 10, background: selected === item.key ? "#f2f8ff" : "#fff", color: "#46566d", textAlign: "left" }}
-            title={`${item.label}: ${formatNumber(item.value)} protocolos (${formatPercent(percent)})`}
-          >
-            <i style={{ width: 12, height: 12, borderRadius: 4, background: color }} />
-            <span style={{ display: "grid", gap: 2 }}><strong style={{ fontSize: 12 }}>{item.label}</strong><small style={{ color: "#7a8799", fontSize: 10 }}>{formatPercent(percent)} do estoque</small></span>
-            <strong style={{ color: "#17243f", fontSize: 16 }}>{formatNumber(item.value)}</strong>
-          </button>
-        ))}
+      <div className="composition-legend" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginTop: 16 }}>
+        {segments.map(({ item, color, percent }) => {
+          const isSelected = selected === item.key;
+          const dimmed = Boolean(selected && !isSelected);
+          return (
+            <button
+              type="button"
+              className={isSelected ? "selected" : ""}
+              key={item.key}
+              data-visual-key={item.key}
+              data-visual-value={item.value}
+              onClick={() => onSelect(item)}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "14px 1fr auto",
+                alignItems: "center",
+                gap: 10,
+                width: "100%",
+                padding: "11px 12px",
+                border: isSelected ? "1px solid #8eb9df" : "1px solid #e0e7ef",
+                borderRadius: 10,
+                background: isSelected ? "#f2f8ff" : "#fff",
+                color: "#46566d",
+                textAlign: "left",
+                opacity: dimmed ? .42 : 1,
+                transition: "opacity 160ms ease, border-color 160ms ease, background 160ms ease",
+              }}
+              title={`${item.label}: ${formatNumber(item.value)} protocolos (${formatPercent(percent)})`}
+            >
+              <i style={{ width: 12, height: 12, borderRadius: 4, background: color }} />
+              <span style={{ display: "grid", gap: 2 }}><strong style={{ fontSize: 12 }}>{item.label}</strong><small style={{ color: "#7a8799", fontSize: 10 }}>{formatPercent(percent)} do estoque</small></span>
+              <strong style={{ color: "#17243f", fontSize: 16 }}>{formatNumber(item.value)}</strong>
+            </button>
+          );
+        })}
       </div>
     </div>
   );

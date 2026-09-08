@@ -92,6 +92,7 @@ export function Sidebar({ page, onNavigate, open, onClose, adminAuthorized = fal
                   <button
                     key={id}
                     className={active ? "active" : ""}
+                    aria-label={item.label}
                     onClick={() => {
                       onNavigate(id);
                       onClose();

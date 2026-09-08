@@ -29,7 +29,7 @@ async function openPanel(page: Page, indicator: "received" | "outputs" | "stock"
 }
 
 async function openFilters(page: Page) {
-  await page.locator(".filter-launcher").click();
+  await page.locator(".filter-launcher:visible").first().click();
   await expect(page.getByRole("dialog", { name: "Filtros do painel" })).toBeVisible();
 }
 
@@ -68,10 +68,11 @@ test("recebidos: período homólogo, cross-filter e drill-down exato", async ({ 
   const categoryValue = Number(await category.getAttribute("data-visual-value"));
   await category.click();
   await waitForCount(page, categoryValue);
-  await expect(page.locator(".drill-breadcrumb")).toContainText("Família de Processos");
-  await expect(page.locator(".drill-breadcrumb")).toContainText("Categoria");
+  await expect(page.locator(".received-filter-summary")).toBeVisible();
+  await expect(page.locator(".received-filter-summary")).toContainText("Família de Processos");
+  await expect(page.locator(".received-filter-summary")).toContainText("Categoria");
 
-  await page.getByRole("button", { name: "Drill-up" }).click();
+  await category.click();
   await waitForCount(page, macroValue);
   await page.getByRole("button", { name: "Limpar seleção" }).click();
   await waitForCount(page, 2899);
@@ -167,11 +168,12 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await page.getByLabel("Família de Processos").selectOption({ index: 1 });
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect.poll(() => recordCount(page)).toBeLessThan(2899);
-  await expect(page.locator(".filter-launcher")).toContainText("2 ativos");
+  await expect(page.locator(".received-filter-launcher")).toContainText("2 ativos");
+  await expect(page.locator(".received-filter-summary")).toBeVisible();
 
   await openFilters(page);
-  await expect(page.locator(".active-filter-strip")).toContainText("Mês: 1");
-  await expect(page.locator(".active-filter-strip")).toContainText("Família de Processos:");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Mês: 1");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Família de Processos:");
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2899);
 
@@ -187,14 +189,18 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await page.goto("/#/stock");
   await waitForCount(page, 2159);
   await openFilters(page);
-  await page.getByLabel("Status").selectOption("Em Análise");
-  await page.getByLabel("Setor de tramitação").selectOption({ index: 1 });
+  await expect(page.getByLabel("De", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Até", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Ano de abertura", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Mês de abertura", { exact: true })).toBeVisible();
+  await page.getByLabel("Status", { exact: true }).selectOption("Em Análise");
+  await page.getByLabel("Setor de tramitação", { exact: true }).selectOption({ index: 1 });
   await page.locator(".filter-bar label", { hasText: "Responsabilidade" }).locator("select").selectOption("Interno");
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await openFilters(page);
-  await expect(page.locator(".active-filter-strip")).toContainText("Status: Em Análise");
-  await expect(page.locator(".active-filter-strip")).toContainText("Setor de tramitação:");
-  await expect(page.locator(".active-filter-strip")).toContainText("Responsabilidade: Interno");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Status: Em Análise");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Setor de tramitação:");
+  await expect(page.locator(".filter-drawer .active-filter-strip")).toContainText("Responsabilidade: Interno");
   await expect.poll(() => recordCount(page)).toBeLessThan(2159);
   await page.getByRole("button", { name: "Limpar filtros" }).click();
   await waitForCount(page, 2159);
@@ -251,29 +257,25 @@ test("projetos públicos: carteira independente, filtros e detalhamento reconcil
   expect(failures).toEqual([]);
 });
 
-test("construção civil: visão executiva e consulta ficam separadas e utilizáveis", async ({ page }) => {
+test("construção civil: visão executiva e consulta protegida ficam separadas e utilizáveis", async ({ page }) => {
   const failures = watchRuntime(page);
   await page.goto("/#/construction", { waitUntil: "domcontentloaded" });
 
   await expect(page.getByRole("heading", { name: "Construção Civil", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "2026 até 03/09 × mesmo período de 2025", level: 2 })).toBeVisible();
   await expect(page.getByText("+75,1%", { exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Base analítica — alvará por alvará", level: 2 })).toHaveCount(0);
   const constructionViews = page.getByRole("navigation", { name: "Modo de visualização da construção civil" });
   await expect(constructionViews.getByRole("button", { name: /Visão executiva/ })).toHaveAttribute("aria-pressed", "true");
 
-  await page.getByRole("button", { name: /Área autorizada/ }).first().click();
-  await expect(page.getByRole("heading", { name: "Área autorizada para construção nova · 2016–2025", level: 2 })).toBeVisible();
+  const historyMetric = page.getByRole("group", { name: "Indicador do histórico anual" });
+  await historyMetric.getByRole("button", { name: "Área (m²)", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Área autorizada para construção nova (m²) · 2016–2025", level: 2 })).toBeVisible();
 
-  await constructionViews.getByRole("button", { name: /Consultar alvarás/ }).click();
-  await expect(page.getByRole("heading", { name: "Base analítica — alvará por alvará", level: 2 })).toBeVisible();
-  await expect(page.getByText("9.912 registros", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Uso")).toContainText("Residencial — não especificado");
-  await expect(page.getByText("Residencial unifamiliar", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("columnheader", { name: "Coef. de aproveitamento" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Outorga onerosa" })).toBeVisible();
-  await expect(page.getByText("N/D na fonte", { exact: true }).first()).toBeVisible();
-  await expect(page.locator(".construction-base-table tbody tr")).toHaveCount(25);
+  await constructionViews.getByRole("button", { name: /Relação analítica/ }).click();
+  await expect(page.getByRole("heading", { name: "Relação analítica de alvarás", level: 2 })).toBeVisible();
+  await expect(page.getByLabel("Senha")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Acessar relação analítica" })).toBeVisible();
+  await expect(page.locator(".construction-base-table")).toHaveCount(0);
   expect(failures).toEqual([]);
 });
 
@@ -284,8 +286,8 @@ test("construção civil não cria rolagem horizontal no celular", async ({ page
   const executiveViewport = await page.evaluate(() => ({ body: document.body.scrollWidth, html: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   expect(Math.max(executiveViewport.body, executiveViewport.html)).toBeLessThanOrEqual(executiveViewport.viewport);
 
-  await page.getByRole("navigation", { name: "Modo de visualização da construção civil" }).getByRole("button", { name: /Consultar alvarás/ }).click();
-  await expect(page.getByRole("heading", { name: "Base analítica — alvará por alvará", level: 2 })).toBeVisible();
+  await page.getByRole("navigation", { name: "Modo de visualização da construção civil" }).getByRole("button", { name: /Relação analítica/ }).click();
+  await expect(page.getByRole("heading", { name: "Relação analítica de alvarás", level: 2 })).toBeVisible();
   const recordsViewport = await page.evaluate(() => ({ body: document.body.scrollWidth, html: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   expect(Math.max(recordsViewport.body, recordsViewport.html)).toBeLessThanOrEqual(recordsViewport.viewport);
 });

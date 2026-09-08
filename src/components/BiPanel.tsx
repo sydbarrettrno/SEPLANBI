@@ -15,6 +15,7 @@ interface BiPanelProps {
 
 interface PanelData {
   summary: AnalyticsResponse;
+  summaryContext: AnalyticsResponse;
   macro: AnalyticsResponse;
   category: AnalyticsResponse;
   secondary: AnalyticsResponse;
@@ -22,6 +23,8 @@ interface PanelData {
   concentration?: AnalyticsResponse;
   status?: AnalyticsResponse;
 }
+
+type ContextDimension = "month" | "macroprocess" | "category" | "status" | "responsibility" | "output_type" | "age_band" | "sector";
 
 const RESPONSIBILITY_TO_QUERY: Record<string, string> = {
   Interno: "Fila Interna SEPLAN",
@@ -69,6 +72,19 @@ function items(response: AnalyticsResponse | undefined, dimension: string): Visu
   });
 }
 
+function contextRequest(baseRequest: AnalyticsRequest, dimension: ContextDimension): AnalyticsRequest {
+  const request: AnalyticsRequest = { ...baseRequest, groupBy: [dimension] };
+  if (dimension === "month") request.month = undefined;
+  if (dimension === "macroprocess") request.macro = undefined;
+  if (dimension === "category") request.category = undefined;
+  if (dimension === "status") request.status = undefined;
+  if (dimension === "responsibility") request.responsibility = undefined;
+  if (dimension === "output_type") request.outputType = undefined;
+  if (dimension === "age_band") request.ageBand = undefined;
+  if (dimension === "sector") request.sector = undefined;
+  return request;
+}
+
 export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
   const { copy } = useDashboardContent();
   const [data, setData] = useState<PanelData | null>(null);
@@ -81,8 +97,8 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
 
   const baseRequest = useMemo<AnalyticsRequest>(() => ({
     indicator,
-    from: filters.year ? undefined : filters.from,
-    to: filters.year ? undefined : filters.to,
+    from: indicator === "stock" || filters.year ? undefined : filters.from,
+    to: indicator === "stock" || filters.year ? undefined : filters.to,
     year: filters.year ? [filters.year] : undefined,
     month: filters.month ? [Number(filters.month)] : undefined,
     macro: filters.macro ? [filters.macro] : undefined,
@@ -107,24 +123,26 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
       sortBy,
       sortDir,
     };
-    const summaryGroup = indicator === "received" ? ["month"] : indicator === "outputs" ? ["output_type"] : ["responsibility"];
-    const secondaryGroup = indicator === "received" ? ["month"] : indicator === "outputs" ? ["output_type"] : ["age_band"];
+    const summaryDimension: ContextDimension = indicator === "received" ? "month" : indicator === "outputs" ? "output_type" : "responsibility";
+    const secondaryDimension: ContextDimension = indicator === "received" ? "month" : indicator === "outputs" ? "output_type" : "age_band";
+    const categoryBase = contextRequest(baseRequest, "category");
     const categoryRequest: AnalyticsRequest = indicator === "stock" && !filters.owner
-      ? { ...baseRequest, responsibility: ["Fila Interna SEPLAN"], groupBy: ["category"] }
-      : { ...baseRequest, groupBy: ["category"] };
+      ? { ...categoryBase, responsibility: ["Fila Interna SEPLAN"] }
+      : categoryBase;
     const requests = [
-      fetchAnalytics({ ...baseRequest, groupBy: summaryGroup }, controller.signal),
-      fetchAnalytics({ ...baseRequest, groupBy: ["macroprocess"] }, controller.signal),
+      fetchAnalytics({ ...baseRequest, groupBy: [summaryDimension] }, controller.signal),
+      fetchAnalytics(contextRequest(baseRequest, summaryDimension), controller.signal),
+      fetchAnalytics(contextRequest(baseRequest, "macroprocess"), controller.signal),
       fetchAnalytics(categoryRequest, controller.signal),
-      fetchAnalytics({ ...baseRequest, groupBy: secondaryGroup }, controller.signal),
+      fetchAnalytics(contextRequest(baseRequest, secondaryDimension), controller.signal),
       fetchAnalytics(detailRequest, controller.signal),
     ];
     if (indicator === "stock") {
-      requests.push(fetchAnalytics({ ...baseRequest, groupBy: [stockDimension] }, controller.signal));
-      requests.push(fetchAnalytics({ ...baseRequest, groupBy: ["status"] }, controller.signal));
+      requests.push(fetchAnalytics(contextRequest(baseRequest, stockDimension), controller.signal));
+      requests.push(fetchAnalytics(contextRequest(baseRequest, "status"), controller.signal));
     }
     Promise.all(requests)
-      .then(([summary, macro, category, secondary, detail, concentration, status]) => setData({ summary, macro, category, secondary, detail, concentration, status }))
+      .then(([summary, summaryContext, macro, category, secondary, detail, concentration, status]) => setData({ summary, summaryContext, macro, category, secondary, detail, concentration, status }))
       .catch((reason: unknown) => {
         if (reason instanceof DOMException && reason.name === "AbortError") return;
         setError(reason instanceof Error ? reason.message : "Falha ao consultar a camada analítica.");
@@ -149,9 +167,13 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
     const field = order.find((key) => Boolean(filters[key as keyof DashboardFilters]));
     if (field) apply({ [field]: "" } as Partial<DashboardFilters>);
   };
+  const openGlobalFilters = () => {
+    window.dispatchEvent(new Event("seplanbi:open-filters"));
+  };
 
   const pageCopy = indicator === "received" ? copy.received : indicator === "outputs" ? copy.outputs : copy.stock;
-  const active = activeDashboardFilters(filters);
+  const active = activeDashboardFilters(filters).filter((item) => !(indicator === "stock" && item.key === "period"));
+  const actionFilters = active.filter((item) => item.key !== "period");
   const detail = data?.detail.records;
   const exportHref = publicAnalyticsExportUrl(baseRequest);
   const currentYear = data?.summary.comparison?.current.from.slice(0, 4) ?? filters.from.slice(0, 4) ?? "2026";
@@ -165,7 +187,26 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
       </nav>
       <header className="page-hero bi-hero">
         <div><span className="eyebrow">{pageCopy.eyebrow}</span><h1>{pageCopy.title}</h1><p>{pageCopy.description}</p></div>
-        <div className="bi-page-actions"><button className="ghost-button" onClick={drillUp} disabled={!active.some((item) => item.key !== "period")}>Drill-up</button><button className="ghost-button" onClick={clearSelection}>Limpar seleção</button></div>
+        <div className="bi-page-actions">
+          {indicator === "received" ? (
+            <>
+              {actionFilters.length ? (
+                <div className="active-filter-strip received-filter-summary" aria-live="polite" aria-label="Filtros aplicados">
+                  {actionFilters.slice(0, 3).map((item) => <span key={item.key}>{item.label}: {item.value}</span>)}
+                  {actionFilters.length > 3 ? <span>+{actionFilters.length - 3}</span> : null}
+                </div>
+              ) : null}
+              <button className="filter-launcher received-filter-launcher" type="button" onClick={openGlobalFilters}>
+                <span className="filter-launcher-icon" aria-hidden="true">≡</span>
+                <span><strong>Filtros</strong><small>{actionFilters.length ? `${actionFilters.length} ativo${actionFilters.length > 1 ? "s" : ""}` : "Ajustar recorte"}</small></span>
+                {actionFilters.length ? <b>{actionFilters.length}</b> : null}
+              </button>
+            </>
+          ) : (
+            <button className="ghost-button" onClick={drillUp} disabled={!active.some((item) => item.key !== "period")}>Drill-up</button>
+          )}
+          <button className="ghost-button" onClick={clearSelection}>Limpar seleção</button>
+        </div>
       </header>
 
       {error ? <div className="error-panel" role="alert"><div><span>Falha analítica</span><strong>Não foi possível montar este painel.</strong><p>{error}</p></div></div> : null}
@@ -182,11 +223,11 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
               </section>
               <section className="bi-layout-main">
                 <article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.received.monthly.eyebrow}</span><h2>{copy.received.monthly.title}</h2><p>{copy.received.monthly.description}</p></div><span className="panel-chip">{currentYear} × {previousYear}</span></div>
-                  <MonthComparison data={data.summary.comparison?.monthly ?? []} currentYear={currentYear} previousYear={previousYear} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} />
+                  <MonthComparison data={data.summaryContext.comparison?.monthly ?? []} currentYear={currentYear} previousYear={previousYear} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} />
                 </article>
                 <article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.received.macro.eyebrow}</span><h2>{copy.received.macro.title}</h2><p>{copy.received.macro.description}</p></div></div><InteractiveBars items={items(data.macro, "macroprocess")} selected={filters.macro} onSelect={(item) => toggle("macro", item.key)} /></article>
               </section>
-              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.received.category.eyebrow}</span><h2>{copy.received.category.title}</h2><p>{copy.received.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article><article className="panel bi-reading"><span className="eyebrow">{copy.received.reading.eyebrow}</span><h2>{formatNumber(data.summary.meta.total)} {copy.received.reading.titleSuffix}</h2><p>A soma das categorias é {formatNumber(data.category.meta.grouped_sum)} e a reconciliação está {data.category.meta.grouping_reconciled ? copy.received.reading.reconciled : copy.received.reading.divergent}.</p><strong>{data.summary.comparison?.rule}</strong></article></section>
+              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.received.category.eyebrow}</span><h2>{copy.received.category.title}</h2><p>{copy.received.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article></section>
             </>
           ) : null}
 
@@ -199,15 +240,15 @@ export function BiPanel({ indicator, filters, onFilters }: BiPanelProps) {
                 <MetricTile label={copy.outputs.metrics.balance} value={`${data.summary.totals.period_balance > 0 ? "+" : ""}${formatNumber(data.summary.totals.period_balance)}`} detail={data.summary.totals.period_balance > 0 ? copy.outputs.metrics.balancePositive : copy.outputs.metrics.balanceNegative} tone={data.summary.totals.period_balance > 0 ? "orange" : "green"} />
                 <MetricTile label={`${copy.outputs.metrics.previous} ${previousYear}`} value={formatNumber(data.summary.comparison?.previous.value)} detail={`${formatPercent(data.summary.comparison?.change_percent)} no período homólogo`} />
               </section>
-              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.flow.eyebrow}</span><h2>{copy.outputs.flow.title}</h2><p>{copy.outputs.flow.description}</p></div></div><MonthlyFlow data={data.summary.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.composition.eyebrow}</span><h2>{copy.outputs.composition.title}</h2><p>{copy.outputs.composition.description}</p></div></div><InteractiveBars items={items(data.secondary, "output_type")} selected={filters.outputType} onSelect={(item) => toggle("outputType", item.key)} tone="green" /></article></section>
-              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.category.eyebrow}</span><h2>{copy.outputs.category.title}</h2><p>{copy.outputs.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.balanceEvolution.eyebrow}</span><h2>{copy.outputs.balanceEvolution.title}</h2><p>{copy.outputs.balanceEvolution.description}</p></div></div><BalanceEvolution data={data.summary.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article></section>
+              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.flow.eyebrow}</span><h2>{copy.outputs.flow.title}</h2><p>{copy.outputs.flow.description}</p></div></div><MonthlyFlow data={data.summaryContext.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.composition.eyebrow}</span><h2>{copy.outputs.composition.title}</h2><p>{copy.outputs.composition.description}</p></div></div><InteractiveBars items={items(data.secondary, "output_type")} selected={filters.outputType} onSelect={(item) => toggle("outputType", item.key)} tone="green" /></article></section>
+              <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.category.eyebrow}</span><h2>{copy.outputs.category.title}</h2><p>{copy.outputs.category.description}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => toggle("category", item.key)} tone="teal" initialLimit={10} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.outputs.balanceEvolution.eyebrow}</span><h2>{copy.outputs.balanceEvolution.title}</h2><p>{copy.outputs.balanceEvolution.description}</p></div></div><BalanceEvolution data={data.summaryContext.monthly_flow ?? []} selectedMonth={filters.month} onSelect={(month) => toggle("month", String(month))} /></article></section>
             </>
           ) : null}
 
           {indicator === "stock" ? (
             <>
               <section className="bi-metric-grid five"><MetricTile label={copy.stock.metrics.total} value={formatNumber(data.summary.totals.stock)} /><MetricTile label={copy.stock.metrics.internal} value={formatNumber(data.summary.totals.internal)} tone="blue" /><MetricTile label={copy.stock.metrics.external} value={formatNumber(data.summary.totals.external)} tone="slate" /><MetricTile label={copy.stock.metrics.paralyzed} value={formatNumber(data.summary.totals.paralyzed)} tone="red" /><MetricTile label={copy.stock.metrics.depends} value={formatPercent(data.summary.totals.depends_on_seplan_percent)} detail={copy.stock.metrics.dependsDetail} tone="teal" /></section>
-              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.composition.eyebrow}</span><h2>{copy.stock.composition.title}</h2><p>{copy.stock.composition.description}</p></div></div><StackedComposition items={items(data.summary, "responsibility")} selected={filters.owner ? RESPONSIBILITY_TO_QUERY[filters.owner] : ""} onSelect={(item) => selectResponsibility(item.key)} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.age.eyebrow}</span><h2>{copy.stock.age.title}</h2><p>{copy.stock.age.description}</p></div></div><InteractiveBars items={items(data.secondary, "age_band")} selected={filters.ageBand} onSelect={(item) => toggle("ageBand", item.key)} tone="orange" /></article></section>
+              <section className="bi-layout-main"><article className="panel bi-primary-chart"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.composition.eyebrow}</span><h2>{copy.stock.composition.title}</h2><p>{copy.stock.composition.description}</p></div></div><StackedComposition items={items(data.summaryContext, "responsibility")} selected={filters.owner ? RESPONSIBILITY_TO_QUERY[filters.owner] : ""} onSelect={(item) => selectResponsibility(item.key)} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.age.eyebrow}</span><h2>{copy.stock.age.title}</h2><p>{copy.stock.age.description}</p></div></div><InteractiveBars items={items(data.secondary, "age_band")} selected={filters.ageBand} onSelect={(item) => toggle("ageBand", item.key)} tone="orange" /></article></section>
               <section className="bi-layout-secondary"><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.gargles.eyebrow}</span><h2>{copy.stock.gargles.title}</h2><p>{filters.owner ? copy.stock.gargles.selectedDescription : copy.stock.gargles.defaultDescription}</p></div></div><InteractiveBars items={items(data.category, "category")} selected={filters.category} onSelect={(item) => selectCategoryFromStockPriority(item.key)} tone="red" initialLimit={10} /></article><article className="panel"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.concentration.eyebrow}</span><h2>{copy.stock.concentration.title}</h2><p>{copy.stock.concentration.description}</p></div><div className="dimension-switch"><button className={stockDimension === "macroprocess" ? "active" : ""} onClick={() => setStockDimension("macroprocess")}>Família de Processos</button><button className={stockDimension === "category" ? "active" : ""} onClick={() => setStockDimension("category")}>Categoria</button><button className={stockDimension === "sector" ? "active" : ""} onClick={() => setStockDimension("sector")}>Setor de tramitação</button><button disabled title="Exige autenticação e autorização para PII">Responsável 🔒</button></div></div><InteractiveBars items={items(data.concentration, stockDimension)} selected={filters[stockDimension === "macroprocess" ? "macro" : stockDimension]} onSelect={(item) => toggle(stockDimension === "macroprocess" ? "macro" : stockDimension, item.key)} tone="teal" initialLimit={8} /></article></section>
               <section className="panel bi-status-level"><div className="panel-heading"><div><span className="eyebrow">{copy.stock.status.eyebrow}</span><h2>{filters.category ? `${copy.stock.status.titlePrefix} ${filters.category}` : copy.stock.status.titleDefault}</h2><p>{copy.stock.status.description}</p></div><span className="panel-chip">{copy.stock.status.chip}</span></div><InteractiveBars items={items(data.status, "status")} selected={filters.status} onSelect={(item) => toggle("status", item.key)} tone="blue" initialLimit={6} /></section>
             </>

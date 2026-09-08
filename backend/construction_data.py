@@ -119,35 +119,29 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
 @lru_cache(maxsize=1)
 def load_ca_lookup() -> tuple[
     dict[tuple[int, int, str, str], float],
-    dict[tuple[int, int], float],
     dict[tuple[int, str, str], float],
     dict,
 ]:
     """Lê o resultado sanitizado do cruzamento Alvarás × Cadastro Imobiliário.
 
-    Prioridade de vínculo:
-    1) número + ano + data + tipo;
-    2) número + ano, apenas quando há um único CA;
-    3) número + data de liberação + tipo, apenas quando há um único CA.
-
-    O terceiro vínculo cobre registros históricos em que o campo Ano do Alvará
-    diverge do ano da Data de Liberação, sem introduzir inferência.
+    O vínculo usa a chave completa (número + ano + data + tipo). Para registros
+    históricos em que o campo Ano do Alvará diverge do ano da Data de Liberação,
+    usa número + data de liberação + tipo somente quando o CA é único.
     """
     parts = sorted(DATA_DIR.glob(CA_PART_GLOB))
     if not parts:
-        return {}, {}, {}, {}
+        return {}, {}, {}
     try:
         encoded = _read_encoded_parts(parts)
         raw = lzma.decompress(base64.b64decode(encoded, validate=True))
         payload = json.loads(raw.decode("utf-8"))
     except Exception:
-        return {}, {}, {}, {}
+        return {}, {}, {}
 
     if int(payload.get("v") or 0) != 1:
-        return {}, {}, {}, {}
+        return {}, {}, {}
 
     exact: dict[tuple[int, int, str, str], float] = {}
-    by_permit_year_candidates: dict[tuple[int, int], set[float]] = {}
     by_permit_date_type_candidates: dict[tuple[int, str, str], set[float]] = {}
 
     for item in payload.get("rows", []):
@@ -162,14 +156,8 @@ def load_ca_lookup() -> tuple[
             continue
         value = round(coefficient, 3)
         exact[(permit, year, date, permit_type)] = value
-        by_permit_year_candidates.setdefault((permit, year), set()).add(value)
         by_permit_date_type_candidates.setdefault((permit, date, permit_type), set()).add(value)
 
-    by_permit_year = {
-        key: next(iter(values))
-        for key, values in by_permit_year_candidates.items()
-        if len(values) == 1
-    }
     by_permit_date_type = {
         key: next(iter(values))
         for key, values in by_permit_date_type_candidates.items()
@@ -183,23 +171,13 @@ def load_ca_lookup() -> tuple[
         "resolved": _integer(payload.get("resolved")),
         "generated_at": _text(payload.get("generatedAt")),
     }
-    return exact, by_permit_year, by_permit_date_type, meta
+    return exact, by_permit_date_type, meta
 
 
-def _coefficient_for(
-    row: dict,
-    exact: dict,
-    by_permit_year: dict,
-    by_permit_date_type: dict,
-) -> float | None:
+def _coefficient_for(row: dict, exact: dict, by_permit_date_type: dict) -> float | None:
     exact_key = (row["permit"], row["year"], row["date"], row["type"])
     if exact_key in exact:
         return exact[exact_key]
-
-    permit_year_key = (row["permit"], row["year"])
-    if permit_year_key in by_permit_year:
-        return by_permit_year[permit_year_key]
-
     return by_permit_date_type.get((row["permit"], row["date"], row["type"]))
 
 
@@ -243,12 +221,12 @@ def _query_rows(params: dict[str, str]) -> tuple[dict, list[dict], dict]:
 
 def construction_data_response(params: dict[str, str]) -> dict:
     meta, filtered, facets = _query_rows(params)
-    exact_ca, by_permit_year, by_permit_date_type, ca_meta = load_ca_lookup()
+    exact_ca, by_permit_date_type, ca_meta = load_ca_lookup()
 
     enriched: list[dict] = []
     ca_records = 0
     for row in filtered:
-        coefficient = _coefficient_for(row, exact_ca, by_permit_year, by_permit_date_type)
+        coefficient = _coefficient_for(row, exact_ca, by_permit_date_type)
         if coefficient is not None:
             ca_records += 1
         enriched.append({**row, "coefficient": coefficient})
@@ -276,7 +254,7 @@ def construction_data_response(params: dict[str, str]) -> dict:
 
 def export_construction_csv(params: dict[str, str]) -> str:
     _, filtered, _ = _query_rows(params)
-    exact_ca, by_permit_year, by_permit_date_type, _ = load_ca_lookup()
+    exact_ca, by_permit_date_type, _ = load_ca_lookup()
     output = io.StringIO(newline="")
     writer = csv.writer(output, delimiter=";")
     writer.writerow([
@@ -290,7 +268,7 @@ def export_construction_csv(params: dict[str, str]) -> str:
         "CA",
     ])
     for row in filtered:
-        coefficient = _coefficient_for(row, exact_ca, by_permit_year, by_permit_date_type)
+        coefficient = _coefficient_for(row, exact_ca, by_permit_date_type)
         writer.writerow([
             f'{row["permit"]}/{row["year"]}',
             row["date"],

@@ -28,7 +28,7 @@ export function DashboardShell({
   const shellClassName = ["app-shell", className].filter(Boolean).join(" ");
 
   return (
-    <div className={shellClassName}>
+    <div className={shellClassName} data-route={page}>
       <Sidebar
         page={page}
         onNavigate={onNavigate}

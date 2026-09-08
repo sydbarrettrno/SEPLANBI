@@ -13,13 +13,18 @@ type ConstructionBaseRow = {
   area: number;
   use: string;
   construction: string;
-  coefficient: string;
-  outorga: string;
+  coefficient: number | null;
 };
 
 type ConstructionBaseResponse = {
   ok: boolean;
-  meta: { source: string; extracted_at: string; total: number };
+  meta: {
+    source: string;
+    extracted_at: string;
+    total: number;
+    ca_source?: string;
+    ca_records?: number;
+  };
   facets: { years: number[]; types: string[]; uses: string[] };
   records: { filtered: number; offset: number; limit: number; items: ConstructionBaseRow[] };
 };
@@ -29,6 +34,14 @@ function detailedArea(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value)} m²`;
+}
+
+function formatCoefficient(value: number | null) {
+  if (value == null) return "—";
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(value);
 }
 
 function ConstructionBaseTable() {
@@ -53,15 +66,6 @@ function ConstructionBaseTable() {
     if (use) result.set("use", use);
     return result;
   }, [query, year, permitType, use, page]);
-
-  const exportUrl = useMemo(() => {
-    const result = new URLSearchParams({ action: "construction-export" });
-    if (query.trim()) result.set("q", query.trim());
-    if (year) result.set("year", year);
-    if (permitType) result.set("type", permitType);
-    if (use) result.set("use", use);
-    return `/api?${result.toString()}`;
-  }, [query, year, permitType, use]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -112,11 +116,10 @@ function ConstructionBaseTable() {
         <div>
           <span className="eyebrow">Rastreabilidade</span>
           <h2>Relação analítica · alvará por alvará</h2>
-          <p>Base sanitizada da extração do IPM de 2016 até 03/09/2026. Pesquise, filtre e exporte os registros sem dados pessoais.</p>
+          <p>Base sanitizada do IPM com CA estimado proveniente do cruzamento cadastral já realizado. Pesquise e filtre os registros sem dados pessoais.</p>
         </div>
         <div className="construction-base-actions">
           <span className="panel-chip">{formatNumber(data ? filtered : 0)} registros</span>
-          <a className="primary-button construction-export-button" href={exportUrl}>Baixar CSV</a>
         </div>
       </div>
 
@@ -168,8 +171,7 @@ function ConstructionBaseTable() {
                   <th className="number-column">Área autorizada</th>
                   <th>Uso</th>
                   <th>Construção</th>
-                  <th>CA</th>
-                  <th>Outorga</th>
+                  <th>CA estimado</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,12 +183,11 @@ function ConstructionBaseTable() {
                     <td className="number-column"><strong>{detailedArea(row.area)}</strong></td>
                     <td>{row.use || "—"}</td>
                     <td>{row.construction || "—"}</td>
-                    <td>{row.coefficient || "N/D na fonte"}</td>
-                    <td>{row.outorga || "N/D na fonte"}</td>
+                    <td>{formatCoefficient(row.coefficient)}</td>
                   </tr>
                 ))}
                 {!data.records.items.length ? (
-                  <tr><td colSpan={8} className="empty-state">Nenhum alvará encontrado para os filtros selecionados.</td></tr>
+                  <tr><td colSpan={7} className="empty-state">Nenhum alvará encontrado para os filtros selecionados.</td></tr>
                 ) : null}
               </tbody>
             </table>
@@ -199,7 +200,9 @@ function ConstructionBaseTable() {
               <button type="button" disabled={!hasNext || loading} onClick={() => setPage((current) => current + 1)}>Próxima →</button>
             </div>
           </div>
-          <p className="construction-base-privacy">Consulta analítica sem titular, CPF/CNPJ, cadastro, inscrição ou endereço detalhado. Coeficiente de aproveitamento e outorga são exibidos como N/D quando não constam na fonte.</p>
+          <p className="construction-base-privacy">
+            Consulta sem titular, CPF/CNPJ, cadastro, inscrição ou endereço detalhado. O CA exibido é o valor estimado no cruzamento com o Cadastro Imobiliário; registros sem associação consistente permanecem como “—”.
+          </p>
         </>
       ) : null}
     </article>
@@ -240,7 +243,7 @@ export function ConstructionDashboardV3() {
           <div className="construction-v2-executive"><ExecutiveConstructionPanel /></div>
           <section className="construction-reading-note construction-v2-normalization-note">
             <div className="management-note"><strong>Normalização de uso</strong><p>Registros residenciais são organizados conforme a informação disponível na base; quando a fonte não diferencia explicitamente a tipologia, a interface sinaliza uso residencial não especificado.</p></div>
-            <div className="management-note"><strong>Limitação da fonte</strong><p>Coeficiente de aproveitamento e outorga onerosa não estão preenchidos na extração disponível do IPM e permanecem identificados como N/D, sem inferência.</p></div>
+            <div className="management-note"><strong>CA estimado</strong><p>O coeficiente é apresentado a partir do cruzamento já realizado com o Cadastro Imobiliário. Registros sem vínculo cadastral consistente permanecem sem valor.</p></div>
           </section>
         </>
       ) : <ConstructionBaseTable />}

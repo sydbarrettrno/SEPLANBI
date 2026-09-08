@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import csv
+import hashlib
 import io
 import json
 import lzma
@@ -13,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 PART_GLOB = "construction_permits_public.xz.b64.part*"
 CA_PART_GLOB = "construction_ca_public.xz.b64.part*"
+LOT_AREA_FILE = DATA_DIR / "construction_lot_area_public.xz.b64"
 PART_SIZE = 10_000
 PUBLIC_FIELDS = (
     "permit",
@@ -20,6 +22,7 @@ PUBLIC_FIELDS = (
     "year",
     "type",
     "area",
+    "lot_area",
     "use",
     "construction",
     "coefficient",
@@ -116,17 +119,59 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
     return meta, tuple(normalized)
 
 
+def _load_lot_areas(entries: list[tuple[int, int, str, str, float]]) -> tuple[list[float | None], dict]:
+    """Carrega apenas as áreas cadastrais correspondentes ao mapa sanitizado de CA.
+
+    O vínculo é aceito somente quando a quantidade e o SHA-256 das chaves do mapa
+    de CA coincidem integralmente. Assim, uma atualização parcial nunca desloca
+    a área de um imóvel para outro alvará.
+    """
+    if not LOT_AREA_FILE.exists():
+        return [None] * len(entries), {"lot_area_resolved": 0}
+
+    ordered_keys = [[permit, year, date, permit_type] for permit, year, date, permit_type, _ in entries]
+    key_raw = json.dumps(ordered_keys, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    expected_sha = hashlib.sha256(key_raw).hexdigest()
+
+    try:
+        encoded = LOT_AREA_FILE.read_text(encoding="ascii").strip()
+        raw = lzma.decompress(base64.b64decode(encoded, validate=True))
+        payload = json.loads(raw.decode("utf-8"))
+    except Exception:
+        return [None] * len(entries), {"lot_area_resolved": 0}
+
+    areas = payload.get("areas")
+    if (
+        int(payload.get("v") or 0) != 1
+        or _integer(payload.get("resolved")) != len(entries)
+        or _text(payload.get("caKeysSha256")) != expected_sha
+        or not isinstance(areas, list)
+        or len(areas) != len(entries)
+    ):
+        return [None] * len(entries), {"lot_area_resolved": 0}
+
+    normalized_areas: list[float | None] = []
+    for value in areas:
+        area = _optional_number(value)
+        normalized_areas.append(round(area, 4) if area is not None and area > 0 else None)
+
+    return normalized_areas, {
+        "lot_area_resolved": sum(area is not None for area in normalized_areas),
+        "lot_area_keys_sha256": expected_sha,
+    }
+
+
 @lru_cache(maxsize=1)
 def load_ca_lookup() -> tuple[
-    dict[tuple[int, int, str, str], float],
-    dict[tuple[int, str, str], float],
+    dict[tuple[int, int, str, str], tuple[float, float | None]],
+    dict[tuple[int, str, str], tuple[float, float | None]],
     dict,
 ]:
     """Lê o resultado sanitizado do cruzamento Alvarás × Cadastro Imobiliário.
 
     O vínculo usa a chave completa (número + ano + data + tipo). Para registros
     históricos em que o campo Ano do Alvará diverge do ano da Data de Liberação,
-    usa número + data de liberação + tipo somente quando o CA é único.
+    usa número + data de liberação + tipo somente quando o par CA/área é único.
     """
     parts = sorted(DATA_DIR.glob(CA_PART_GLOB))
     if not parts:
@@ -141,9 +186,7 @@ def load_ca_lookup() -> tuple[
     if int(payload.get("v") or 0) != 1:
         return {}, {}, {}
 
-    exact: dict[tuple[int, int, str, str], float] = {}
-    by_permit_date_type_candidates: dict[tuple[int, str, str], set[float]] = {}
-
+    entries: list[tuple[int, int, str, str, float]] = []
     for item in payload.get("rows", []):
         if not isinstance(item, dict):
             continue
@@ -154,7 +197,15 @@ def load_ca_lookup() -> tuple[
         coefficient = _optional_number(item.get("c"))
         if not permit or not year or not date or not permit_type or coefficient is None:
             continue
-        value = round(coefficient, 3)
+        entries.append((permit, year, date, permit_type, round(coefficient, 3)))
+
+    lot_areas, lot_meta = _load_lot_areas(entries)
+
+    exact: dict[tuple[int, int, str, str], tuple[float, float | None]] = {}
+    by_permit_date_type_candidates: dict[tuple[int, str, str], set[tuple[float, float | None]]] = {}
+
+    for index, (permit, year, date, permit_type, coefficient) in enumerate(entries):
+        value = (coefficient, lot_areas[index])
         exact[(permit, year, date, permit_type)] = value
         by_permit_date_type_candidates.setdefault((permit, date, permit_type), set()).add(value)
 
@@ -170,15 +221,20 @@ def load_ca_lookup() -> tuple[
         "eligible": _integer(payload.get("eligible")),
         "resolved": _integer(payload.get("resolved")),
         "generated_at": _text(payload.get("generatedAt")),
+        **lot_meta,
     }
     return exact, by_permit_date_type, meta
 
 
-def _coefficient_for(row: dict, exact: dict, by_permit_date_type: dict) -> float | None:
+def _crossed_for(
+    row: dict,
+    exact: dict[tuple[int, int, str, str], tuple[float, float | None]],
+    by_permit_date_type: dict[tuple[int, str, str], tuple[float, float | None]],
+) -> tuple[float | None, float | None]:
     exact_key = (row["permit"], row["year"], row["date"], row["type"])
     if exact_key in exact:
         return exact[exact_key]
-    return by_permit_date_type.get((row["permit"], row["date"], row["type"]))
+    return by_permit_date_type.get((row["permit"], row["date"], row["type"]), (None, None))
 
 
 def _query_rows(params: dict[str, str]) -> tuple[dict, list[dict], dict]:
@@ -225,11 +281,14 @@ def construction_data_response(params: dict[str, str]) -> dict:
 
     enriched: list[dict] = []
     ca_records = 0
+    lot_area_records = 0
     for row in filtered:
-        coefficient = _coefficient_for(row, exact_ca, by_permit_date_type)
+        coefficient, lot_area = _crossed_for(row, exact_ca, by_permit_date_type)
         if coefficient is not None:
             ca_records += 1
-        enriched.append({**row, "coefficient": coefficient})
+        if lot_area is not None:
+            lot_area_records += 1
+        enriched.append({**row, "lot_area": lot_area, "coefficient": coefficient})
 
     offset = max(0, _integer(params.get("offset"), 0))
     limit = min(100, max(10, _integer(params.get("limit"), 50)))
@@ -241,6 +300,8 @@ def construction_data_response(params: dict[str, str]) -> dict:
             "ca_source": "Área Total do Alvará ÷ Área do Terreno cadastral" if exact_ca else "",
             "ca_records": ca_records,
             "ca_resolved_total": ca_meta.get("resolved", 0),
+            "lot_area_records": lot_area_records,
+            "lot_area_resolved_total": ca_meta.get("lot_area_resolved", 0),
         },
         "facets": facets,
         "records": {
@@ -263,18 +324,20 @@ def export_construction_csv(params: dict[str, str]) -> str:
         "Ano",
         "Tipo de alvará",
         "Área autorizada (m²)",
+        "Área do imóvel (m²)",
         "Uso",
         "Tipo de construção",
         "CA",
     ])
     for row in filtered:
-        coefficient = _coefficient_for(row, exact_ca, by_permit_date_type)
+        coefficient, lot_area = _crossed_for(row, exact_ca, by_permit_date_type)
         writer.writerow([
             f'{row["permit"]}/{row["year"]}',
             row["date"],
             row["year"],
             row["type"],
             f'{row["area"]:.2f}'.replace(".", ","),
+            "" if lot_area is None else f"{lot_area:.2f}".replace(".", ","),
             row["use"],
             row["construction"],
             "" if coefficient is None else str(coefficient).replace(".", ","),

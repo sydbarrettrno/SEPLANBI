@@ -137,9 +137,9 @@ export function activeDashboardFilters(filters: DashboardFilters): ActiveFilterC
   }
   for (const [key, label, value] of [
     ["macro", "Família de Processos", filters.macro],
+    ["category", "Categoria", filters.category],
     ["year", "Ano", filters.year],
     ["month", "Mês", filters.month],
-    ["category", "Categoria", filters.category],
     ["status", "Status", filters.status],
     ["owner", "Responsabilidade", filters.owner],
     ["sector", "Setor de tramitação", filters.sector],
@@ -151,7 +151,7 @@ export function activeDashboardFilters(filters: DashboardFilters): ActiveFilterC
       if (key === "category") {
         const preset = findPresetByCategoryValue(value);
         if (preset) {
-          chips.push({ key: "responsibleSector", label: "Setor Responsável", value: preset.name });
+          chips.push({ key: "responsibleSector", label: "Recorte salvo", value: preset.name });
           continue;
         }
       }

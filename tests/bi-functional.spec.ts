@@ -189,12 +189,12 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await page.goto("/#/stock");
   await waitForCount(page, 2159);
   await openFilters(page);
-  await expect(page.getByLabel("De")).toHaveCount(0);
-  await expect(page.getByLabel("Até")).toHaveCount(0);
-  await expect(page.getByLabel("Ano de abertura")).toBeVisible();
-  await expect(page.getByLabel("Mês de abertura")).toBeVisible();
-  await page.getByLabel("Status").selectOption("Em Análise");
-  await page.getByLabel("Setor de tramitação").selectOption({ index: 1 });
+  await expect(page.getByLabel("De", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Até", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Ano de abertura", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Mês de abertura", { exact: true })).toBeVisible();
+  await page.getByLabel("Status", { exact: true }).selectOption("Em Análise");
+  await page.getByLabel("Setor de tramitação", { exact: true }).selectOption({ index: 1 });
   await page.locator(".filter-bar label", { hasText: "Responsabilidade" }).locator("select").selectOption("Interno");
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await openFilters(page);

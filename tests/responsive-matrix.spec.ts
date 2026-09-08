@@ -30,15 +30,40 @@ async function assertViewportIntegrity(page: Page, route: string, width: number)
   await expect(page.locator(".topbar")).toBeVisible();
   await expect(page.locator("main.content")).toBeVisible();
 
-  const geometry = await page.evaluate(() => ({
-    viewport: window.innerWidth,
-    html: document.documentElement.scrollWidth,
-    body: document.body.scrollWidth,
-    contentRight: document.querySelector<HTMLElement>("main.content")?.getBoundingClientRect().right ?? 0,
-  }));
+  const geometry = await page.evaluate(() => {
+    const viewport = window.innerWidth;
+    const offenders = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          tag: element.tagName.toLowerCase(),
+          className: typeof element.className === "string" ? element.className : "",
+          left: Math.round(rect.left * 10) / 10,
+          right: Math.round(rect.right * 10) / 10,
+          width: Math.round(rect.width * 10) / 10,
+          overflowX: style.overflowX,
+          position: style.position,
+        };
+      })
+      .filter((item) => item.width > 0 && (item.right > viewport + 1 || item.left < -1))
+      .sort((a, b) => Math.max(b.right - viewport, -b.left) - Math.max(a.right - viewport, -a.left))
+      .slice(0, 12);
+
+    return {
+      viewport,
+      html: document.documentElement.scrollWidth,
+      body: document.body.scrollWidth,
+      contentRight: document.querySelector<HTMLElement>("main.content")?.getBoundingClientRect().right ?? 0,
+      offenders,
+    };
+  });
 
   expect(geometry.viewport).toBe(width);
-  expect(Math.max(geometry.html, geometry.body)).toBeLessThanOrEqual(width + 1);
+  expect(
+    Math.max(geometry.html, geometry.body),
+    `${route} @ ${width}px overflow; offenders=${JSON.stringify(geometry.offenders)}`,
+  ).toBeLessThanOrEqual(width + 1);
   expect(geometry.contentRight).toBeLessThanOrEqual(width + 1);
 
   if (route === "received" && width <= 1180) {

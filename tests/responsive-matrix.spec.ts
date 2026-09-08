@@ -26,6 +26,7 @@ mkdirSync(SCREENSHOTS, { recursive: true });
 
 async function assertViewportIntegrity(page: Page, route: string, width: number) {
   await page.goto(`/#/${route}`, { waitUntil: "domcontentloaded" });
+  await expect(page.locator(`.app-shell[data-route="${route}"]`)).toBeVisible();
   await page.waitForLoadState("networkidle");
   await expect(page.locator(".topbar")).toBeVisible();
   await expect(page.locator("main.content")).toBeVisible();

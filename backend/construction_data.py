@@ -114,11 +114,14 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
 
 
 def _ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict[tuple[int, int], float]]:
-    """Extrai somente o CA estimado da base cadastral privada.
+    """Calcula o CA usando exclusivamente a regra operacional definida:
 
-    Nenhum campo nominal, cadastral ou de endereço é devolvido pelo contrato público.
-    O fallback por alvará/ano só é aceito quando todos os registros cruzados daquele
-    alvará possuem o mesmo CA, evitando associação ambígua.
+    CA = área total do alvará / área do lote.
+
+    A área do alvará vem do registro de alvarás e a área do lote vem do
+    Cadastro Imobiliário já cruzado. Nenhum dado pessoal é devolvido pelo
+    contrato público. O fallback por alvará/ano só é aceito quando todos os
+    registros daquele alvará resultam no mesmo CA.
     """
     try:
         from backend.construction_private import load_private_construction
@@ -135,10 +138,13 @@ def _ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict[tuple[int
         year = _integer(row.get("year"))
         date = _text(row.get("date"))
         permit_type = _text(row.get("permit_type"))
-        ca = _optional_number(row.get("ca_estimated"))
-        if not permit or not year or ca is None:
+        permit_area = _optional_number(row.get("authorized_area_m2"))
+        lot_area = _optional_number(row.get("lot_area_m2"))
+
+        if not permit or not year or permit_area is None or lot_area is None or lot_area <= 0:
             continue
-        value = round(ca, 3)
+
+        value = round(permit_area / lot_area, 3)
         exact[(permit, year, date, permit_type)] = value
         candidates.setdefault((permit, year), set()).add(value)
 
@@ -214,7 +220,7 @@ def construction_data_response(params: dict[str, str]) -> dict:
         "ok": True,
         "meta": {
             **meta,
-            "ca_source": "Cadastro Imobiliário cruzado" if exact_ca or unambiguous_ca else "",
+            "ca_source": "Área do alvará ÷ área do lote cadastral" if exact_ca or unambiguous_ca else "",
             "ca_records": ca_records,
         },
         "facets": facets,
@@ -240,7 +246,7 @@ def export_construction_csv(params: dict[str, str]) -> str:
         "Área autorizada (m²)",
         "Uso",
         "Tipo de construção",
-        "CA estimado",
+        "CA",
     ])
     for row in filtered:
         coefficient = _coefficient_for(row, exact_ca, unambiguous_ca)

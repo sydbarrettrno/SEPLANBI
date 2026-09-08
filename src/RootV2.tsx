@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import App from "./App";
 import { fetchAdminSession } from "./api";
 import { AdminAccessGate } from "./components/AdminAccessGate";
-import { ConstructionDashboardV2 } from "./components/ConstructionDashboardV2";
+import { ConstructionDashboardV3 } from "./components/ConstructionDashboardV3";
 import { DashboardShell } from "./components/DashboardShell";
 import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
 import { Header } from "./components/Header";
@@ -97,10 +97,7 @@ function RootRoutes() {
           <nav className="extended-route-nav" aria-label="Navegação da seção construção civil">
             <a className="ghost-button" href="#/overview">← {copy.common.breadcrumbOverview}</a>
           </nav>
-          <ConstructionDashboardV2
-            adminAuthorized={adminAuthorized}
-            onAdminAuthenticated={() => setAdminAuthorized(true)}
-          />
+          <ConstructionDashboardV3 />
         </DashboardShell>
       ) : kpi ? (
         <DashboardShell

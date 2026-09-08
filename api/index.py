@@ -15,7 +15,7 @@ from backend.indicator_views import indicator_view_response
 from backend.private_export import build_private_xlsx
 from backend.private_data import load_private_rows
 from backend.private_import import install_private_xlsx
-from backend.construction_data import construction_data_response, export_construction_csv
+from backend.construction_data import construction_data_response
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -213,7 +213,12 @@ class handler(BaseHTTPRequestHandler):
                 self._json(200, construction_data_response(params))
                 return
             if action == "construction-export":
-                self._csv(200, export_construction_csv(params), "alvaras-itapoa-base-analitica.csv")
+                if not self._require_admin():
+                    return
+                self._json(410, {
+                    "ok": False,
+                    "error": "Exportação CSV desativada. A base completa deve ser fornecida somente por XLSX protegido.",
+                })
                 return
             if action != "dashboard":
                 self._json(400, {"ok": False, "error": "Ação inválida."})

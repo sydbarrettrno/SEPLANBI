@@ -117,22 +117,27 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
 
 
 @lru_cache(maxsize=1)
-def load_ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict]:
+def load_ca_lookup() -> tuple[
+    dict[tuple[int, int, str, str], float],
+    dict[tuple[int, int], float],
+    dict,
+]:
     """Lê o resultado sanitizado do cruzamento Alvarás × Cadastro Imobiliário."""
     parts = sorted(DATA_DIR.glob(CA_PART_GLOB))
     if not parts:
-        return {}, {}
+        return {}, {}, {}
     try:
         encoded = _read_encoded_parts(parts)
         raw = lzma.decompress(base64.b64decode(encoded, validate=True))
         payload = json.loads(raw.decode("utf-8"))
     except Exception:
-        return {}, {}
+        return {}, {}, {}
 
     if int(payload.get("v") or 0) != 1:
-        return {}, {}
+        return {}, {}, {}
 
     exact: dict[tuple[int, int, str, str], float] = {}
+    candidates: dict[tuple[int, int], set[float]] = {}
     for item in payload.get("rows", []):
         if not isinstance(item, dict):
             continue
@@ -143,8 +148,15 @@ def load_ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict]:
         coefficient = _optional_number(item.get("c"))
         if not permit or not year or not date or not permit_type or coefficient is None:
             continue
-        exact[(permit, year, date, permit_type)] = round(coefficient, 3)
+        value = round(coefficient, 3)
+        exact[(permit, year, date, permit_type)] = value
+        candidates.setdefault((permit, year), set()).add(value)
 
+    unambiguous = {
+        key: next(iter(values))
+        for key, values in candidates.items()
+        if len(values) == 1
+    }
     meta = {
         "source": _text(payload.get("source")),
         "formula": _text(payload.get("formula")),
@@ -153,11 +165,14 @@ def load_ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict]:
         "resolved": _integer(payload.get("resolved")),
         "generated_at": _text(payload.get("generatedAt")),
     }
-    return exact, meta
+    return exact, unambiguous, meta
 
 
-def _coefficient_for(row: dict, exact: dict) -> float | None:
-    return exact.get((row["permit"], row["year"], row["date"], row["type"]))
+def _coefficient_for(row: dict, exact: dict, unambiguous: dict) -> float | None:
+    exact_key = (row["permit"], row["year"], row["date"], row["type"])
+    if exact_key in exact:
+        return exact[exact_key]
+    return unambiguous.get((row["permit"], row["year"]))
 
 
 def _query_rows(params: dict[str, str]) -> tuple[dict, list[dict], dict]:
@@ -200,12 +215,12 @@ def _query_rows(params: dict[str, str]) -> tuple[dict, list[dict], dict]:
 
 def construction_data_response(params: dict[str, str]) -> dict:
     meta, filtered, facets = _query_rows(params)
-    exact_ca, ca_meta = load_ca_lookup()
+    exact_ca, unambiguous_ca, ca_meta = load_ca_lookup()
 
     enriched: list[dict] = []
     ca_records = 0
     for row in filtered:
-        coefficient = _coefficient_for(row, exact_ca)
+        coefficient = _coefficient_for(row, exact_ca, unambiguous_ca)
         if coefficient is not None:
             ca_records += 1
         enriched.append({**row, "coefficient": coefficient})
@@ -233,7 +248,7 @@ def construction_data_response(params: dict[str, str]) -> dict:
 
 def export_construction_csv(params: dict[str, str]) -> str:
     _, filtered, _ = _query_rows(params)
-    exact_ca, _ = load_ca_lookup()
+    exact_ca, unambiguous_ca, _ = load_ca_lookup()
     output = io.StringIO(newline="")
     writer = csv.writer(output, delimiter=";")
     writer.writerow([
@@ -247,7 +262,7 @@ def export_construction_csv(params: dict[str, str]) -> str:
         "CA",
     ])
     for row in filtered:
-        coefficient = _coefficient_for(row, exact_ca)
+        coefficient = _coefficient_for(row, exact_ca, unambiguous_ca)
         writer.writerow([
             f'{row["permit"]}/{row["year"]}',
             row["date"],

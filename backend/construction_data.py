@@ -22,7 +22,6 @@ PUBLIC_FIELDS = (
     "use",
     "construction",
     "coefficient",
-    "outorga",
 )
 PUBLIC_USE_LABELS = {
     "Residencial unifamiliar": "Residencial — não especificado",
@@ -47,6 +46,15 @@ def _number(value, default: float = 0.0) -> float:
         return default
 
 
+def _optional_number(value) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def _read_encoded_parts(parts: list[Path]) -> str:
     chunks: list[str] = []
     for index, part in enumerate(parts):
@@ -54,8 +62,6 @@ def _read_encoded_parts(parts: list[Path]) -> str:
         if index < len(parts) - 1:
             if len(chunk) < PART_SIZE:
                 raise RuntimeError("Parte incompleta da base analítica de alvarás.")
-            # As partes intermediárias são blocos fixos de 10 mil caracteres.
-            # O corte também neutraliza eventual caractere duplicado na fronteira.
             chunk = chunk[:PART_SIZE]
         chunks.append(chunk)
     return "".join(chunks)
@@ -91,10 +97,6 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
             "area": round(_number(item.get("area")), 2),
             "use": PUBLIC_USE_LABELS.get(raw_use, raw_use),
             "construction": _text(item.get("construction")),
-            # As duas colunas existem na planilha analítica, mas a extração
-            # atual do IPM não fornece valores em nenhuma das 9.912 linhas.
-            "coefficient": "N/D na fonte",
-            "outorga": "N/D na fonte",
         }
         if record["permit"] and record["date"] and record["year"]:
             normalized.append(record)
@@ -109,6 +111,50 @@ def load_construction_rows() -> tuple[dict, tuple[dict, ...]]:
         "total": len(normalized),
     }
     return meta, tuple(normalized)
+
+
+def _ca_lookup() -> tuple[dict[tuple[int, int, str, str], float], dict[tuple[int, int], float]]:
+    """Extrai somente o CA estimado da base cadastral privada.
+
+    Nenhum campo nominal, cadastral ou de endereço é devolvido pelo contrato público.
+    O fallback por alvará/ano só é aceito quando todos os registros cruzados daquele
+    alvará possuem o mesmo CA, evitando associação ambígua.
+    """
+    try:
+        from backend.construction_private import load_private_construction
+
+        _, private_rows = load_private_construction()
+    except Exception:
+        return {}, {}
+
+    exact: dict[tuple[int, int, str, str], float] = {}
+    candidates: dict[tuple[int, int], set[float]] = {}
+
+    for row in private_rows:
+        permit = _integer(row.get("permit"))
+        year = _integer(row.get("year"))
+        date = _text(row.get("date"))
+        permit_type = _text(row.get("permit_type"))
+        ca = _optional_number(row.get("ca_estimated"))
+        if not permit or not year or ca is None:
+            continue
+        value = round(ca, 3)
+        exact[(permit, year, date, permit_type)] = value
+        candidates.setdefault((permit, year), set()).add(value)
+
+    unambiguous = {
+        key: next(iter(values))
+        for key, values in candidates.items()
+        if len(values) == 1
+    }
+    return exact, unambiguous
+
+
+def _coefficient_for(row: dict, exact: dict, unambiguous: dict) -> float | None:
+    exact_key = (row["permit"], row["year"], row["date"], row["type"])
+    if exact_key in exact:
+        return exact[exact_key]
+    return unambiguous.get((row["permit"], row["year"]))
 
 
 def _query_rows(params: dict[str, str]) -> tuple[dict, list[dict], dict]:
@@ -151,15 +197,29 @@ def _query_rows(params: dict[str, str]) -> tuple[dict, list[dict], dict]:
 
 def construction_data_response(params: dict[str, str]) -> dict:
     meta, filtered, facets = _query_rows(params)
+    exact_ca, unambiguous_ca = _ca_lookup()
+
+    enriched: list[dict] = []
+    ca_records = 0
+    for row in filtered:
+        coefficient = _coefficient_for(row, exact_ca, unambiguous_ca)
+        if coefficient is not None:
+            ca_records += 1
+        enriched.append({**row, "coefficient": coefficient})
+
     offset = max(0, _integer(params.get("offset"), 0))
     limit = min(100, max(10, _integer(params.get("limit"), 50)))
-    items = filtered[offset: offset + limit]
+    items = enriched[offset: offset + limit]
     return {
         "ok": True,
-        "meta": meta,
+        "meta": {
+            **meta,
+            "ca_source": "Cadastro Imobiliário cruzado" if exact_ca or unambiguous_ca else "",
+            "ca_records": ca_records,
+        },
         "facets": facets,
         "records": {
-            "filtered": len(filtered),
+            "filtered": len(enriched),
             "offset": offset,
             "limit": limit,
             "items": items,
@@ -169,6 +229,7 @@ def construction_data_response(params: dict[str, str]) -> dict:
 
 def export_construction_csv(params: dict[str, str]) -> str:
     _, filtered, _ = _query_rows(params)
+    exact_ca, unambiguous_ca = _ca_lookup()
     output = io.StringIO(newline="")
     writer = csv.writer(output, delimiter=";")
     writer.writerow([
@@ -179,10 +240,10 @@ def export_construction_csv(params: dict[str, str]) -> str:
         "Área autorizada (m²)",
         "Uso",
         "Tipo de construção",
-        "Coef. de aproveitamento",
-        "Outorga onerosa",
+        "CA estimado",
     ])
     for row in filtered:
+        coefficient = _coefficient_for(row, exact_ca, unambiguous_ca)
         writer.writerow([
             f'{row["permit"]}/{row["year"]}',
             row["date"],
@@ -191,7 +252,6 @@ def export_construction_csv(params: dict[str, str]) -> str:
             f'{row["area"]:.2f}'.replace(".", ","),
             row["use"],
             row["construction"],
-            row["coefficient"],
-            row["outorga"],
+            "" if coefficient is None else str(coefficient).replace(".", ","),
         ])
     return output.getvalue()

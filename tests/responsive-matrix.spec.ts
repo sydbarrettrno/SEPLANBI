@@ -31,6 +31,19 @@ async function assertViewportIntegrity(page: Page, route: string, width: number)
   await expect(page.locator(".topbar")).toBeVisible();
   await expect(page.locator("main.content")).toBeVisible();
 
+  // Algumas rotas montam tabelas/matrizes após a primeira pintura do React.
+  // Aguarda o layout convergir antes de medir overflow estrutural, sem esconder
+  // um overflow persistente: se não estabilizar em 5 s, a asserção detalhada
+  // abaixo ainda falha e lista os elementos ofensores.
+  await page
+    .waitForFunction(
+      (limit) =>
+        Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) <= limit + 1,
+      width,
+      { timeout: 5_000, polling: 100 },
+    )
+    .catch(() => undefined);
+
   const geometry = await page.evaluate(() => {
     const viewport = window.innerWidth;
     const offenders = Array.from(document.querySelectorAll<HTMLElement>("body *"))

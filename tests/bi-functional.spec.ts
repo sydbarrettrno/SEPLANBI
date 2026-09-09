@@ -191,8 +191,8 @@ test("filtros globais, pesquisa e limpeza afetam o mesmo universo analítico", a
   await openFilters(page);
   await expect(page.getByLabel("De", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Até", { exact: true })).toHaveCount(0);
-  await expect(page.getByLabel("Ano de abertura", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Mês de abertura", { exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Ano de abertura", exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Mês de abertura", exact: true })).toBeVisible();
   await page.getByLabel("Status", { exact: true }).selectOption("Em Análise");
   await page.getByLabel("Setor de tramitação", { exact: true }).selectOption({ index: 1 });
   await page.locator(".filter-bar label", { hasText: "Responsabilidade" }).locator("select").selectOption("Interno");
@@ -257,7 +257,7 @@ test("projetos públicos: carteira independente, filtros e detalhamento reconcil
   expect(failures).toEqual([]);
 });
 
-test("construção civil: visão executiva e consulta protegida ficam separadas e utilizáveis", async ({ page }) => {
+test("construção civil: visão executiva e relação analítica sanitizada ficam separadas e utilizáveis", async ({ page }) => {
   const failures = watchRuntime(page);
   await page.goto("/#/construction", { waitUntil: "domcontentloaded" });
 
@@ -272,10 +272,13 @@ test("construção civil: visão executiva e consulta protegida ficam separadas 
   await expect(page.getByRole("heading", { name: "Área autorizada para construção nova (m²) · 2016–2025", level: 2 })).toBeVisible();
 
   await constructionViews.getByRole("button", { name: /Relação analítica/ }).click();
-  await expect(page.getByRole("heading", { name: "Relação analítica de alvarás", level: 2 })).toBeVisible();
-  await expect(page.getByLabel("Senha")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Acessar relação analítica" })).toBeVisible();
-  await expect(page.locator(".construction-base-table")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Relação analítica · alvará por alvará", level: 2 })).toBeVisible();
+  await expect(page.getByLabel("Senha")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Acessar relação analítica" })).toHaveCount(0);
+  await expect(page.locator(".construction-base-table")).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Área do imóvel" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "CA", exact: true })).toBeVisible();
+  await expect(page.locator(".construction-base-privacy")).toContainText("Consulta sem titular, CPF/CNPJ, cadastro, inscrição ou endereço detalhado.");
   expect(failures).toEqual([]);
 });
 
@@ -287,7 +290,7 @@ test("construção civil não cria rolagem horizontal no celular", async ({ page
   expect(Math.max(executiveViewport.body, executiveViewport.html)).toBeLessThanOrEqual(executiveViewport.viewport);
 
   await page.getByRole("navigation", { name: "Modo de visualização da construção civil" }).getByRole("button", { name: /Relação analítica/ }).click();
-  await expect(page.getByRole("heading", { name: "Relação analítica de alvarás", level: 2 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Relação analítica · alvará por alvará", level: 2 })).toBeVisible();
   const recordsViewport = await page.evaluate(() => ({ body: document.body.scrollWidth, html: document.documentElement.scrollWidth, viewport: window.innerWidth }));
   expect(Math.max(recordsViewport.body, recordsViewport.html)).toBeLessThanOrEqual(recordsViewport.viewport);
 });

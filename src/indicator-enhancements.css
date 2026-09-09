@@ -144,6 +144,33 @@
 .sidebar nav::-webkit-scrollbar-thumb { background: rgba(125, 173, 210, .38); border-radius: 999px; }
 .sidebar nav::-webkit-scrollbar-thumb:hover { background: rgba(125, 173, 210, .62); }
 
+/* Contenção responsiva dos indicadores estendidos.
+ * Evita que conteúdo intrínseco de barras e tabelas aumente a largura do body.
+ * Tabelas largas permanecem consultáveis por rolagem apenas dentro do painel.
+ */
+.extended-bi .bi-layout-main > *,
+.extended-bi .interactive-bars,
+.extended-bi .interactive-bars > button:not(.expand-bars),
+.extended-bi .interactive-bars button span,
+.extended-bi .interactive-bars button span strong,
+.extended-bi .table-wrap,
+.extended-bi .matrix-wrap {
+  min-width: 0;
+}
+
+.extended-bi .interactive-bars > button:not(.expand-bars) {
+  width: 100%;
+  max-width: 100%;
+}
+
+.extended-bi .table-wrap,
+.extended-bi .matrix-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
 @media (min-width: 1221px) and (max-width: 1440px) {
   .projects-filter-bar { grid-template-columns: repeat(3, minmax(150px, 1fr)); }
   .projects-filter-actions { justify-content: flex-start; }

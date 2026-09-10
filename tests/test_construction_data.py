@@ -25,6 +25,7 @@ PRIVATE_LABELS = (
     "Endereço",
     "Outorga",
 )
+RESIDENTIAL_UNSPECIFIED = "Residencial — não especificado"
 
 
 class ConstructionDataTests(unittest.TestCase):
@@ -35,8 +36,11 @@ class ConstructionDataTests(unittest.TestCase):
         self.assertEqual(meta["extracted_at"], "2026-09-04")
         self.assertEqual(len(rows), 9_912)
         self.assertTrue(all(set(row) == RAW_PUBLIC_FIELDS for row in rows))
-        self.assertTrue(any(row["use"] == "Residencial unifamiliar" for row in rows))
-        self.assertTrue(all(row["use"] != "Residencial — não especificado" for row in rows))
+        self.assertEqual(
+            sum(row["use"] == RESIDENTIAL_UNSPECIFIED for row in rows),
+            6_133,
+        )
+        self.assertTrue(all(row["use"] != "Residencial unifamiliar" for row in rows))
 
     def test_public_response_uses_final_allowlist_and_crossed_fields(self):
         response = construction_data_response({"limit": "10"})
@@ -58,20 +62,20 @@ class ConstructionDataTests(unittest.TestCase):
 
     def test_filters_and_csv_follow_same_public_contract(self):
         response = construction_data_response(
-            {"use": "Residencial unifamiliar", "limit": "10"}
+            {"use": RESIDENTIAL_UNSPECIFIED, "limit": "10"}
         )
 
         self.assertTrue(response["ok"])
-        self.assertGreater(response["records"]["filtered"], 0)
+        self.assertEqual(response["records"]["filtered"], 6_133)
         self.assertTrue(
             all(
-                item["use"] == "Residencial unifamiliar"
+                item["use"] == RESIDENTIAL_UNSPECIFIED
                 for item in response["records"]["items"]
             )
         )
 
         csv_text = export_construction_csv(
-            {"year": "2026", "use": "Residencial unifamiliar"}
+            {"year": "2026", "use": RESIDENTIAL_UNSPECIFIED}
         )
         header, *records = csv_text.splitlines()
         self.assertEqual(
@@ -79,7 +83,7 @@ class ConstructionDataTests(unittest.TestCase):
             "Alvará;Data de emissão;Ano;Tipo de alvará;Área autorizada (m²);Área do imóvel (m²);Uso;Tipo de construção;CA",
         )
         self.assertTrue(records)
-        self.assertTrue(all("Residencial unifamiliar" in record for record in records))
+        self.assertTrue(all(RESIDENTIAL_UNSPECIFIED in record for record in records))
         for label in PRIVATE_LABELS:
             self.assertNotIn(label, csv_text)
 

@@ -28,6 +28,7 @@ PUBLIC_FIELDS = (
     "coefficient",
 )
 PUBLIC_USE_LABELS = {
+    "Residencial unifamiliar": "Residencial — não especificado",
     "Residencial — não especificado": "Residencial — não especificado",
     "Residencial - não especificado": "Residencial — não especificado",
     "Residencial não identificado": "Residencial — não especificado",

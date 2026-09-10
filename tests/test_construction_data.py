@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import unittest
+
 from backend.construction_data import (
     PUBLIC_FIELDS,
     construction_data_response,
@@ -7,34 +9,84 @@ from backend.construction_data import (
     load_construction_rows,
 )
 
+RAW_PUBLIC_FIELDS = {
+    "permit",
+    "date",
+    "year",
+    "type",
+    "area",
+    "use",
+    "construction",
+}
+PRIVATE_LABELS = (
+    "Titular",
+    "CPF",
+    "CNPJ",
+    "Endereço",
+    "Outorga",
+)
+RESIDENTIAL_UNSPECIFIED = "Residencial — não especificado"
 
-def test_construction_public_base_preserves_source_semantics_and_allowlist():
-    meta, rows = load_construction_rows()
 
-    assert meta["source"] == "Sistema IPM"
-    assert meta["extracted_at"] == "2026-09-04"
-    assert len(rows) == 9_912
-    assert all(set(row) == set(PUBLIC_FIELDS) for row in rows)
-    assert all(row["coefficient"] == "N/D na fonte" for row in rows)
-    assert all(row["outorga"] == "N/D na fonte" for row in rows)
-    assert sum(row["use"] == "Residencial — não especificado" for row in rows) == 6_133
-    assert all(row["use"] != "Residencial unifamiliar" for row in rows)
+class ConstructionDataTests(unittest.TestCase):
+    def test_public_base_preserves_source_semantics(self):
+        meta, rows = load_construction_rows()
+
+        self.assertEqual(meta["source"], "Sistema IPM")
+        self.assertEqual(meta["extracted_at"], "2026-09-04")
+        self.assertEqual(len(rows), 9_912)
+        self.assertTrue(all(set(row) == RAW_PUBLIC_FIELDS for row in rows))
+        self.assertEqual(
+            sum(row["use"] == RESIDENTIAL_UNSPECIFIED for row in rows),
+            6_133,
+        )
+        self.assertTrue(all(row["use"] != "Residencial unifamiliar" for row in rows))
+
+    def test_public_response_uses_final_allowlist_and_crossed_fields(self):
+        response = construction_data_response({"limit": "10"})
+
+        self.assertTrue(response["ok"])
+        self.assertEqual(response["records"]["filtered"], 9_912)
+        self.assertEqual(len(response["records"]["items"]), 10)
+        self.assertTrue(
+            all(set(item) == set(PUBLIC_FIELDS) for item in response["records"]["items"])
+        )
+        self.assertGreater(response["meta"]["ca_records"], 0)
+        self.assertGreater(response["meta"]["lot_area_records"], 0)
+
+        for item in response["records"]["items"]:
+            self.assertTrue(
+                item["coefficient"] is None or isinstance(item["coefficient"], float)
+            )
+            self.assertTrue(item["lot_area"] is None or isinstance(item["lot_area"], float))
+
+    def test_filters_and_csv_follow_same_public_contract(self):
+        response = construction_data_response(
+            {"use": RESIDENTIAL_UNSPECIFIED, "limit": "10"}
+        )
+
+        self.assertTrue(response["ok"])
+        self.assertEqual(response["records"]["filtered"], 6_133)
+        self.assertTrue(
+            all(
+                item["use"] == RESIDENTIAL_UNSPECIFIED
+                for item in response["records"]["items"]
+            )
+        )
+
+        csv_text = export_construction_csv(
+            {"year": "2026", "use": RESIDENTIAL_UNSPECIFIED}
+        )
+        header, *records = csv_text.splitlines()
+        self.assertEqual(
+            header,
+            "Alvará;Data de emissão;Ano;Tipo de alvará;Área autorizada (m²);Área do imóvel (m²);Uso;Tipo de construção;CA",
+        )
+        self.assertTrue(records)
+        self.assertTrue(all(RESIDENTIAL_UNSPECIFIED in record for record in records))
+        for label in PRIVATE_LABELS:
+            self.assertNotIn(label, csv_text)
 
 
-def test_construction_filters_and_csv_use_the_same_public_label():
-    response = construction_data_response({"use": "Residencial — não especificado", "limit": "10"})
-
-    assert response["ok"] is True
-    assert response["records"]["filtered"] == 6_133
-    assert len(response["records"]["items"]) == 10
-    assert all(item["use"] == "Residencial — não especificado" for item in response["records"]["items"])
-
-    csv_text = export_construction_csv({"year": "2026", "use": "Residencial — não especificado"})
-    header, *records = csv_text.splitlines()
-    assert header == "Alvará;Data de emissão;Ano;Tipo de alvará;Área autorizada (m²);Uso;Tipo de construção;Coef. de aproveitamento;Outorga onerosa"
-    assert records
-    assert all("Residencial — não especificado" in record for record in records)
-    assert all(record.endswith(";N/D na fonte;N/D na fonte") for record in records)
-    assert "Titular" not in csv_text
-    assert "CPF" not in csv_text
-    assert "Endereço" not in csv_text
+if __name__ == "__main__":
+    unittest.main()

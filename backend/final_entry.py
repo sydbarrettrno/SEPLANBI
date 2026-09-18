@@ -1,5 +1,7 @@
 from collections import Counter
 from functools import lru_cache
+import base64
+import gzip
 import json
 
 from backend import core
@@ -7,6 +9,7 @@ from backend.final_data import load_rows as load_rows_base
 
 
 DELTA_PATH = core.DATA_DIR / "incremental_public.json"
+DELTA_V2_PATH = core.DATA_DIR / "incremental_public_v2.json.gz.b64"
 _ALLOWED_DELTA_FIELDS = {
     "ProtocoloID",
     "NumeroAnoOriginal",
@@ -26,17 +29,33 @@ _ALLOWED_DELTA_FIELDS = {
 }
 
 
+def _read_incremental_payload():
+    if DELTA_V2_PATH.is_file():
+        try:
+            encoded = DELTA_V2_PATH.read_text(encoding="ascii").strip()
+            raw = gzip.decompress(base64.b64decode(encoded, validate=True))
+            return json.loads(raw.decode("utf-8"))
+        except Exception as exc:
+            raise RuntimeError("Carga bloqueada: overlay público v2 inválido.") from exc
+    if DELTA_PATH.is_file():
+        try:
+            return json.loads(DELTA_PATH.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise RuntimeError("Carga bloqueada: delta público incremental inválido.") from exc
+    return {"v": 2, "mode": "upsert", "records": []}
+
+
 @lru_cache(maxsize=1)
 def _load_incremental_public():
-    if not DELTA_PATH.is_file():
-        return {"v": 1, "records": []}
-    try:
-        payload = json.loads(DELTA_PATH.read_text(encoding="utf-8"))
-    except Exception as exc:
-        raise RuntimeError("Carga bloqueada: delta público incremental inválido.") from exc
-    if payload.get("v") != 1 or not isinstance(payload.get("records"), list):
-        raise RuntimeError("Carga bloqueada: contrato incremental público v1 esperado.")
+    payload = _read_incremental_payload()
+    version = int(payload.get("v") or 0)
+    if version not in {1, 2} or not isinstance(payload.get("records"), list):
+        raise RuntimeError("Carga bloqueada: contrato incremental público v1/v2 esperado.")
+    if version == 2 and payload.get("mode") != "upsert":
+        raise RuntimeError("Carga bloqueada: overlay público v2 deve operar em modo upsert.")
     for row in payload["records"]:
+        if not isinstance(row, dict):
+            raise RuntimeError("Carga bloqueada: registro incremental inválido.")
         unknown = set(row).difference(_ALLOWED_DELTA_FIELDS)
         forbidden = core.FORBIDDEN_KEYS.intersection(row)
         if unknown or forbidden:
@@ -63,21 +82,40 @@ def load_rows():
     metadata = core.metadata()
     expected_base = int(metadata.get("source_rows", -1))
 
-    # O artefato compacto permanece imutável; o delta contém somente protocolos
-    # novos já auditados e sanitizados. Isso permite atualização incremental sem
-    # republicar PII nem reclassificar a memória histórica.
+    # O artefato compacto permanece imutável. O overlay sanitizado v2 pode
+    # substituir o retrato atual de protocolos já existentes e acrescentar
+    # protocolos novos, sem publicar PII nem reclassificar a memória histórica.
     rows = [dict(row) for row in load_rows_base()]
     base_rows = len(rows)
     if base_rows != expected_base:
         raise RuntimeError("Carga bloqueada: artefato-base diverge dos metadados.")
 
-    seen = {core._clean(row.get("ProtocoloID")) for row in rows}
+    index_by_id = {
+        core._clean(row.get("ProtocoloID")): index
+        for index, row in enumerate(rows)
+    }
+    replaced = 0
+    added = 0
+    overlay_seen: set[str] = set()
+    version = int(delta.get("v") or 1)
+
     for item in delta.get("records", []):
         protocol_id = core._clean(item.get("ProtocoloID"))
-        if not protocol_id or protocol_id in seen:
+        if not protocol_id or protocol_id in overlay_seen:
             raise RuntimeError(f"Carga bloqueada: protocolo incremental inválido/duplicado {protocol_id!r}.")
-        rows.append(dict(item))
-        seen.add(protocol_id)
+        overlay_seen.add(protocol_id)
+
+        if protocol_id in index_by_id:
+            if version == 1:
+                raise RuntimeError(
+                    f"Carga bloqueada: protocolo incremental v1 já existe no artefato-base {protocol_id!r}."
+                )
+            rows[index_by_id[protocol_id]] = dict(item)
+            replaced += 1
+        else:
+            index_by_id[protocol_id] = len(rows)
+            rows.append(dict(item))
+            added += 1
 
     audit = core._audit_rows(rows)
     if not audit["ok"]:
@@ -88,8 +126,12 @@ def load_rows():
     if len(categories) != expected_categories:
         raise RuntimeError("Carga bloqueada: taxonomia V07 não reconciliada.")
 
-    # Atualiza em memória somente os metadados efetivos do snapshot. O manifesto
-    # do artefato-base continua descrevendo os 7.063 registros compactados.
+    expected_effective = int(delta.get("expected_effective_rows") or 0)
+    if expected_effective and len(rows) != expected_effective:
+        raise RuntimeError(
+            f"Carga bloqueada: total reconciliado {len(rows)} diverge do esperado {expected_effective}."
+        )
+
     source_updated_at = _EFFECTIVE_DATE or metadata.get("source_updated_at")
     metadata["base_artifact_rows"] = base_rows
     metadata["source_rows"] = len(rows)
@@ -102,16 +144,24 @@ def load_rows():
     import_audit = metadata.setdefault("import_audit", {})
     import_audit.update({
         "protocols_2025_plus": len(rows),
-        "unique_protocols": len(seen),
+        "unique_protocols": len(index_by_id),
         "received_2026_to_cutoff": sum(int(row.get("ProtocoloAno") or 0) == 2026 for row in rows),
         "outputs_total": sum(core._clean(row.get("StatusOperacional")) in {"Concluído", "Encerrado"} for row in rows),
         "stock": sum(core._clean(row.get("StatusOperacional")) not in {"Concluído", "Encerrado"} for row in rows),
         "status_counts": dict(status_counts),
-        "incremental_update": delta.get("audit", {}),
+        "incremental_update": {
+            **delta.get("audit", {}),
+            "replaced_existing": replaced,
+            "added_new": added,
+        },
     })
     metadata["incremental_overlay"] = {
-        "file": DELTA_PATH.name,
+        "file": DELTA_V2_PATH.name if DELTA_V2_PATH.is_file() else DELTA_PATH.name,
+        "version": version,
+        "mode": delta.get("mode", "append-only"),
         "records": len(delta.get("records", [])),
+        "replaced_existing": replaced,
+        "added_new": added,
         "source_updated_at": source_updated_at,
         "privacy": "allowlist-sanitized-no-pii",
     }

@@ -166,3 +166,69 @@ export async function exportPrivateWorkbook(password: string): Promise<string> {
   }
   return filename;
 }
+
+
+export interface IPMImportStep {
+  id: string;
+  label: string;
+  status: "done" | "pending" | "blocked" | "processing" | string;
+}
+
+export interface IPMImportRun {
+  id: string;
+  status: string;
+  phase: string;
+  created_at: string;
+  local_created_at: string;
+  source_name: string;
+  canonical_name: string;
+  sha256: string;
+  metrics: {
+    rows: number;
+    unique_protocols: number;
+    duplicates: number;
+    latest_movement: string;
+    source_sheet: string;
+    source_columns: number;
+    date_sentinels_ignored: number;
+  };
+  steps: IPMImportStep[];
+  can_publish: boolean;
+  message: string;
+}
+
+export interface IPMImportHistoryPayload {
+  ok: boolean;
+  runs: IPMImportRun[];
+  count: number;
+}
+
+export async function fetchIPMImportHistory(signal?: AbortSignal): Promise<IPMImportHistoryPayload> {
+  const response = await fetch("/api?action=ipm-update-history&limit=10", {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  return readJson<IPMImportHistoryPayload>(response);
+}
+
+export async function fetchIPMImportStatus(id: string, signal?: AbortSignal): Promise<{ ok: boolean; run: IPMImportRun }> {
+  const query = new URLSearchParams({ action: "ipm-update-status", id });
+  const response = await fetch(`/api?${query.toString()}`, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  return readJson<{ ok: boolean; run: IPMImportRun }>(response);
+}
+
+export async function uploadIPMBase(file: File): Promise<{ ok: boolean; duplicate: boolean; run: IPMImportRun }> {
+  const response = await fetch("/api?action=ipm-upload", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "X-SEPLAN-Source-Name": encodeURIComponent(file.name),
+      Accept: "application/json",
+    },
+    body: file,
+  });
+  return readJson<{ ok: boolean; duplicate: boolean; run: IPMImportRun }>(response);
+}

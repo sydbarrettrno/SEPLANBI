@@ -9,6 +9,7 @@ import { Header } from "./components/Header";
 import { IndicatorCoverage } from "./components/IndicatorCoverage";
 import { IndicatorDetail } from "./components/IndicatorDetail";
 import { KpiCard } from "./components/KpiCard";
+import { IPMUpdatePage } from "./components/IPMUpdatePage";
 import { MonthlyFlowBarChart } from "./components/MonthlyFlowBarChart";
 import { useDashboardContent } from "./content/DashboardContentContext";
 import { formatDays, formatNumber, formatPercent, monthLabel } from "./format";
@@ -57,11 +58,11 @@ export default function App({ adminAuthorized = false }: AppProps) {
   const [turnaroundTrend, setTurnaroundTrend] = useState<Array<{ label: string; value: number | null }>>([]);
 
   useEffect(() => {
-    const allowed: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators", "admin"];
+    const allowed: PageId[] = ["overview", "received", "outputs", "stock", "processes", "indicators", "ipm-update", "admin"];
     const syncHash = () => {
       const candidate = window.location.hash.replace(/^#\/?/, "") as PageId;
       if (!allowed.includes(candidate)) return;
-      if (candidate === "admin" && !adminAuthorized) return;
+      if ((candidate === "admin" || candidate === "ipm-update") && !adminAuthorized) return;
       setPage(candidate);
     };
     syncHash();
@@ -166,7 +167,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
   }, [data, filters.status, filters.owner, filters.sector]);
 
   const navigate = (nextPage: PageId) => {
-    if (nextPage === "admin" && !adminAuthorized) return;
+    if ((nextPage === "admin" || nextPage === "ipm-update") && !adminAuthorized) return;
     setPage(nextPage);
     window.history.pushState(null, "", `#/${nextPage}`);
     if (nextPage === "overview" || nextPage === "processes") {
@@ -191,7 +192,7 @@ export default function App({ adminAuthorized = false }: AppProps) {
       beforeContent={<Header sourceDate={data?.meta.source_updated_at} scopeRows={data?.meta.scope_rows} onMenu={() => setMenuOpen(true)} />}
       afterContent={loading && data ? <div className="refresh-strip" aria-label="Atualizando dados"><i /></div> : null}
     >
-      {page !== "admin" && page !== "indicators" ? (
+      {page !== "admin" && page !== "ipm-update" && page !== "indicators" ? (
         <FilterBar
           filters={filters}
           options={data?.options}
@@ -360,6 +361,8 @@ export default function App({ adminAuthorized = false }: AppProps) {
       {data && page === "stock" ? <BiPanel indicator="stock" filters={filters} onFilters={(next) => setFilters({ ...next, recordset: "all", offset: 0 })} /> : null}
 
       {data && page === "indicators" ? <IndicatorCoverage items={data.indicator_coverage} /> : null}
+
+      {page === "ipm-update" && adminAuthorized ? <IPMUpdatePage /> : null}
 
       {page === "admin" && adminAuthorized ? <AdminDescriptions /> : null}
     </DashboardShell>

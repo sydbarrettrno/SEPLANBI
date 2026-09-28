@@ -138,7 +138,7 @@ function RootRoutes() {
       <AdminAccessGate
         authorized={adminAuthorized}
         checking={!adminChecked}
-        autoOpen={route === "admin" && adminChecked && !adminAuthorized}
+        autoOpen={(route === "admin" || route === "ipm-update") && adminChecked && !adminAuthorized}
         onAuthenticated={() => setAdminAuthorized(true)}
         onOpenAdmin={openAdmin}
       />

@@ -16,6 +16,7 @@ from backend.private_export import build_private_xlsx
 from backend.private_data import load_private_rows
 from backend.private_import import install_private_xlsx
 from backend.construction_data import construction_data_response
+from backend.ipm_update_store import IPMUpdateError, create_ipm_import, get_ipm_import, list_ipm_imports
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -192,6 +193,16 @@ class handler(BaseHTTPRequestHandler):
             if action == "admin-session":
                 self._json(200, {"ok": True, "authorized": self._admin_authorized()})
                 return
+            if action == "ipm-update-history":
+                if not self._require_admin():
+                    return
+                self._json(200, list_ipm_imports(params.get("limit", 10)))
+                return
+            if action == "ipm-update-status":
+                if not self._require_admin():
+                    return
+                self._json(200, get_ipm_import(params.get("id", "")))
+                return
             if action == "dashboard-copy":
                 self._json(200, load_copy())
                 return
@@ -236,7 +247,7 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.get("action", "")
-            allowed_actions = {"admin-auth", "admin-logout", "dashboard-copy", "private-export", "private-base-upload"}
+            allowed_actions = {"admin-auth", "admin-logout", "dashboard-copy", "private-export", "private-base-upload", "ipm-upload"}
             if action not in allowed_actions:
                 self._json(400, {"ok": False, "error": "Ação inválida."})
                 return
@@ -250,6 +261,24 @@ class handler(BaseHTTPRequestHandler):
 
             client_ip = self._client_ip()
             content_type = self.headers.get("Content-Type", "").split(";", 1)[0].strip().lower()
+
+            if action == "ipm-upload":
+                if not self._require_admin():
+                    return
+                if content_type not in PRIVATE_UPLOAD_TYPES:
+                    self._json(415, {"ok": False, "error": "Selecione uma planilha XLSX."})
+                    return
+                length = int(self.headers.get("Content-Length", "0"))
+                if length <= 0 or length > 16 * 1024 * 1024:
+                    self._json(413, {"ok": False, "error": "A planilha é vazia ou excede o limite de 16 MB."})
+                    return
+                body = self.rfile.read(length)
+                source_name = unquote(self.headers.get("X-SEPLAN-Source-Name", ""))
+                try:
+                    self._json(200, create_ipm_import(body, source_name=source_name))
+                except IPMUpdateError as exc:
+                    self._json(exc.status, {"ok": False, "error": exc.public_message})
+                return
 
             if action == "private-base-upload":
                 verify_admin_password(self.headers.get("X-SEPLAN-Admin-Password", ""), client_ip)

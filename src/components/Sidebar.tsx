@@ -19,6 +19,7 @@ const NAV_ICONS: Record<string, string> = {
   construction: "▥",
   processes: "▤",
   indicators: "◫",
+  "ipm-update": "⇧",
   admin: "⚙",
 };
 
@@ -32,6 +33,7 @@ const NAV_ICON_STYLES: Record<string, { color: string; background: string; boxSh
   construction: { color: "#73ddb0", background: "rgba(45, 159, 112, .19)", boxShadow: "inset 0 0 0 1px rgba(115, 221, 176, .09)" },
   processes: { color: "#a7bad0", background: "rgba(126, 151, 178, .16)", boxShadow: "inset 0 0 0 1px rgba(167, 186, 208, .08)" },
   indicators: { color: "#7cc5ff", background: "rgba(52, 137, 207, .16)", boxShadow: "inset 0 0 0 1px rgba(124, 197, 255, .08)" },
+  "ipm-update": { color: "#82c9ff", background: "rgba(52, 137, 207, .18)", boxShadow: "inset 0 0 0 1px rgba(130, 201, 255, .09)" },
   admin: { color: "#8be0bd", background: "rgba(43, 151, 111, .18)", boxShadow: "inset 0 0 0 1px rgba(139, 224, 189, .08)" },
 };
 
@@ -57,9 +59,10 @@ export function Sidebar({ page, onNavigate, open, onClose, adminAuthorized = fal
     kpi04: { label: copy.kpi04.title, caption: "Tempo de tramitação" },
     construction: { label: "Construção Civil", caption: "Alvarás e área autorizada" },
     projects: { label: "Projetos Públicos", caption: "Carteira gerencial" },
+    "ipm-update": { label: "Atualização IPM", caption: "Enviar base diária" },
   };
   const sections = adminAuthorized
-    ? [...BASE_SECTIONS, { label: "Sistema", items: ["admin"] as PageId[] }]
+    ? [...BASE_SECTIONS, { label: "Sistema", items: ["ipm-update", "admin"] as PageId[] }]
     : BASE_SECTIONS;
 
   const isActive = (id: PageId) => {

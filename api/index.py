@@ -16,7 +16,7 @@ from backend.private_export import build_private_xlsx
 from backend.private_data import load_private_rows
 from backend.private_import import install_private_xlsx
 from backend.construction_data import construction_data_response
-from backend.ipm_update_store import IPMUpdateError, create_ipm_import, get_ipm_import, list_ipm_imports
+from backend.ipm_update_store import IPMUpdateError, create_ipm_import, get_ipm_import, list_ipm_imports, process_ipm_import
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -247,7 +247,7 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.get("action", "")
-            allowed_actions = {"admin-auth", "admin-logout", "dashboard-copy", "private-export", "private-base-upload", "ipm-upload"}
+            allowed_actions = {"admin-auth", "admin-logout", "dashboard-copy", "private-export", "private-base-upload", "ipm-upload", "ipm-process"}
             if action not in allowed_actions:
                 self._json(400, {"ok": False, "error": "Ação inválida."})
                 return
@@ -312,6 +312,15 @@ class handler(BaseHTTPRequestHandler):
                 self._json(400, {"ok": False, "error": "Corpo da requisição inválido."})
                 return
             payload = json.loads(self.rfile.read(length).decode("utf-8"))
+
+            if action == "ipm-process":
+                if not self._require_admin():
+                    return
+                try:
+                    self._json(200, process_ipm_import(str(payload.get("run_id", ""))))
+                except IPMUpdateError as exc:
+                    self._json(exc.status, {"ok": False, "error": exc.public_message})
+                return
 
             if action == "admin-auth":
                 token = create_admin_session(payload.get("password", ""), client_ip)

@@ -191,6 +191,24 @@ export interface IPMImportRun {
     source_sheet: string;
     source_columns: number;
     date_sentinels_ignored: number;
+    reference_gate?: string;
+    comparison?: {
+      baseline_rows: number;
+      current_rows: number;
+      new: number;
+      changed: number;
+      unchanged: number;
+      removed: number;
+      field_changes: {
+        opened: number;
+        last_movement: number;
+        closed: number;
+        situation: number;
+        subject: number;
+        sector: number;
+      };
+      event_counts: Record<string, number>;
+    };
   };
   steps: IPMImportStep[];
   can_publish: boolean;
@@ -231,4 +249,14 @@ export async function uploadIPMBase(file: File): Promise<{ ok: boolean; duplicat
     body: file,
   });
   return readJson<{ ok: boolean; duplicate: boolean; run: IPMImportRun }>(response);
+}
+
+
+export async function processIPMImport(runId: string): Promise<{ ok: boolean; run: IPMImportRun; already_processed?: boolean }> {
+  const response = await fetch("/api?action=ipm-process", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ run_id: runId }),
+  });
+  return readJson<{ ok: boolean; run: IPMImportRun; already_processed?: boolean }>(response);
 }

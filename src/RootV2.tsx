@@ -8,6 +8,7 @@ import { ExtendedIndicatorPanel } from "./components/ExtendedIndicatorPanel";
 import { Header } from "./components/Header";
 import { IndicatorAuditSupplement } from "./components/IndicatorAuditSupplement";
 import { IndicatorMonthlyTrend } from "./components/IndicatorMonthlyTrend";
+import { ProjectPlanPage } from "./components/ProjectPlanPage";
 import { TimeComparisonPanel } from "./components/TimeComparisonPanel";
 import { DashboardContentProvider, useDashboardContent } from "./content/DashboardContentContext";
 import type { ExtendedKpi } from "./extended";
@@ -79,12 +80,25 @@ function RootRoutes() {
   const kpi = useMemo(() => route === "projects" ? 10 : KPI_BY_ROUTE[route], [route]);
   const isProjects = route === "projects";
   const isConstruction = route === "construction";
+  const isProjectPlan = route === "project-plan";
   const updateExtendedFilters = (next: DashboardFilters) => setFilters({ ...next, recordset: "all", offset: 0 });
   const institutionalHeader = <Header onMenu={() => setMenuOpen(true)} />;
 
   return (
     <>
-      {isConstruction ? (
+      {isProjectPlan && adminAuthorized ? (
+        <DashboardShell
+          page="project-plan"
+          menuOpen={menuOpen}
+          onNavigate={navigate}
+          onMenuClose={() => setMenuOpen(false)}
+          adminAuthorized={adminAuthorized}
+          className="extended-route-shell"
+          beforeContent={institutionalHeader}
+        >
+          <ProjectPlanPage />
+        </DashboardShell>
+      ) : isConstruction ? (
         <DashboardShell
           page="construction"
           menuOpen={menuOpen}
@@ -138,7 +152,7 @@ function RootRoutes() {
       <AdminAccessGate
         authorized={adminAuthorized}
         checking={!adminChecked}
-        autoOpen={(route === "admin" || route === "ipm-update") && adminChecked && !adminAuthorized}
+        autoOpen={(route === "admin" || route === "ipm-update" || route === "project-plan") && adminChecked && !adminAuthorized}
         onAuthenticated={() => setAdminAuthorized(true)}
         onOpenAdmin={openAdmin}
       />

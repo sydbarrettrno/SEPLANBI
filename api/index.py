@@ -1,6 +1,8 @@
 from http.server import BaseHTTPRequestHandler
 from http.cookies import SimpleCookie
+import hmac
 import json
+import os
 from pathlib import Path
 import sys
 from urllib.parse import parse_qs, unquote, urlparse
@@ -26,6 +28,7 @@ from backend.ipm_supabase_store import (
     list_ipm_imports,
     list_ipm_review_rows,
     process_ipm_import,
+    process_next_ipm_import,
     reject_ipm_import,
     supabase_ipm_health,
 )
@@ -191,6 +194,17 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.pop("action", "dashboard")
+            if action == "ipm-worker":
+                secret = os.getenv("SEPLANBI_IPM_WORKER_SECRET", "")
+                token = self.headers.get("Authorization", "")
+                if not secret or not hmac.compare_digest(token, f"Bearer {secret}"):
+                    self._json(403, {"ok": False, "error": "Acesso não autorizado."})
+                    return
+                try:
+                    self._json(200, process_next_ipm_import())
+                except IPMUpdateError as exc:
+                    self._json(exc.status, {"ok": False, "error": exc.public_message})
+                return
             if action == "health":
                 self._json(200, health())
                 return

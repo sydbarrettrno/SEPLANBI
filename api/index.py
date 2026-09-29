@@ -5,6 +5,8 @@ from pathlib import Path
 import sys
 from urllib.parse import parse_qs, unquote, urlparse
 
+from vercel.headers import set_headers
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -184,6 +186,7 @@ class handler(BaseHTTPRequestHandler):
         return f"{ADMIN_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0"
 
     def do_GET(self):
+        set_headers({key: value for key, value in self.headers.items()})
         try:
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
@@ -270,6 +273,7 @@ class handler(BaseHTTPRequestHandler):
             self._json(500, {"ok": False, "error": "Falha interna ao processar a solicitação."})
 
     def do_POST(self):
+        set_headers({key: value for key, value in self.headers.items()})
         try:
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)

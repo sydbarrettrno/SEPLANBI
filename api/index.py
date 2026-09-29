@@ -25,6 +25,7 @@ from backend.ipm_supabase_store import (
     list_ipm_review_rows,
     process_ipm_import,
     reject_ipm_import,
+    supabase_ipm_health,
 )
 from backend.admin_store import (
     AdminStoreError,
@@ -189,6 +190,12 @@ class handler(BaseHTTPRequestHandler):
             action = params.pop("action", "dashboard")
             if action == "health":
                 self._json(200, health())
+                return
+            if action == "ipm-backend-health":
+                try:
+                    self._json(200, supabase_ipm_health())
+                except IPMUpdateError as exc:
+                    self._json(exc.status, {"ok": False, "error": exc.public_message})
                 return
             if action == "private-data-status":
                 if not self._require_admin():

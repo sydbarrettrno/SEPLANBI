@@ -19,6 +19,8 @@ from backend.ipm_update_store import (
     _compare_records,
     _find_header,
     _load_bootstrap,
+    _load_index as _legacy_load_index,
+    _read_gzip_json as _legacy_read_gzip_json,
     _parse_protocol,
     _value,
     parse_ipm_xlsx,
@@ -320,12 +322,63 @@ def create_ipm_import(body: bytes, source_name: str = "") -> dict[str, Any]:
     return {"ok": True, "duplicate": False, "run": _ui_run(run)}
 
 
+LEGACY_BOOTSTRAP_ROWS = 3170
+
+
+def _load_initial_baseline() -> tuple[dict[str, dict[str, str]], dict[str, Any]]:
+    """Carrega o snapshot auditado anterior para a primeira migração ao Supabase.
+
+    Prioriza o snapshot persistido no Vercel Blob legado. O arquivo local do
+    repositório é apenas fallback para ambientes de desenvolvimento e precisa
+    ser um GZIP válido.
+    """
+    legacy_error: Exception | None = None
+    try:
+        for item in _legacy_load_index():
+            snapshot_path = str(item.get("snapshot_path") or "").strip()
+            if not snapshot_path:
+                continue
+            metrics = item.get("metrics") or {}
+            declared_rows = int(metrics.get("unique_protocols") or metrics.get("rows") or 0)
+            if declared_rows and declared_rows != LEGACY_BOOTSTRAP_ROWS:
+                continue
+            payload = _legacy_read_gzip_json(snapshot_path)
+            records = payload.get("records") if isinstance(payload, dict) else None
+            if isinstance(records, dict) and len(records) == LEGACY_BOOTSTRAP_ROWS:
+                return records, {
+                    "kind": "legacy_blob_snapshot",
+                    "source_rows": len(records),
+                    "source_latest_movement": metrics.get("latest_movement"),
+                    "snapshot_path": snapshot_path,
+                }
+    except Exception as exc:
+        legacy_error = exc
+
+    try:
+        records, metadata = _load_bootstrap()
+        if len(records) != LEGACY_BOOTSTRAP_ROWS:
+            raise IPMUpdateError(
+                503,
+                f"Baseline local possui {len(records)} protocolos; esperado: {LEGACY_BOOTSTRAP_ROWS}.",
+            )
+        return records, metadata
+    except Exception as exc:
+        if legacy_error is not None:
+            raise IPMUpdateError(
+                503,
+                "Baseline inicial auditado de 3.170 protocolos não foi localizado no armazenamento legado.",
+            ) from legacy_error
+        if isinstance(exc, IPMUpdateError):
+            raise
+        raise IPMUpdateError(503, "Baseline inicial da atualização IPM está indisponível.") from exc
+
+
 def _bootstrap_classification(
     body: bytes,
     stage_rows: list[dict[str, Any]],
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     metrics, current_records = parse_ipm_xlsx(body, include_records=True)
-    previous_records, _ = _load_bootstrap()
+    previous_records, _ = _load_initial_baseline()
     comparison, events = _compare_records(previous_records, current_records)
 
     event_map = {str(item.get("protocol")): item for item in events if item.get("protocol")}
@@ -383,6 +436,12 @@ def process_ipm_import(run_id: str) -> dict[str, Any]:
 
     body = _edge("download-file", payload={"run_id": run_id}, expect_binary=True)
     stage_rows = extract_stage_rows(body)
+
+    # Primeiro persiste o staging bruto. Assim uma falha no bootstrap/comparação
+    # não deixa a execução sem evidência do que foi efetivamente recebido.
+    for offset in range(0, len(stage_rows), 400):
+        _edge("stage", payload={"run_id": run_id, "rows": stage_rows[offset:offset + 400]})
+
     baseline = _edge("baseline-info")
     protocol_count = int(baseline.get("protocol_count") or 0)
 
@@ -391,8 +450,10 @@ def process_ipm_import(run_id: str) -> dict[str, Any]:
     if protocol_count == 0:
         bootstrap_comparison, removed_rows = _bootstrap_classification(body, stage_rows)
 
-    for offset in range(0, len(stage_rows), 400):
-        _edge("stage", payload={"run_id": run_id, "rows": stage_rows[offset:offset + 400]})
+        # O bootstrap atribui new/changed/unchanged em memória; reaplica os lotes
+        # por upsert para que o staging persistido reflita a comparação auditada.
+        for offset in range(0, len(stage_rows), 400):
+            _edge("stage", payload={"run_id": run_id, "rows": stage_rows[offset:offset + 400]})
 
     for offset in range(0, len(removed_rows), 400):
         _edge("stage-removed", payload={"run_id": run_id, "rows": removed_rows[offset:offset + 400]})

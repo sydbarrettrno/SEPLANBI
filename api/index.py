@@ -205,21 +205,6 @@ class handler(BaseHTTPRequestHandler):
                 except IPMUpdateError as exc:
                     self._json(exc.status, {"ok": False, "error": exc.public_message})
                 return
-            # Recuperação controlada e temporária do G5. Disponível somente no
-            # Preview desta branch e apenas para a execução já carregada no staging.
-            if action == "ipm-g5-recover":
-                if (
-                    os.getenv("VERCEL_ENV", "") != "preview"
-                    or os.getenv("VERCEL_GIT_COMMIT_REF", "") != "feat/ipm-worker-v01"
-                    or params.get("id", "") != "44385f76-0630-4668-a211-f8de61b10f4d"
-                ):
-                    self._json(403, {"ok": False, "error": "Recuperação não autorizada."})
-                    return
-                try:
-                    self._json(200, process_ipm_import(params["id"]))
-                except IPMUpdateError as exc:
-                    self._json(exc.status, {"ok": False, "error": exc.public_message})
-                return
             if action == "health":
                 self._json(200, health())
                 return

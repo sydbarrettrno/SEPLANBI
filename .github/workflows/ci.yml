@@ -28,6 +28,8 @@ jobs:
         run: npm ci
       - name: Build React dashboard
         run: npm run build
+      - name: Validate canonical project plan
+        run: python scripts/render_project_state.py --check
       - name: Validate privacy and data minimization
         run: python scripts/check_data_privacy.py
       - name: Validate dataset and indicators

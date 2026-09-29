@@ -6,6 +6,8 @@ Responda em português do Brasil, de forma direta, técnica, organizada e rastre
 
 ## Leitura obrigatória antes de agir
 
+Para trabalho de desenvolvimento corrente, leia também `project/plan_V01.json` e `docs/PROJECT_STATE.md`. O JSON é a fonte canônica do plano até o MVP; o Markdown é gerado. Confira o gate atual no ambiente antes de mudar status, data real ou evidência. Após cada checkpoint, atualize o JSON e execute `python scripts/render_project_state.py` e `python scripts/render_project_state.py --check`.
+
 Leia integralmente, nesta ordem:
 
 1. `docs/ORCHESTRATION_STATE_SEPLANBI_V*.md`, começando pela versão mais recente;

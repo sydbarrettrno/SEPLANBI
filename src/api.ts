@@ -174,15 +174,26 @@ export interface IPMImportStep {
   status: "done" | "pending" | "blocked" | "processing" | string;
 }
 
+export interface IPMValidationIssue {
+  severity: "warning" | "error" | string;
+  issue_code: string;
+  issue_message: string;
+  protocol_id?: string | null;
+  details?: Record<string, unknown>;
+}
+
 export interface IPMImportRun {
   id: string;
   status: string;
+  db_status?: string;
   phase: string;
   created_at: string;
   local_created_at: string;
   source_name: string;
   canonical_name: string;
-  sha256: string;
+  sha256?: string;
+  can_approve?: boolean;
+  issues?: IPMValidationIssue[];
   metrics: {
     rows: number;
     unique_protocols: number;
@@ -191,6 +202,8 @@ export interface IPMImportRun {
     source_sheet: string;
     source_columns: number;
     date_sentinels_ignored: number;
+    warnings?: number;
+    errors?: number;
     reference_gate?: string;
     comparison?: {
       baseline_rows: number;
@@ -259,4 +272,64 @@ export async function processIPMImport(runId: string): Promise<{ ok: boolean; ru
     body: JSON.stringify({ run_id: runId }),
   });
   return readJson<{ ok: boolean; run: IPMImportRun; already_processed?: boolean }>(response);
+}
+
+
+export interface IPMReviewRow {
+  protocol_id: string;
+  opened_at?: string | null;
+  last_movement_at?: string | null;
+  closed_at?: string | null;
+  source_status?: string | null;
+  subject?: string | null;
+  current_sector?: string | null;
+  diff_status: "new" | "changed" | "unchanged" | string;
+  diff_fields?: Record<string, { before?: unknown; after?: unknown }>;
+  validation_errors?: unknown[];
+}
+
+export interface IPMReviewRowsPayload {
+  ok: boolean;
+  rows: IPMReviewRow[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchIPMReviewRows(
+  runId: string,
+  options: { diff?: string; q?: string; limit?: number; offset?: number } = {},
+  signal?: AbortSignal,
+): Promise<IPMReviewRowsPayload> {
+  const query = new URLSearchParams({
+    action: "ipm-review-rows",
+    id: runId,
+    limit: String(options.limit ?? 100),
+    offset: String(options.offset ?? 0),
+  });
+  if (options.diff) query.set("diff", options.diff);
+  if (options.q) query.set("q", options.q);
+  const response = await fetch(`/api?${query.toString()}`, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  return readJson<IPMReviewRowsPayload>(response);
+}
+
+export async function approveIPMImport(runId: string): Promise<{ ok: boolean; run: IPMImportRun }> {
+  const response = await fetch("/api?action=ipm-approve", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ run_id: runId }),
+  });
+  return readJson<{ ok: boolean; run: IPMImportRun }>(response);
+}
+
+export async function rejectIPMImport(runId: string, reason = ""): Promise<{ ok: boolean; run: IPMImportRun }> {
+  const response = await fetch("/api?action=ipm-reject", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ run_id: runId, reason }),
+  });
+  return readJson<{ ok: boolean; run: IPMImportRun }>(response);
 }

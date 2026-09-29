@@ -124,3 +124,174 @@ button.ipm-history-row:hover { background: #f7fbff; }
   .ipm-event-summary { align-items: flex-start; flex-direction: column; }
   .ipm-event-summary > div { justify-content: flex-start; }
 }
+
+
+.ipm-review-panel { min-width: 0; }
+.ipm-review-heading { align-items: flex-start; }
+.ipm-review-count {
+  padding: 7px 10px;
+  color: #38536e;
+  border: 1px solid #dce6ef;
+  border-radius: 999px;
+  background: #f7fafc;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.ipm-issues { display: grid; gap: 8px; margin: 0 0 18px; }
+.ipm-issue {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8ef;
+  border-radius: 9px;
+  background: #fafbfd;
+}
+.ipm-issue strong { font-size: 9px; text-transform: uppercase; }
+.ipm-issue span { color: #5f6f84; font-size: 9px; }
+.ipm-issue.error { border-color: #efcdd1; background: #fff7f8; }
+.ipm-issue.error strong { color: #b33b45; }
+.ipm-issue.warning { border-color: #f0ddc6; background: #fff9f2; }
+.ipm-issue.warning strong { color: #a05d17; }
+
+.ipm-review-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 16px 0 12px;
+}
+.ipm-review-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.ipm-review-filters button,
+.ipm-pagination button,
+.ipm-review-search button,
+.ipm-reject-button {
+  border: 1px solid #d8e2ec;
+  border-radius: 8px;
+  background: #fff;
+  color: #5b6b7f;
+  font-size: 9px;
+  font-weight: 800;
+}
+.ipm-review-filters button { padding: 7px 9px; }
+.ipm-review-filters button.active {
+  color: #155fae;
+  border-color: #9bc2e8;
+  background: #eef6ff;
+}
+.ipm-review-search { display: flex; min-width: min(420px, 100%); gap: 6px; }
+.ipm-review-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #dbe4ed;
+  border-radius: 8px;
+  color: #31445e;
+  background: white;
+  font-size: 10px;
+  outline: none;
+}
+.ipm-review-search input:focus { border-color: #86b5e2; box-shadow: 0 0 0 3px rgba(24, 113, 213, .08); }
+.ipm-review-search button { padding: 8px 11px; }
+
+.ipm-review-table {
+  border: 1px solid #e1e7ee;
+  border-radius: 11px;
+  overflow: auto;
+  background: white;
+}
+.ipm-review-row {
+  display: grid;
+  grid-template-columns: 110px 90px minmax(180px, 1.2fr) minmax(150px, 1fr) 135px minmax(220px, 1.3fr);
+  align-items: center;
+  gap: 10px;
+  min-width: 980px;
+  min-height: 54px;
+  padding: 9px 11px;
+  border-bottom: 1px solid #edf1f4;
+  color: #5b6a7f;
+  font-size: 9px;
+}
+.ipm-review-row:last-child { border-bottom: 0; }
+.ipm-review-row.header {
+  min-height: 38px;
+  color: #7b8798;
+  background: #f7f9fb;
+  font-size: 8px;
+  font-weight: 900;
+  text-transform: uppercase;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.ipm-review-row > strong { color: #29425e; font-size: 9px; }
+.ipm-review-row > span { min-width: 0; }
+.ipm-review-row > span > b {
+  display: block;
+  margin-bottom: 2px;
+  color: #3e5068;
+  font-size: 9px;
+}
+.ipm-review-row > span > small {
+  display: block;
+  color: #7b8798;
+  font-size: 8px;
+  line-height: 1.35;
+}
+.ipm-diff-badge {
+  justify-self: start;
+  padding: 4px 7px;
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.ipm-diff-badge.changed { color: #a85f17; background: #fff1df; }
+.ipm-diff-badge.new { color: #176bc4; background: #e9f3fe; }
+.ipm-diff-badge.unchanged { color: #27705c; background: #eaf7f1; }
+
+.ipm-diff-detail { display: grid; gap: 4px; }
+.ipm-diff-detail > span {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 6px;
+  align-items: baseline;
+}
+.ipm-diff-detail b { color: #526780; font-size: 7px; text-transform: uppercase; }
+.ipm-diff-detail em {
+  overflow: hidden;
+  color: #6c798a;
+  font-size: 8px;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ipm-diff-detail small { color: #8b6570; font-size: 7px; }
+.ipm-new-record { color: #176bc4; font-size: 8px; font-weight: 800; }
+.ipm-no-diff { color: #9ba5b2; }
+
+.ipm-review-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-top: 13px;
+}
+.ipm-pagination { display: flex; align-items: center; gap: 8px; }
+.ipm-pagination button { padding: 7px 9px; }
+.ipm-pagination button:disabled { opacity: .45; cursor: default; }
+.ipm-pagination span { color: #718096; font-size: 9px; }
+.ipm-decision-actions { display: flex; gap: 8px; }
+.ipm-reject-button { padding: 9px 12px; color: #aa343d; border-color: #e7c7cb; background: #fff8f9; }
+.ipm-approved-note {
+  padding: 8px 11px;
+  color: #126b50;
+  border-radius: 999px;
+  background: #e8f6f0;
+  font-size: 9px;
+  font-weight: 900;
+}
+@media (max-width: 900px) {
+  .ipm-review-toolbar, .ipm-review-footer { align-items: stretch; flex-direction: column; }
+  .ipm-review-search { min-width: 0; width: 100%; }
+  .ipm-decision-actions { justify-content: flex-end; }
+}

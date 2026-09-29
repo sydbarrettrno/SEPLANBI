@@ -16,7 +16,16 @@ from backend.private_export import build_private_xlsx
 from backend.private_data import load_private_rows
 from backend.private_import import install_private_xlsx
 from backend.construction_data import construction_data_response
-from backend.ipm_update_store import IPMUpdateError, create_ipm_import, get_ipm_import, list_ipm_imports, process_ipm_import
+from backend.ipm_supabase_store import (
+    IPMUpdateError,
+    approve_ipm_import,
+    create_ipm_import,
+    get_ipm_import,
+    list_ipm_imports,
+    list_ipm_review_rows,
+    process_ipm_import,
+    reject_ipm_import,
+)
 from backend.admin_store import (
     AdminStoreError,
     SESSION_TTL_SECONDS,
@@ -203,6 +212,17 @@ class handler(BaseHTTPRequestHandler):
                     return
                 self._json(200, get_ipm_import(params.get("id", "")))
                 return
+            if action == "ipm-review-rows":
+                if not self._require_admin():
+                    return
+                self._json(200, list_ipm_review_rows(
+                    params.get("id", ""),
+                    diff=params.get("diff", ""),
+                    q=params.get("q", ""),
+                    limit=int(params.get("limit", 100)),
+                    offset=int(params.get("offset", 0)),
+                ))
+                return
             if action == "dashboard-copy":
                 self._json(200, load_copy())
                 return
@@ -247,7 +267,7 @@ class handler(BaseHTTPRequestHandler):
             parsed = urlparse(self.path)
             params = _flatten(parsed.query)
             action = params.get("action", "")
-            allowed_actions = {"admin-auth", "admin-logout", "dashboard-copy", "private-export", "private-base-upload", "ipm-upload", "ipm-process"}
+            allowed_actions = {"admin-auth", "admin-logout", "dashboard-copy", "private-export", "private-base-upload", "ipm-upload", "ipm-process", "ipm-approve", "ipm-reject"}
             if action not in allowed_actions:
                 self._json(400, {"ok": False, "error": "Ação inválida."})
                 return
@@ -318,6 +338,27 @@ class handler(BaseHTTPRequestHandler):
                     return
                 try:
                     self._json(200, process_ipm_import(str(payload.get("run_id", ""))))
+                except IPMUpdateError as exc:
+                    self._json(exc.status, {"ok": False, "error": exc.public_message})
+                return
+
+            if action == "ipm-approve":
+                if not self._require_admin():
+                    return
+                try:
+                    self._json(200, approve_ipm_import(str(payload.get("run_id", ""))))
+                except IPMUpdateError as exc:
+                    self._json(exc.status, {"ok": False, "error": exc.public_message})
+                return
+
+            if action == "ipm-reject":
+                if not self._require_admin():
+                    return
+                try:
+                    self._json(200, reject_ipm_import(
+                        str(payload.get("run_id", "")),
+                        str(payload.get("reason", "")),
+                    ))
                 except IPMUpdateError as exc:
                     self._json(exc.status, {"ok": False, "error": exc.public_message})
                 return

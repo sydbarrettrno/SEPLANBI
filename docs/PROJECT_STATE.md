@@ -29,7 +29,7 @@ Gerado de `project/plan_V01.json`. Corte: 2026-09-29. Este arquivo não é edita
 | IPM | IPM-06 Validação automática e divergências | bloqueado | 2026-10-02 | IPM-05 | G6 | Pendente |
 | IPM | IPM-07 Revisão humana da base | bloqueado | 2026-10-05 | IPM-06 | G7 | Pendente |
 | IPM | IPM-08 Promoção transacional e histórico | bloqueado | 2026-10-06 | IPM-07 | G8 | Pendente |
-| ROB | ROB-01 Execução por etapas persistentes | pendente | 2026-10-09 | IPM-06 | G9 | Pendente |
+| ROB | ROB-01 Execução por etapas persistentes | em_execucao | 2026-10-02 | IPM-04 | G9 | Código local do worker, lease SQL e Edge V04 preparados em feat/ipm-worker-v01; testes locais passaram em 29/09/2026 |
 | BI | BI-01 Recalcular indicadores após aprovação | bloqueado | 2026-10-09 | IPM-08 | G10 | Pendente |
 | BI | BI-02 Publicar estado aprovado na API e tela | bloqueado | 2026-10-13 | BI-01, ROB-01 | G11 | Pendente |
 | MVP | MVP-01 Segundo ciclo real de atualização | bloqueado | 2026-10-16 | BI-02 | G12 | Pendente |

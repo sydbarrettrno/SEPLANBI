@@ -439,8 +439,9 @@ def process_ipm_import(run_id: str) -> dict[str, Any]:
 
     # Primeiro persiste o staging bruto. Assim uma falha no bootstrap/comparação
     # não deixa a execução sem evidência do que foi efetivamente recebido.
-    for offset in range(0, len(stage_rows), 400):
-        _edge("stage", payload={"run_id": run_id, "rows": stage_rows[offset:offset + 400]})
+    if int(raw_run.get("staged_rows") or 0) != len(stage_rows):
+        for offset in range(0, len(stage_rows), 400):
+            _edge("stage", payload={"run_id": run_id, "rows": stage_rows[offset:offset + 400]})
 
     baseline = _edge("baseline-info")
     protocol_count = int(baseline.get("protocol_count") or 0)
@@ -485,6 +486,31 @@ def process_ipm_import(run_id: str) -> dict[str, Any]:
         "run": _ui_run(raw_run, status_payload.get("issues") or []),
         "already_processed": False,
     }
+
+
+def process_next_ipm_import() -> dict[str, Any]:
+    """Uma unidade de trabalho; o banco detém o lease e limita concorrência."""
+    claim = _edge("claim-next").get("result") or {}
+    run_id = claim.get("run_id")
+    lease_token = claim.get("lease_token")
+    if not run_id or not lease_token:
+        return {"ok": True, "processed": False}
+
+    try:
+        result = process_ipm_import(str(run_id))
+    except Exception as exc:
+        # O erro fica registrado para a próxima tentativa, sem promover dados.
+        try:
+            _edge("finish-worker", payload={
+                "run_id": run_id, "lease_token": lease_token,
+                "error": exc.public_message if isinstance(exc, IPMUpdateError) else "Falha interna no processamento.",
+            })
+        except Exception:
+            pass  # O lease expira e permite retomada após falha de rede.
+        raise
+
+    _edge("finish-worker", payload={"run_id": run_id, "lease_token": lease_token})
+    return {"ok": True, "processed": True, "run_id": str(run_id), "status": result["run"]["db_status"]}
 
 
 def list_ipm_imports(limit: int = 10) -> dict[str, Any]:

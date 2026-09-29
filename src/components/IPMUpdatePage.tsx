@@ -35,6 +35,9 @@ function phaseLabel(run: IPMImportRun) {
   return "BASE PREPARADA";
 }
 
+// Ativar somente após o worker agendado ter passado no gate de produção.
+const automaticWorkerEnabled = import.meta.env.VITE_IPM_AUTO_WORKER_ENABLED === "true";
+
 const fieldLabels: Record<string, string> = {
   opened_at: "Abertura",
   last_movement_at: "Último trâmite",
@@ -112,6 +115,7 @@ export function IPMUpdatePage() {
   }, []);
 
   useEffect(() => {
+    if (automaticWorkerEnabled) return;
     if (!run || run.phase !== "VALIDATION_COMPLETE" || attemptedProcess.current.has(run.id)) return;
     attemptedProcess.current.add(run.id);
     setProcessing(true);
@@ -235,7 +239,9 @@ export function IPMUpdatePage() {
       setRun(result.run);
       setFile(null);
       if (inputRef.current) inputRef.current.value = "";
-      setFeedback("Arquivo original armazenado no Supabase. A validação será iniciada automaticamente.");
+      setFeedback(automaticWorkerEnabled
+        ? "Arquivo armazenado. A pipeline continuará mesmo se você fechar esta página."
+        : "Arquivo original armazenado no Supabase. A validação será iniciada nesta sessão.");
       await loadHistory();
     } catch (reason) {
       setFeedback(reason instanceof Error ? reason.message : "Não foi possível receber a base IPM.");

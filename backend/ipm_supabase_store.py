@@ -54,14 +54,11 @@ def _edge(
     expect_binary: bool = False,
     timeout: int = 25,
 ):
-    token = os.getenv("VERCEL_OIDC_TOKEN", "").strip()
-    if not token:
-        try:
-            from vercel.functions import get_env
-            env = get_env()
-            token = str(getattr(env, "VERCEL_OIDC_TOKEN", "") or "").strip()
-        except Exception:
-            token = ""
+    try:
+        from vercel.oidc import get_vercel_oidc_token_sync
+        token = str(get_vercel_oidc_token_sync() or "").strip()
+    except Exception:
+        token = os.getenv("VERCEL_OIDC_TOKEN", "").strip()
     if not token:
         raise IPMUpdateError(503, "A conexão segura Vercel → Supabase não está disponível.")
 

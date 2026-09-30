@@ -11,17 +11,17 @@ from backend.final_entry import dashboard, health, query_from_params  # noqa: E4
 from backend.admin_store import DEFAULT_COPY, DEFAULT_DESCRIPTIONS, load_copy, load_descriptions  # noqa: E402
 
 EXPECTED = {
-    "rows": 7064,
-    "received_default": 2899,
-    "concluded_operational": 2293,
-    "concluded_formal": 1920,
-    "stock": 2159,
-    "internal_queue": 1545,
-    "external_wait": 583,
+    "rows": 7499,
+    "received_default": 3334,
+    "concluded_operational": 2648,
+    "concluded_formal": 2107,
+    "stock": 2239,
+    "internal_queue": 1627,
+    "external_wait": 581,
     "paralyzed": 31,
-    "stopped_30_internal": 1096,
-    "turnaround_median": 54.0,
-    "turnaround_p90": 227.6,
+    "stopped_30_internal": 1189,
+    "turnaround_median": 49.0,
+    "turnaround_p90": 211.0,
 }
 
 h = health()
@@ -43,10 +43,10 @@ assert m["internal_queue"] == EXPECTED["internal_queue"], m
 assert m["external_wait"] == EXPECTED["external_wait"], m
 assert m["paralyzed"] == EXPECTED["paralyzed"], m
 assert m["stopped"]["count"] == EXPECTED["stopped_30_internal"], m
-assert round(m["stopped"]["percent"], 1) == 70.9, m
+assert round(m["stopped"]["percent"], 1) == 73.1, m
 assert m["turnaround"]["median_days"] == EXPECTED["turnaround_median"], m
 assert m["turnaround"]["p90_days"] == EXPECTED["turnaround_p90"], m
-assert len(d["charts"]["flow"]) == 8, d["charts"]["flow"]
+assert len(d["charts"]["flow"]) == 9, d["charts"]["flow"]
 assert sum(item["value"] for item in d["charts"]["received_categories"]) == m["received"]
 assert sum(item["value"] for item in d["charts"]["concluded_categories"]) == m["concluded"]
 assert sum(item["value"] for item in d["charts"]["categories"]) == m["stock"]
@@ -55,12 +55,12 @@ assert len(d["records"]["items"]) <= 200
 assert any(x["id"] == "KPI06" and x["status"] != "DISPONÍVEL" for x in d["indicator_coverage"])
 
 cmp = d["management"]["comparison"]
-assert cmp["previous"]["received"] == 2838, cmp
-assert cmp["current"]["cohort_concluded_formal"] == 1344, cmp
-assert cmp["previous"]["cohort_concluded_formal"] == 1274, cmp
-assert cmp["received_change_percent"] == 2.1, cmp
-assert cmp["cohort_formal_change_percent"] == 5.5, cmp
-assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 839
+assert cmp["previous"]["received"] == 3229, cmp
+assert cmp["current"]["cohort_concluded_formal"] == 1531, cmp
+assert cmp["previous"]["cohort_concluded_formal"] == 1565, cmp
+assert cmp["received_change_percent"] == 3.3, cmp
+assert cmp["cohort_formal_change_percent"] == -2.2, cmp
+assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 887
 assert set(d["options"]["statuses"]) == {
     "Em Análise",
     "Finalização Interna",

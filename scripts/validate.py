@@ -11,13 +11,13 @@ from backend.final_entry import dashboard, health, query_from_params  # noqa: E4
 from backend.admin_store import DEFAULT_COPY, DEFAULT_DESCRIPTIONS, load_copy, load_descriptions  # noqa: E402
 
 EXPECTED = {
-    "rows": 7064,
+    "rows": 7499,
     "received_default": 2899,
     "concluded_operational": 2293,
     "concluded_formal": 1920,
-    "stock": 2159,
-    "internal_queue": 1545,
-    "external_wait": 583,
+    "stock": 2239,
+    "internal_queue": 1627,
+    "external_wait": 581,
     "paralyzed": 31,
     "stopped_30_internal": 1096,
     "turnaround_median": 54.0,

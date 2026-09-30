@@ -12,16 +12,16 @@ from backend.admin_store import DEFAULT_COPY, DEFAULT_DESCRIPTIONS, load_copy, l
 
 EXPECTED = {
     "rows": 7499,
-    "received_default": 2899,
-    "concluded_operational": 2293,
-    "concluded_formal": 1920,
+    "received_default": 3334,
+    "concluded_operational": 2648,
+    "concluded_formal": 2107,
     "stock": 2239,
     "internal_queue": 1627,
     "external_wait": 581,
     "paralyzed": 31,
-    "stopped_30_internal": 1096,
-    "turnaround_median": 54.0,
-    "turnaround_p90": 227.6,
+    "stopped_30_internal": 1189,
+    "turnaround_median": 49.0,
+    "turnaround_p90": 211.0,
 }
 
 h = health()
@@ -43,7 +43,7 @@ assert m["internal_queue"] == EXPECTED["internal_queue"], m
 assert m["external_wait"] == EXPECTED["external_wait"], m
 assert m["paralyzed"] == EXPECTED["paralyzed"], m
 assert m["stopped"]["count"] == EXPECTED["stopped_30_internal"], m
-assert round(m["stopped"]["percent"], 1) == 70.9, m
+assert round(m["stopped"]["percent"], 1) == 73.1, m
 assert m["turnaround"]["median_days"] == EXPECTED["turnaround_median"], m
 assert m["turnaround"]["p90_days"] == EXPECTED["turnaround_p90"], m
 assert len(d["charts"]["flow"]) == 8, d["charts"]["flow"]

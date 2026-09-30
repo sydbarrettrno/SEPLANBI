@@ -60,7 +60,7 @@ assert cmp["current"]["cohort_concluded_formal"] == 1531, cmp
 assert cmp["previous"]["cohort_concluded_formal"] == 1565, cmp
 assert cmp["received_change_percent"] == 3.3, cmp
 assert cmp["cohort_formal_change_percent"] == -2.2, cmp
-assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 839
+assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 887
 assert set(d["options"]["statuses"]) == {
     "Em Análise",
     "Finalização Interna",

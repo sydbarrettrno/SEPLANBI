@@ -82,9 +82,14 @@ def load_overlay() -> dict | None:
     if not path.is_file():
         return None
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload.get("v") == 1, payload.get("v")
+    version = int(payload.get("v") or 0)
+    assert version in {1, 2}, version
     assert isinstance(payload.get("records"), list), "Overlay incremental sem lista de registros."
+    if version == 2:
+        assert payload.get("mode") == "upsert", payload.get("mode")
+        assert int(payload.get("expected_effective_rows") or 0) > 0
     for row in payload["records"]:
+        assert isinstance(row, dict), "Registro incremental inválido."
         assert set(row).issubset(ALLOWED_ROW_FIELDS), sorted(set(row) - ALLOWED_ROW_FIELDS)
         assert not core.FORBIDDEN_KEYS.intersection(row), sorted(core.FORBIDDEN_KEYS.intersection(row))
         serialized = json.dumps(row, ensure_ascii=False)
@@ -168,7 +173,12 @@ assert all(set(row) == ALLOWED_ROW_FIELDS for row in rows), "Schema público efe
 assert len(rows) == int(effective_metadata["source_rows"])
 assert len({row["ProtocoloID"] for row in rows}) == len(rows)
 overlay_count = len(overlay["records"]) if overlay else 0
-assert len(rows) == base_manifest_rows + overlay_count
+overlay_version = int(overlay.get("v") or 0) if overlay else 0
+if overlay_version == 2:
+    assert overlay.get("mode") == "upsert"
+    assert len(rows) == int(overlay["expected_effective_rows"])
+else:
+    assert len(rows) == base_manifest_rows + overlay_count
 
 print(
     json.dumps(
@@ -181,6 +191,7 @@ print(
             "published_public_projects": project_count,
             "base_artifact_rows": base_manifest_rows,
             "incremental_rows": overlay_count,
+            "incremental_version": overlay_version,
             "published_rows": len(rows),
             "dictionary_values_checked": len(dictionary_values),
             "note": "Minimizado, mas não anonimizado: protocolo e datas permanecem identificadores indiretos.",

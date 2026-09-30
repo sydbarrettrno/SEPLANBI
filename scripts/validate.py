@@ -55,11 +55,11 @@ assert len(d["records"]["items"]) <= 200
 assert any(x["id"] == "KPI06" and x["status"] != "DISPONÍVEL" for x in d["indicator_coverage"])
 
 cmp = d["management"]["comparison"]
-assert cmp["previous"]["received"] == 2838, cmp
-assert cmp["current"]["cohort_concluded_formal"] == 1344, cmp
-assert cmp["previous"]["cohort_concluded_formal"] == 1274, cmp
-assert cmp["received_change_percent"] == 2.1, cmp
-assert cmp["cohort_formal_change_percent"] == 5.5, cmp
+assert cmp["previous"]["received"] == 3229, cmp
+assert cmp["current"]["cohort_concluded_formal"] == 1531, cmp
+assert cmp["previous"]["cohort_concluded_formal"] == 1565, cmp
+assert cmp["received_change_percent"] == 3.3, cmp
+assert cmp["cohort_formal_change_percent"] == -2.2, cmp
 assert d["management"]["data_quality"]["operational_closed_without_formal_date"] == 839
 assert set(d["options"]["statuses"]) == {
     "Em Análise",

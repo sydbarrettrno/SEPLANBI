@@ -46,7 +46,7 @@ assert m["stopped"]["count"] == EXPECTED["stopped_30_internal"], m
 assert round(m["stopped"]["percent"], 1) == 73.1, m
 assert m["turnaround"]["median_days"] == EXPECTED["turnaround_median"], m
 assert m["turnaround"]["p90_days"] == EXPECTED["turnaround_p90"], m
-assert len(d["charts"]["flow"]) == 8, d["charts"]["flow"]
+assert len(d["charts"]["flow"]) == 9, d["charts"]["flow"]
 assert sum(item["value"] for item in d["charts"]["received_categories"]) == m["received"]
 assert sum(item["value"] for item in d["charts"]["concluded_categories"]) == m["concluded"]
 assert sum(item["value"] for item in d["charts"]["categories"]) == m["stock"]

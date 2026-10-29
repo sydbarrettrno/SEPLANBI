@@ -29,7 +29,7 @@ HEADER_ALIASES = {
     "opened": ("Abertura - Data", "DataAbertura"),
     "moved": ("Último Trâmite - Data/Hora", "DataUltTramite", "UltTramiteData"),
     "closed": ("Data Encerramento", "DataEncerramento"),
-    "situation": ("Situação",),
+    "situation": ("Situação", "Situacao"),
     "subject": ("Subassunto - Descrição", "Assunto", "Categoria"),
     "sector": ("Centro de Custo Atual - Descrição", "CCAtual"),
 }

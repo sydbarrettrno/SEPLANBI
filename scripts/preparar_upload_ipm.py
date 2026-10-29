@@ -1,7 +1,10 @@
-"""Prepara um XLSX do IPM para envio manual ao painel, sem modificar a origem.
+"""Valida o XLSX IPM com as mesmas regras do backend, preparando upload manual.
 
-Uso: python scripts/preparar_upload_ipm.py "C:\\caminho\\relatorio.xlsx"
-Requer openpyxl (requirements.txt).
+Uso:
+    python scripts/preparar_upload_ipm.py "C:\\Users\\usuario\\Downloads\\Relatorio.xlsx"
+    python scripts/preparar_upload_ipm.py "Relatorio.xlsx" --saida "C:\\Dados\\BASEIPM.xlsx"
+
+Não envia dados para rede e não altera a base original ou o dashboard.
 """
 from __future__ import annotations
 
@@ -13,68 +16,55 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
-from openpyxl import load_workbook
+from backend.ipm_update_store import IPMUpdateError, validate_ipm_xlsx
 
-from backend.ipm_update_store import HEADER_ALIASES, REQUIRED_FIELDS, _parse_protocol
+
+MAX_IPM_BYTES = 16 * 1024 * 1024
 
 
 def preparar(origem: Path, destino: Path) -> dict:
     origem = origem.expanduser().resolve()
     destino = destino.expanduser().resolve()
-    if origem.suffix.lower() != ".xlsx" or not origem.is_file():
-        raise ValueError("Informe um arquivo XLSX existente.")
+    if not origem.is_file() or origem.suffix.casefold() != ".xlsx":
+        raise ValueError("Informe um XLSX existente do relatório IPM.")
     if origem == destino:
-        raise ValueError("Destino não pode substituir a fonte.")
-    if origem.stat().st_size > 12 * 1024 * 1024:
-        raise ValueError("Arquivo excede 12 MB; verifique o limite de upload do sistema.")
-    workbook = load_workbook(origem, read_only=True, data_only=True)
+        raise ValueError("O destino não pode substituir o relatório original.")
+    if origem.stat().st_size > MAX_IPM_BYTES:
+        raise ValueError("O arquivo excede 16 MB (limite atual da API IPM).")
+
+    # Uma única regra de validação: a mesma usada por create_ipm_import.
+    data = origem.read_bytes()
     try:
-        sheet = workbook["Report"] if "Report" in workbook.sheetnames else workbook.active
-        headers = None
-        header_row = 0
-        for idx, values in enumerate(sheet.iter_rows(min_row=1, max_row=12, values_only=True), 1):
-            found = {str(v).strip(): col for col, v in enumerate(values) if v is not None}
-            mapping = {key: next((found[a] for a in aliases if a in found), None)
-                       for key, aliases in HEADER_ALIASES.items()}
-            if all(mapping.get(k) is not None for k in REQUIRED_FIELDS):
-                headers, header_row = mapping, idx
-                break
-        if headers is None:
-            raise ValueError("Cabeçalhos IPM obrigatórios não encontrados nas 12 primeiras linhas.")
-        protocols = set()
-        invalid = 0
-        duplicates = 0
-        for values in sheet.iter_rows(min_row=header_row + 1, values_only=True):
-            if not any(v is not None and str(v).strip() for v in values):
-                continue
-            col = headers["protocol"]
-            value = values[col] if col < len(values) else None
-            protocol = _parse_protocol(value)
-            if not protocol:
-                invalid += 1
-            elif protocol in protocols:
-                duplicates += 1
-            else:
-                protocols.add(protocol)
-        if invalid or duplicates or not protocols:
-            raise ValueError(f"Validação bloqueada: {invalid} protocolos inválidos, {duplicates} duplicados, {len(protocols)} únicos.")
-    finally:
-        workbook.close()
+        metricas = validate_ipm_xlsx(data)
+    except IPMUpdateError as exc:
+        raise ValueError(exc.public_message) from exc
+
     destino.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(origem, destino)
-    digest = hashlib.sha256(destino.read_bytes()).hexdigest()
-    return {"arquivo": str(destino), "protocolos_unicos": len(protocols),
-            "sha256": digest, "observacao": "Arquivo validado localmente; não foi enviado nem publicado."}
+    if destino.exists():
+        raise ValueError("O arquivo de destino já existe; nenhuma substituição foi feita.")
+    # Grava em modo exclusivo para não sobrescrever um arquivo concorrente.
+    with destino.open("xb") as output:
+        output.write(data)
+    return {
+        "ok": True,
+        "arquivo_para_upload": str(destino),
+        "sha256": hashlib.sha256(data).hexdigest(),
+        "metricas": metricas,
+        "publicado": False,
+        "observacao": "Pronto para upload manual na área administrativa; indicadores não foram alterados.",
+    }
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Verifica XLSX IPM antes do upload manual.")
-    parser.add_argument("origem", type=Path)
-    parser.add_argument("--saida", type=Path, default=None)
+    parser = argparse.ArgumentParser(description="Pré-validação local da base XLSX IPM.")
+    parser.add_argument("origem", type=Path, help="Arquivo XLSX exportado do IPM")
+    parser.add_argument("--saida", type=Path, help="Destino da cópia validada")
     args = parser.parse_args()
-    destino = args.saida or (Path.home() / "Downloads" / f"BASEIPM_UPLOAD_{datetime.now():%Y%m%d_%H%M%S}.xlsx")
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    destino = args.saida or (Path.home() / "Downloads" / f"BASEIPM_UPLOAD_{stamp}.xlsx")
     try:
         print(json.dumps(preparar(args.origem, destino), ensure_ascii=False, indent=2))
     except (OSError, ValueError) as exc:
